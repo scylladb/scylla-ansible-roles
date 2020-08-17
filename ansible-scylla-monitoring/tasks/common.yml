@@ -1,0 +1,50 @@
+---
+- name: create the install directory
+  file:
+    path: "{{ scylla_monitoring_deploy_path }}"
+    state: directory
+    mode: '1775'
+    recurse: yes
+    owner: "{{ ansible_user }}"
+  become: true
+
+- name: create the data directory
+  file:
+    path: "{{ scylla_monitoring_data_path }}"
+    state: directory
+    mode: '1775'
+    recurse: yes
+    owner: "{{ ansible_user }}"
+  become: true
+
+- name: download the monitoring archive
+  get_url:
+    url: "{{ scylla_monitoring_archive_url }}"
+    dest: "{{ scylla_monitoring_deploy_path }}"
+    mode: '0644'
+    owner: "{{ ansible_user }}"
+  register: monitoring_archive
+
+- name: download and unpack the monitoring archive
+  unarchive:
+    src: "{{ monitoring_archive.dest }}"
+    dest: "{{ scylla_monitoring_deploy_path }}"
+    remote_src: yes
+    list_files: yes
+  register: unpacked_files
+
+- set_fact:
+    base_dir: "{{ scylla_monitoring_deploy_path }}/{{ unpacked_files.files[0] }}"
+
+- name: insert scylla_servers.yml
+  copy:
+    src: "{{ scylla_servers_yml_path }}"
+    dest: "{{ base_dir }}/prometheus/scylla_servers.yml"
+    mode: '0644'
+
+- name: set up scylla_manager_servers.yml
+  copy:
+    content: |
+      - targets:
+        - {{ groups['scylla-manager'][0]|default('127.0.0.1') }}:56090
+    dest: "{{ base_dir }}/prometheus/scylla_manager_servers.yml"

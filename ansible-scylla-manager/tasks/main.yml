@@ -1,0 +1,41 @@
+---
+- name: deploy local Scylla on the Manager node
+  import_role:
+    name: "{{ role_path }}/../ansible-scylla-node"
+  vars:
+    install_only: True
+    scylla_manager_enabled: false
+    scylla_version: 'latest'
+    scylla_edition: 'oss'
+    scylla_repos: "{{ scylla_manager_db_vars.scylla_repos }}"
+    elrepo_kernel: false
+    scylla_repo_keyserver: "{{ scylla_manager_db_vars.scylla_repo_keyserver|default('') }}"
+    scylla_repo_keys: "{{ scylla_manager_db_vars.scylla_repo_keys|default([]) }}"
+    scylla_dependencies: "{{ scylla_manager_db_vars.scylla_dependencies|default([]) }}"
+
+- name: install Scylla Manager
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+- name: run scyllamgr_setup
+  shell: |
+    scyllamgr_setup -y
+  become: true
+
+- name: start and enable scylla-manager
+  service:
+    name: scylla-manager
+    state: started
+    enabled: yes
+  become: true
+
+- name: wait for the manager to become operational
+  wait_for:
+    port: 56080
+    timeout: 300
+
+- name: add Scylla clusters
+  include_tasks: add-clusters.yml
+  loop: "{{ scylla_clusters }}"
+
+
+

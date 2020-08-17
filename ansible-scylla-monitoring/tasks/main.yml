@@ -1,0 +1,17 @@
+---
+# - name: os-specific vars
+#   include_vars: "{{ ansible_os_family }}.yml"
+
+- name: os-specific tasks
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+- name: common tasks
+  include_tasks: common.yml
+
+- name: install dockerized monitoring
+  include_tasks: docker.yml
+  when: install_type == 'docker'
+
+- name: install non-dockerized monitoring
+  include_tasks: non-docker.yml
+  when: install_type != 'docker'

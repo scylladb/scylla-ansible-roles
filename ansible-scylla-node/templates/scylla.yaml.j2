@@ -1,0 +1,46 @@
+# Configured by Ansible Scylla role
+# Additional parameters can be edited right here for all-node distribution
+
+cluster_name: "{{ scylla_cluster_name }}"
+
+data_file_directories:
+    - /var/lib/scylla/data
+
+commitlog_directory: /var/lib/scylla/commitlog
+
+authenticator: PasswordAuthenticator
+authorizer: CassandraAuthorizer
+
+num_tokens: 256
+commitlog_sync: periodic
+commitlog_sync_period_in_ms: 10000
+commitlog_segment_size_in_mb: 32
+
+seed_provider:
+    - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+      parameters:
+          - seeds: "{{ scylla_seeds | join(',') }}"
+
+listen_address: {{ scylla_listen_address }}
+native_transport_port: 9042
+read_request_timeout_in_ms: 5000
+write_request_timeout_in_ms: 2000
+cas_contention_timeout_in_ms: 1000
+endpoint_snitch: {{ scylla_snitch }}
+rpc_address: {{ scylla_rpc_address }}
+broadcast_address: {{ scylla_broadcast_address }}
+rpc_port: 9160
+api_port: {{ scylla_api_port }}
+api_address: {{ scylla_api_address }}
+batch_size_warn_threshold_in_kb: 5
+batch_size_fail_threshold_in_kb: 50
+partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+commitlog_total_space_in_mb: -1
+murmur3_partitioner_ignore_msb_bits: 12
+api_ui_dir: /opt/scylladb/swagger-ui/dist/
+api_doc_dir: /opt/scylladb/api/api-doc/
+
+{% if enable_mc_format is defined and enable_mc_format %}
+enable_sstables_mc_format: true
+{% endif %}
+

@@ -1,0 +1,9 @@
+---
+
+- name: os-specific tasks
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+- name: common tasks
+  include_tasks: common.yml
+  when: install_only|bool == false
+

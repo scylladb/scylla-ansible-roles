@@ -1,0 +1,43 @@
+---
+
+# Set this to "nondocker" for a flat installation or "docker" for the dockerized install (recommended)
+# Default and recommended install is via docker
+install_type: 'docker'
+
+# The scylla_node role generates this file, which should be used with the monitoring.
+# Alternatively, this file can be written manually, following the example at the
+# scylla-monitoring github: https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/scylla_servers.example.yml
+scylla_servers_yml_path: scylla_servers.yml
+
+# Will configure scylla_manager if the manager IP is configured. Comment out if running without manager
+scylla_manager_ip: '127.0.0.1'
+
+# Download the scylla-monitoring from here
+scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.4.1.tar.gz'
+
+scylla_monitoring_deploy_path: /opt/scylla-monitoring
+scylla_monitoring_data_path: /opt/scylla-monitoring/data
+
+# List of monitoring dashboards to enable
+scylla_monitoring_dashboards_versions:
+  - 'latest'
+  - '2019.1'
+
+# How long to keep data for.
+# Format: [NUMBER][s|m|h|d]
+# Example: "1000h" will keep data to 1000 hours
+scylla_monitoring_retention: "14d"
+
+# Other scylla monitoring parameters used with start-all.sh
+# scylla_monitoring_params: '-M 2.1 -a P@ssw0rd123'
+
+### The following settings are only relevant for non-dockerized setup
+
+# Check https://prometheus.io/download/ for newer versions or stick to the default below
+alert_manager_url: 'https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz'
+
+# Check https://prometheus.io/download/ for newer versions or stick to the default below
+prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.19.2/prometheus-2.19.2.linux-amd64.tar.gz'
+
+# Additional arguments to pass to the prometheus binary
+#prometheus_args: "--web.enable-admin-api --storage.tsdb.retention.size=50G"

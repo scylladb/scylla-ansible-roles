@@ -1,0 +1,27 @@
+---
+- name: reload systemd configuration	
+  become: true	
+  systemd:	
+    daemon_reload: true	
+
+# Restart service and ensure it is enabled	
+
+- name: scylla restart	
+  become: true	
+  service:	
+    name: scylla-server	
+    state: restarted	
+    enabled: yes	
+
+- name: scylla stop	
+  become: true	
+  service:	
+    name: scylla-server	
+    state: stopped	
+
+- name: node_exporter start	
+  become: true	
+  service:	
+    name: node-exporter	
+    state: started	
+    enabled: yes	

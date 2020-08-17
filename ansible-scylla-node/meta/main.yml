@@ -1,0 +1,29 @@
+---
+
+allow_duplicates: yes
+
+galaxy_info:
+  author: Dan Yasny, Lubos Kosco
+  description: Scylla node role
+  company: "ScyllaDB.com"
+  license: "license (Apache)"
+  min_ansible_version: 2.8.0
+  platforms:
+  - name: EL
+    versions:
+    - 7
+  - name: Debian
+    versions:
+    - 8
+    - 9
+  - name: Ubuntu
+    versions:
+    - 16.04
+    - 18.04
+  - galaxy_tags:
+    - scylla
+    - scylladb
+    - scylla-node
+    - cassandra
+dependencies: []
+

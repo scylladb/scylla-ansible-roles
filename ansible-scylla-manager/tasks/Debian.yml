@@ -1,0 +1,38 @@
+---
+- name: install and configure Scylla Manager
+  block:
+    - name: Add an apt key by id from a keyserver
+      apt_key:
+        keyserver: "{{ scylla_repo_keyserver }}"
+        id: "{{ item }}"
+      with_items: "{{ scylla_manager_repo_keys }}"
+      when: scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
+
+    - name: add Scylla Manager repo
+      get_url:
+        url: "{{ scylla_manager_repo_url }}"
+        dest: '/etc/apt/sources.list.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+        mode: '0644'
+        owner: root
+      when: scylla_manager_repo_url.split(".")[-1] == "list"
+
+    - name: refresh apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 600
+        name: "*"
+        state: latest
+        force_apt_get: yes
+
+    - name: install the manager agent
+      apt:
+        name:
+          - scylla-manager-server
+          - scylla-manager-client
+        state: present
+  become: true
+
+
+
+
+

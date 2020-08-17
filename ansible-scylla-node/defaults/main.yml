@@ -1,0 +1,107 @@
+---
+# set to true if the role should enable the specified repos, install the binaries and stop
+install_only: false
+
+# Change here or override in vars
+scylla_nic: "{{ ansible_default_ipv4.interface }}"
+
+# online|offline - offline will disable all the attepts to download packages
+# node_exporter will need to be installed manually
+install_type: online
+
+# URL of an RPM .repo file or a DEB .list file
+scylla_repos:
+  - http://repositories.scylladb.com/scylla/repo/***/centos/scylladb-2019.1.repo
+
+
+# Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
+elrepo_kernel: True
+
+# Only relevant for Debian/Ubuntu
+scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
+scylla_repo_keys:
+  - 5e08fbd8b5d6ec9c
+  #- 6B2BFD3660EF3F5B
+  #- 17723034C56D4B19
+
+scylla_manager_repo_keys:
+  - 6B2BFD3660EF3F5B
+  - 17723034C56D4B19
+
+
+# Set when relevant (Debian for example)
+scylla_repo_keyfile_urls:
+  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
+
+# Configure when additional dependency packages are required (only for some distributions)
+scylla_dependencies:
+  - curl
+  - wget
+  #- software-properties-common
+  #- apt-transport-https
+  #- gnupg2
+  #- dirmngr
+
+# Specify a Scylla version here (should be available in repo)
+# ex: scylla_version: 2019.1.9 or 3.2.1
+scylla_version: latest
+
+# Options are oss|enterprise
+#scylla_edition: oss
+scylla_edition: enterprise
+
+# scylla.yaml settables. Additional changes can be added to templates/scylla.yaml.j2
+scylla_cluster_name: 'testcluster123'
+scylla_snitch: GossipingPropertyFileSnitch
+
+# IO settings
+# probe for IO figures on one node and reuse the figures on all nodes (recommended: True)
+scylla_io_probe: True
+
+# These can be arbitrarily set if scylla_io_probe is set to False
+# io_properties:
+#   disks:
+#     - mountpoint: /var/lib/scylla/data
+#       read_iops: 10962999
+#       read_bandwidth: 348093056
+#       write_iops: 9722999
+#       write_bandwidth: 352182944
+
+# This will become obsolete once the option becomes default in Scylla.
+enable_mc_format: true
+
+# Seeds node list
+scylla_seeds:
+  - "{{ groups['scylla'][0] }}"
+
+scylla_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+scylla_rpc_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+scylla_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+
+scylla_api_address: '127.0.0.1'
+scylla_api_port: '10000'
+
+# create scylla_servers.yml for later use with monitoring
+generate_monitoring_config: True
+
+# If Scylla Manager will be used, set the following variables
+scylla_manager_enabled: true
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
+
+# Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
+# Please ensure it is a valid and working configuration. Please refer to the example configuration file and the
+# documentation for detailed instructions
+scylla_manager_agent_config: |
+  s3:
+    access_key_id: 12345678
+    secret_access_key: QWerty123456789
+    provider: AWS
+    region: us-east-1c
+    endpoint: https://foo.bar.baz
+    server_side_encryption:
+    sse_kms_key_id:
+    upload_concurrency: 2
+    chunk_size: 50M
+    use_accelerate_endpoint: false
+
+

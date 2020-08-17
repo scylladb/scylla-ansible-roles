@@ -1,0 +1,70 @@
+---
+
+- name: install dependencies
+  block:
+  - name: install EPEL
+    yum:
+      name:
+        - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+      state: present
+
+  - name: install additional dependencies
+    yum:
+      name:
+        - git
+        - python36
+        - python36-PyYAML
+      state: present
+  become: true
+
+- name: run docker related tasks
+  block:
+    - name: remove unneeded deps
+      yum:
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-logrotate
+          - docker-engine
+        state: absent
+
+    - name: download docker-ce repo
+      get_url:
+        url: "https://download.docker.com/linux/centos/docker-ce.repo"
+        dest: /etc/yum.repos.d/docker-ce.repo
+        mode: '0644'
+        owner: root
+
+    - name: install docker
+      yum:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    - name: create docker group
+      group:
+        name: docker
+        state: present
+
+    - name: add user to the docker group
+      user:
+        name: '{{ ansible_user }}'
+        groups: docker
+        append: yes
+
+    - name: enable docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+  become: true
+  when: install_type == "docker"
+
+
+

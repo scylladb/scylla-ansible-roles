@@ -1,0 +1,4 @@
+---
+- hosts: scylla-monitoring
+  roles:
+    - ansible-scylla-monitoring

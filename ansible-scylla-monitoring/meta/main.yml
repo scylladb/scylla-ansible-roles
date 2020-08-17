@@ -1,0 +1,26 @@
+galaxy_info:
+  author: Dan Yasny
+  description: Scylla-Monitoring Ansible role
+  company: ScyllaDB
+
+  license: licence (Apache)
+
+  min_ansible_version: 2.8
+  platforms:
+    - name: CentOS
+      versions:
+        - 7
+        - 8
+    - name: Ubuntu
+      versions:
+        - 18.04
+        - 20.04
+
+  galaxy_tags: 
+    - scylla
+    - scylla-monitoring
+    - prometheus
+    - grafana
+    - docker
+
+dependencies: []

@@ -1,0 +1,31 @@
+---
+- name: restart the docker daemon again
+  service:
+    name: docker
+    state: restarted
+    enabled: yes
+  become: true
+
+- name: update docker.sock permissions to work around the restart issue
+  file:
+    path: /var/run/docker.sock
+    owner: root
+    group: root
+    mode: '0666'
+  become: true
+
+- name: ensure monitoring is stopped
+  shell: |
+    cd {{ base_dir }}
+    ./kill-all.sh
+
+- name: start scylla-monitoring
+  shell: |
+    cd {{ base_dir }}
+    ./start-all.sh \
+      -d {{ scylla_monitoring_data_path }} \
+      -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+      -s {{ base_dir }}/prometheus/scylla_servers.yml \
+      -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+      -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+      {{ scylla_monitoring_params | default('') }}
