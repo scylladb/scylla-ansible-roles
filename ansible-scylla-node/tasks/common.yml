@@ -1,4 +1,10 @@
 ---
+- name: configure RAID via Scylla-setup
+  shell:
+    scylla_raid_setup --disks "{{ scylla_raid_disks | joint(',') }}"
+  become: true
+  when: scylla_raid_setup is defined and scylla_raid_setup|length > 0
+
 - name: IO settings probe
   block:
     - name: check for existing io_properties

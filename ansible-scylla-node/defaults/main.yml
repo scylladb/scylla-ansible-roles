@@ -104,4 +104,10 @@ scylla_manager_agent_config: |
     chunk_size: 50M
     use_accelerate_endpoint: false
 
+# Configure raid disks via scylla_setup. This requires a list of disks to add to the raid
+scylla_raid_setup:
+  # - /dev/nvme0n1
+  # - /dev/nvme0n2
+  # - /dev/nvme0n3
+
 
