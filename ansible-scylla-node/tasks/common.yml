@@ -1,9 +1,17 @@
 ---
 - name: configure RAID via Scylla-setup
-  shell:
-    scylla_raid_setup --disks "{{ scylla_raid_setup | join(',') }}"
-  become: true
-  when: scylla_raid_setup is defined and scylla_raid_setup|length > 0
+  block:
+    - name: check for current raid
+      shell: |
+        C=$(cat /proc/mdstat |grep md0| wc -w)
+        echo $((0 + C - 4))
+      register: present_raid_disks
+
+    - name: run raid setup
+      shell: |
+        scylla_raid_setup --disks "{{ scylla_raid_setup | join(',') }}"
+      become: true
+      when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
 
 - name: IO settings probe
   block:
@@ -169,10 +177,10 @@
       register: genconfig
 
     - name: store output in a file
-      copy:
+      local_action:
+        module: copy
         content: "{{ genconfig.stdout }}"
         dest: "scylla_servers.yml"
-      delegate_to: localhost
     run_once: true
     when: generate_monitoring_config|bool == true
 
