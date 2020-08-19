@@ -1,7 +1,7 @@
 ---
 - name: configure RAID via Scylla-setup
   shell:
-    scylla_raid_setup --disks "{{ scylla_raid_disks | joint(',') }}"
+    scylla_raid_setup --disks "{{ scylla_raid_disks | join(',') }}"
   become: true
   when: scylla_raid_setup is defined and scylla_raid_setup|length > 0
 
