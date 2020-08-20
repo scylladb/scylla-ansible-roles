@@ -6,7 +6,7 @@
     install_only: True
     scylla_manager_enabled: false
     scylla_version: 'latest'
-    scylla_edition: 'oss'
+    scylla_edition: "{{ scylla_manager_db_vars.scylla_edition|default('oss') }}"
     scylla_repos: "{{ scylla_manager_db_vars.scylla_repos }}"
     elrepo_kernel: false
     scylla_repo_keyserver: "{{ scylla_manager_db_vars.scylla_repo_keyserver|default('') }}"
