@@ -5,7 +5,7 @@
     state: directory
     mode: '1775'
     recurse: yes
-    owner: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
   become: true
 
 - name: create the data directory
@@ -14,7 +14,7 @@
     state: directory
     mode: '1775'
     recurse: yes
-    owner: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
   become: true
 
 - name: download the monitoring archive
@@ -22,7 +22,7 @@
     url: "{{ scylla_monitoring_archive_url }}"
     dest: "{{ scylla_monitoring_deploy_path }}"
     mode: '0644'
-    owner: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
   register: monitoring_archive
 
 - name: download and unpack the monitoring archive

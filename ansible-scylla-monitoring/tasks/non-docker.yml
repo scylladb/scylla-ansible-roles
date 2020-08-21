@@ -4,7 +4,7 @@
     url: "{{ alert_manager_url }}"
     dest: "{{ scylla_monitoring_deploy_path }}"
     mode: '0644'
-    owner: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
   register: alert_manager_archive
 
 - name: unpack the alert_manager archive
@@ -39,7 +39,7 @@
     url: "{{ prometheus_url }}"
     dest: "{{ scylla_monitoring_deploy_path }}"
     mode: '0644'
-    owner: "{{ ansible_user }}"
+    owner: "{{ ansible_user_id }}"
   register: prometheus_archive
 
 - name: unpack the prometheus archive
