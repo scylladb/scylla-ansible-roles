@@ -21,7 +21,7 @@
       --username {{ item.username }} \
       --password {{ item.password }} \
       {% endif %}
-  when: cluster_already_added is defined and cluster_already_added.stdout == "present"
+  when: cluster_already_added is not defined or cluster_already_added.stdout != "present"
 
 
 
