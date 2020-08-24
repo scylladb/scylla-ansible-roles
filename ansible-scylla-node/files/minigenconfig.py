@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import subprocess
 import yaml
 import sys

@@ -77,6 +77,13 @@
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
+# TODO: Implement this for the debian based distros
+# - name: install prerequisite python-yaml
+#   shell: |
+#     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
+#   become: true
+
+
 - name: install and configure Scylla Manager Agent
   block:
     - name: Add an apt key by id from a keyserver

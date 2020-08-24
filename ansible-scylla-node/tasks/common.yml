@@ -172,6 +172,9 @@
 
   - name: generate scylla_servers.yml for monitoring
     script: files/minigenconfig.py --cluster-name {{ scylla_cluster_name }} --api-string http://{{ scylla_api_address }}:{{ scylla_api_port }}
+    args:
+      executable: "/usr/bin/env python3"
+
     register: genconfig
     run_once: true
     when: generate_monitoring_config|bool == true
