@@ -221,7 +221,7 @@
     - name: start and enable the Manager agent service
       service:
         name: scylla-manager-agent
-        state: started
+        state: restarted
         enabled: yes
   when: scylla_manager_enabled|bool == true
   become: true
