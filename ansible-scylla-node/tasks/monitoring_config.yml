@@ -5,14 +5,10 @@
   args:
     executable: "/usr/bin/env python3"
   register: genconfig
-  run_once: true
-  when: generate_monitoring_config|bool == true
 
 - name: store output in a file
   copy:
     content: "{{ genconfig.stdout }}"
     dest: ./scylla_servers.yml
   delegate_to: localhost
-  run_once: true
-  when: generate_monitoring_config|bool == true
 
