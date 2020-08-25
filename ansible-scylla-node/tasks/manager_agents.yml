@@ -18,12 +18,14 @@
 - name: run scyllamgr_agent_setup
   shell: |
     scyllamgr_agent_setup -y
+  become: true
 
 - name: add the auth token to agent configuration
   lineinfile:
     path: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     regexp: '^auth_token:'
     line: 'auth_token: {{ scyllamgr_auth_token.stdout }}'
+  become: true
 
 - name: insert additional configuration options for the manager agent
   blockinfile:
@@ -31,9 +33,11 @@
     block: "{{ scylla_manager_agent_config }}"
     insertafter: EOF
   when: scylla_manager_agent_config is defined
+  become: true
 
 - name: start and enable the Manager agent service
   service:
     name: scylla-manager-agent
     state: restarted
     enabled: yes
+  become: true

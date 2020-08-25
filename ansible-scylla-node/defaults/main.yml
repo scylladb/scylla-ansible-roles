@@ -81,6 +81,12 @@ scylla_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_api_address: '127.0.0.1'
 scylla_api_port: '10000'
 
+# Additional parameters for scylla.yaml
+scylla_yaml_params:
+  param1: value
+  param2: value
+
+
 # create scylla_servers.yml for later use with monitoring
 generate_monitoring_config: True
 

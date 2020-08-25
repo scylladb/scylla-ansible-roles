@@ -175,5 +175,4 @@
 - name: configure the Manager agents
   include_tasks: manager_agents.yml
   when: scylla_manager_enabled|bool
-  become: true
 
