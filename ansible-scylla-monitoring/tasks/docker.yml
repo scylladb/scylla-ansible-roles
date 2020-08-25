@@ -1,10 +1,14 @@
 ---
+- name: Populate service facts
+  service_facts:
+
 - name: restart the docker daemon again
   service:
     name: docker
     state: restarted
     enabled: yes
   become: true
+  when: ansible_facts.services["docker.service"] is defined
 
 - name: update docker.sock permissions to work around the restart issue
   file:
