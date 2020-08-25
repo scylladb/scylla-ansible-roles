@@ -21,7 +21,6 @@
     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
   become: true
 
-
 - name: run docker related tasks
   block:
     - name: remove unneeded deps
@@ -69,7 +68,25 @@
         state: started
         enabled: yes
   become: true
-  when: install_type == "docker"
+  when: install_type == "docker" and ansible_distribution_major_version|int == 7
+
+- name: run docker related tasks for EL8
+  block:
+    - name: install podman-docker
+      package:
+        name: podman-docker
+        state: present
+
+    - name: remove stdout garbage from podman
+      shell: |
+        touch /etc/containers/nodocker
+  become: true
+  when: install_type == "docker" and ansible_distribution_major_version|int > 7
+
+
+
+
+
 
 
 
