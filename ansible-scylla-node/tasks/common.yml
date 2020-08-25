@@ -154,78 +154,26 @@
   become: true
   when: vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
 
+- name: wait for the API port to come up on all nodes
+  wait_for:
+    port: "{{ scylla_api_port }}"
+    host: "{{ scylla_api_address }}"
+    timeout: 300
+
+- name: wait for the cluster to become healthy
+  shell: |
+    nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+  register: node_count
+  until: node_count.stdout|int == ansible_play_batch|length
+  retries: 300
+  delay: 1
+
 - name: generate monitoring configuration
-  block:
-  - name: wait for the API port to come up on all nodes
-    wait_for:
-      port: "{{ scylla_api_port }}"
-      host: "{{ scylla_api_address }}"
-      timeout: 300
-
-  - name: wait for the cluster to become healthy
-    shell: |
-      nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
-    register: node_count
-    until: node_count.stdout|int == ansible_play_batch|length
-    retries: 300
-    delay: 1
-
-  - name: generate scylla_servers.yml for monitoring
-    script: files/minigenconfig.py --cluster-name {{ scylla_cluster_name }} --api-string http://{{ scylla_api_address }}:{{ scylla_api_port }}
-    args:
-      executable: "/usr/bin/env python3"
-
-    register: genconfig
-    run_once: true
-    when: generate_monitoring_config|bool == true
-
-  - name: store output in a file
-    copy:
-      content: "{{ genconfig.stdout }}"
-      dest: ./scylla_servers.yml
-    delegate_to: localhost
-    run_once: true
-    when: generate_monitoring_config|bool == true
-
-  - name: generate the agent key
-    shell: |
-      tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
-    register: scyllamgr_auth_token
-    delegate_to: localhost
-    run_once: true
-
-  - name: store the auth token in a local file for later use
-    copy:
-      content: |
-        {{ scyllamgr_auth_token.stdout }}
-      dest: scyllamgr_auth_token.txt
-    delegate_to: localhost
-    run_once: true
+  include_tasks: monitoring_config.yml
+  when: generate_monitoring_config|bool
 
 - name: configure the Manager agents
-  block:
-    - name: run scyllamgr_agent_setup
-      shell: |
-        scyllamgr_agent_setup -y
-
-    - name: add the auth token to agent configuration
-      lineinfile:
-        path: /etc/scylla-manager-agent/scylla-manager-agent.yaml
-        regexp: '^auth_token:'
-        line: 'auth_token: {{ scyllamgr_auth_token.stdout }}'
-
-    - name: insert additional configuration options for the manager agent
-      blockinfile:
-        path: /etc/scylla-manager-agent/scylla-manager-agent.yaml
-        block: "{{ scylla_manager_agent_config }}"
-        insertafter: EOF
-      when: scylla_manager_agent_config is defined
-
-    - name: start and enable the Manager agent service
-      service:
-        name: scylla-manager-agent
-        state: restarted
-        enabled: yes
-  when: scylla_manager_enabled|bool == true
+  include_tasks: manager_agents.yml
+  when: scylla_manager_enabled|bool
   become: true
 
