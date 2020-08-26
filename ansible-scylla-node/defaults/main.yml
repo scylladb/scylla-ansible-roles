@@ -67,8 +67,6 @@ scylla_io_probe: True
 #       write_iops: 9722999
 #       write_bandwidth: 352182944
 
-# This will become obsolete once the option becomes default in Scylla.
-enable_mc_format: true
 
 # Seeds node list
 scylla_seeds:
@@ -91,7 +89,7 @@ scylla_yaml_params:
     certificate: /etc/scylla/db.crt
     keyfile: /etc/scylla/db.key
     truststore: /path/to/none
-  enable_mc_format: true
+  enable_sstables_mc_format: true
 
 # create scylla_servers.yml for later use with monitoring
 generate_monitoring_config: True
