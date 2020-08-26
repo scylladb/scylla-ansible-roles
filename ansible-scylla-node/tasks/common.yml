@@ -140,6 +140,15 @@
       scylla_selinux_setup
   become: true
 
+- name: configure custom scylla.yaml paramaters
+  lineinfile:
+    path: /etc/scylla/scylla.yaml
+    regexp: '^{{ item.key }}'
+    line: "{{ item.key }}: {{ item.value }}"
+    create: yes
+  become: true
+  loop: "{{ lookup('dict', scylla_yaml_params) }}"
+
 - name: start scylla seeds
   service:
     name: scylla-server
@@ -172,7 +181,6 @@
   include_tasks: monitoring_config.yml
   when: generate_monitoring_config|bool
   run_once: true
-
 
 - name: configure the Manager agents
   include_tasks: manager_agents.yml

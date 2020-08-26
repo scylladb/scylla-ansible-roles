@@ -81,11 +81,17 @@ scylla_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_api_address: '127.0.0.1'
 scylla_api_port: '10000'
 
-# Additional parameters for scylla.yaml
+# Additional parameters for scylla.yaml, only usable for the simple one-line parameters
+# Check the official scylla.yaml for available options.
 scylla_yaml_params:
-  param1: value
-  param2: value
-
+  authorizer: CassandraAuthorizer
+  authenticator: PasswordAuthenticator
+  client_encryption_options:
+    enabled: false
+    certificate: /etc/scylla/db.crt
+    keyfile: /etc/scylla/db.key
+    truststore: /path/to/none
+  enable_mc_format: true
 
 # create scylla_servers.yml for later use with monitoring
 generate_monitoring_config: True
