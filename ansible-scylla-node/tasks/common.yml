@@ -111,7 +111,7 @@
     group: root
     mode: '0644'
   become: true
-  when: scylla_snitch != 'SimpleSnitch'
+  when: scylla_snitch != 'SimpleSnitch' and scylla_snitch != 'RackInferringSnitch'
 
 - name: finalize Scylla node configuration
   block:
