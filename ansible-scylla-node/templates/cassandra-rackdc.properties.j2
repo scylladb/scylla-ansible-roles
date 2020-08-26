@@ -13,7 +13,14 @@
 # dc_suffix=<Data Center name suffix, used by EC2SnitchXXX snitches>
 #
 
-{% if scylla_snitch != 'SimpleSnitch' %}
+{% if scylla_snitch == 'GossipingPropertyFileSnitch' %}
 dc={{ dc }}
 rack={{ rack }}
+prefer_local={{ gpfs_prefer_local|default('false') }}
 {% endif %}
+
+{% if scylla_snitch == 'Ec2Snitch' or scylla_snitch == 'Ec2MultiRegionSnitch' or scylla_snitch == 'GoogleCloudSnitch' %}
+dc_suffix={{ dc_suffix }}
+{% endif %}
+
+
