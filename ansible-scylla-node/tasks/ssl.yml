@@ -10,18 +10,18 @@
       openssl_privatekey:
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
 
-    - name: Generate an OpenSSL Certificate Signing Request for the CA
-      openssl_csr:
-        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
-        privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
-        common_name: "{{ scylla_cluster_name}}.internal"
+    # - name: Generate an OpenSSL Certificate Signing Request for the CA
+    #   openssl_csr:
+    #     path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
+    #     privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+    #     common_name: "{{ scylla_cluster_name}}.internal"
 
-    - name: Generate a Self Signed OpenSSL certificate for the CA
-      openssl_certificate:
-        path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
-        privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
-        csr_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
-        provider: selfsigned
+    # - name: Generate a Self Signed OpenSSL certificate for the CA
+    #   openssl_certificate:
+    #     path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+    #     privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+    #     csr_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
+    #     provider: selfsigned
   delegate_to: localhost
   run_once: true
 
