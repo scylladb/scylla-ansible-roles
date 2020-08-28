@@ -31,16 +31,19 @@
       file:
         path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}"
         state: directory
+      delegate_to: localhost
 
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
         path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+      delegate_to: localhost
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
         path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.csr"
         privatekey_path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
         common_name: "{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.{{ scylla_cluster_name}}.internal"
+      delegate_to: localhost
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
       openssl_certificate:
@@ -49,6 +52,7 @@
         ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
+      delegate_to: localhost
 
     - name: Copy the certificates into their proper locations
       copy:
