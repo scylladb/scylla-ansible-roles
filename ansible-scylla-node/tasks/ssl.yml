@@ -29,26 +29,26 @@
   block:
     - name: Create a directory for the key
       file:
-        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}"
+        path: "./ssl/{{ inventory_hostname }}"
         state: directory
       delegate_to: localhost
 
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
-        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+        path: "./ssl/{{ inventory_hostname }}.pem"
       delegate_to: localhost
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
-        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.csr"
-        privatekey_path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
-        common_name: "{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.{{ scylla_cluster_name}}.internal"
+        path: "./ssl/{{ inventory_hostname }}.csr"
+        privatekey_path: "./ssl/{{ inventory_hostname }}.pem"
+        common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name}}.internal"
       delegate_to: localhost
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
       openssl_certificate:
-        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
-        csr_path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.csr"
+        path: "./ssl/{{ inventory_hostname }}.crt"
+        csr_path: "./ssl/{{ inventory_hostname }}.csr"
         ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
@@ -64,8 +64,8 @@
       become: true
       loop:
         - "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
-        - "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
-        - "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+        - "./ssl/{{ inventory_hostname }}.crt"
+        - "./ssl/{{ inventory_hostname }}.pem"
 
     - name: Update scylla.yaml for internode ssl
       blockinfile:
@@ -73,8 +73,8 @@
         block: |
           server_encryption_options:
             internode_encryption: "{{ scylla_ssl.internode.internode_encryption }}"
-            certificate: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
-            keyfile: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+            certificate: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.crt"
+            keyfile: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.pem"
             truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
       become: true
       when: scylla_ssl.internode.enabled|bool
@@ -85,8 +85,8 @@
         block: |
           client_encryption_options:
             enabled: true
-            certificate: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
-            keyfile: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+            certificate: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.crt"
+            keyfile: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.pem"
             truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
       become: true
       when: scylla_ssl.client.enabled|bool
