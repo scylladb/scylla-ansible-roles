@@ -12,6 +12,12 @@
     scylla_repo_keyserver: "{{ scylla_manager_db_vars.scylla_repo_keyserver|default('') }}"
     scylla_repo_keys: "{{ scylla_manager_db_vars.scylla_repo_keys|default([]) }}"
     scylla_dependencies: "{{ scylla_manager_db_vars.scylla_dependencies|default([]) }}"
+    scylla_ssl:
+      internode:
+        enabled: false
+      client:
+        enabled: false
+
 
 - name: install Scylla Manager
   include_tasks: "{{ ansible_os_family }}.yml"
