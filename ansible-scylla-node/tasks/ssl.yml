@@ -65,6 +65,6 @@
         mode: '0644'
       become: true
       loop:
-        - "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+        - "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
