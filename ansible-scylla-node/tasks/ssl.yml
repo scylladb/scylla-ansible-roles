@@ -1,0 +1,88 @@
+---
+- name: generate a self-signed CA and use it for node certs
+  block:
+    - name: Create dir for the CA
+      file:
+        path: ./ssl/ca
+        state: directory
+
+    - name: Generate an OpenSSL private key for the CA.
+      openssl_privatekey:
+        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+
+    - name: Generate an OpenSSL Certificate Signing Request for the CA
+      openssl_csr:
+        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
+        privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+        common_name: "{{ scylla_cluster_name}}.internal"
+
+    - name: Generate a Self Signed OpenSSL certificate for the CA
+      openssl_certificate:
+        path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+        csr_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
+        provider: selfsigned
+  delegate_to: localhost
+  run_once: true
+
+- name: Generate keys signed by the local CA and push them to the nodes
+  block:
+    - name: Create a directory for the key
+      file:
+        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}"
+        state: directory
+
+    - name: Generate an OpenSSL private key.
+      openssl_privatekey:
+        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+
+    - name: Generate an OpenSSL Certificate Signing Request
+      openssl_csr:
+        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.csr"
+        privatekey_path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+        common_name: "{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.{{ scylla_cluster_name}}.internal"
+
+    - name: Generate an OpenSSL certificate signed with our CA certificate
+      openssl_certificate:
+        path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
+        csr_path: "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.csr"
+        ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+        provider: ownca
+
+    - name: Copy the certificates into their proper locations
+      copy:
+        src: "{{ item }}"
+        dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      loop:
+        - "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+        - "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
+        - "./ssl/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+
+    - name: Update scylla.yaml for internode ssl
+      blockinfile:
+        path: /etc/scylla/scylla.yaml
+        block: |
+          server_encryption_options:
+            internode_encryption: "{{ scylla_ssl.internode.internode_encryption }}"
+            certificate: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
+            keyfile: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+            truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
+      become: true
+      when: scylla_ssl.internode.enabled|bool
+
+    - name: Update scylla.yaml for internode ssl
+      blockinfile:
+        path: /etc/scylla/scylla.yaml
+        block: |
+          client_encryption_options:
+            enabled: true
+            certificate: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.crt"
+            keyfile: "{{ scylla_ssl.cert_path }}/{{ (ansible_ssh_host|default(ansible_host))|default(inventory_hostname) }}.pem"
+            truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
+      become: true
+      when: scylla_ssl.client.enabled|bool

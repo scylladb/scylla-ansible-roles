@@ -3,6 +3,12 @@
 - name: os-specific tasks
   include_tasks: "{{ ansible_os_family }}.yml"
 
+- name: enable ssl options
+  include_tasks: ssl.yml
+  when:
+    - scylla_ssl is defined
+    - scylla_ssl.internode.enabled|bool or scylla_ssl.client.enabled|bool
+
 - name: common tasks
   include_tasks: common.yml
   when: install_only|bool == false
