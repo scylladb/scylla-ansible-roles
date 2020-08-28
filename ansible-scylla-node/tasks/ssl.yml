@@ -35,20 +35,20 @@
 
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
-        path: "./ssl/{{ inventory_hostname }}.pem"
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
       delegate_to: localhost
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
-        path: "./ssl/{{ inventory_hostname }}.csr"
-        privatekey_path: "./ssl/{{ inventory_hostname }}.pem"
-        common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name}}.internal"
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
+        privatekey_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+        common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
       delegate_to: localhost
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
       openssl_certificate:
-        path: "./ssl/{{ inventory_hostname }}.crt"
-        csr_path: "./ssl/{{ inventory_hostname }}.csr"
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+        csr_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
         ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
@@ -64,8 +64,8 @@
       become: true
       loop:
         - "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
-        - "./ssl/{{ inventory_hostname }}.crt"
-        - "./ssl/{{ inventory_hostname }}.pem"
+        - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+        - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
 
     - name: Update scylla.yaml for internode ssl
       blockinfile:
