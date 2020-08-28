@@ -16,7 +16,7 @@
 {% if scylla_snitch == 'GossipingPropertyFileSnitch' %}
 dc={{ dc }}
 rack={{ rack }}
-prefer_local={{ gpfs_prefer_local|default('false') }}
+prefer_local={{ gpfs_prefer_local|default('false')|lower }}
 {% endif %}
 
 {% if scylla_snitch == 'Ec2Snitch' or scylla_snitch == 'Ec2MultiRegionSnitch' or scylla_snitch == 'GoogleCloudSnitch' %}

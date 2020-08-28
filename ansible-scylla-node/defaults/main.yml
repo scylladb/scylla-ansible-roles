@@ -56,7 +56,7 @@ scylla_snitch: GossipingPropertyFileSnitch
 
 # OPTIONAL: If GossipingPropertyFileSnitch in use, set this variable as per Scylla documentation
 # https://docs.scylladb.com/operating-scylla/system-configuration/snitch/#gossipingpropertyfilesnitch
-gpfs_prefer_local: true
+gpfs_prefer_local: "true"
 
 # IO settings
 # probe for IO figures on one node and reuse the figures on all nodes (recommended: True)
