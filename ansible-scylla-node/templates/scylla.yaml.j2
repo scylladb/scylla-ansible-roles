@@ -40,7 +40,18 @@ murmur3_partitioner_ignore_msb_bits: 12
 api_ui_dir: /opt/scylladb/swagger-ui/dist/
 api_doc_dir: /opt/scylladb/api/api-doc/
 
-{% if enable_mc_format is defined and enable_mc_format %}
-enable_sstables_mc_format: true
+{% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
+client_encryption_options:
+    enabled: true
+    certificate: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.crt"
+    keyfile: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.pem"
+    truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
 {% endif %}
 
+{% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
+server_encryption_options:
+    internode_encryption: "{{ scylla_ssl.internode.internode_encryption }}"
+    certificate: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.crt"
+    keyfile: "{{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.pem"
+    truststore: "{{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.pem"
+{% endif %}
