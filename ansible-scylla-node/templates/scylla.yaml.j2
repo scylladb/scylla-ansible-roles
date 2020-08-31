@@ -41,6 +41,9 @@ api_ui_dir: /opt/scylladb/swagger-ui/dist/
 api_doc_dir: /opt/scylladb/api/api-doc/
 
 {% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
+native_transport_port_ssl: 9142
+native_shard_aware_transport_port_ssl: 19142
+
 client_encryption_options:
     enabled: true
     certificate: {{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.crt
