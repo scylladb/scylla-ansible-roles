@@ -1,12 +1,11 @@
 ---
+# This playbook follows the standard Scylla rolling restart procedure described at https://docs.scylladb.com/operating-scylla/procedures/config-change/rolling_restart/
+# The play must be run with the --limit argument, specifying either "all" or a list of node IPs
+
 - name: Rolling restart across a Scylla cluster
   hosts: scylla
   serial: 1
   become: true
-  vars:
-    # Specify the NIC. The default is the default NIC on the host {{ ansible_default_ipv4.interface }}
-    # Alternatively, this can be set to eth0 or any other NIC name, as long as it is similar across the cluster
-    scylla_nic: "{{ ansible_default_ipv4.interface }}"
 
   tasks:
     - name: checking limit arg
@@ -14,6 +13,11 @@
         msg: "You must use -l or --limit. To restart the entire cluster, use -l 'all'"
       when: ansible_limit is not defined
       run_once: true
+
+    - name: register scylla listen address
+      shell: |
+        grep '^listen_address:' /etc/scylla/scylla.yaml |awk '{ print $2 }'
+      register: listen_address
 
     - name: run nodetool drain
       shell: |
@@ -34,8 +38,8 @@
 
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
-      register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
+        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+      register: node_status
+      until: node_status.rc == 0
       retries: 300
       delay: 1
