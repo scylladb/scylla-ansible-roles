@@ -6,6 +6,7 @@
   hosts: scylla
   serial: 1
   become: true
+  gather_facts: false
 
   tasks:
     - name: checking limit arg
