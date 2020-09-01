@@ -26,6 +26,12 @@
   when: elrepo_kernel == True and install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
+- name: remove abrt
+  package:
+    name: abrt
+    state: absent
+  become: true
+
 - name: Install Scylla repo
   get_url:
     url: "{{ item }}"
