@@ -34,10 +34,27 @@
     enabled: yes
   become: true
 
-- name: wait for the manager to become operational
+- name: find the manager http API port
+  shell: |
+    grep '^http:' /etc/scylla-manager/scylla-manager.yaml|awk -F':' '{ print $NF }'
+  register: http_port
+
+- name: find the manager https API port
+  shell: |
+    grep '^https:' /etc/scylla-manager/scylla-manager.yaml|awk -F':' '{ print $NF }'
+  register: https_port
+
+- name: wait for the manager to become operational (check http port)
   wait_for:
-    port: 56080
+    port: "{{ http_port.stdout }}"
     timeout: 300
+  when: http_port.stdout != ''
+
+- name: wait for the manager to become operational (check https port)
+  wait_for:
+    port: "{{ https_port.stdout }}"
+    timeout: 300
+  when: https_port.stdout != ''
 
 - name: add Scylla clusters
   include_tasks: add-clusters.yml
