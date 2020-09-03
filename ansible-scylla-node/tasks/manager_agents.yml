@@ -34,7 +34,7 @@
 
 - name: Decode data and store as fact
   set_fact:
-    auth_token: "{{ b64_auth_token.content | b64decode }}"
+    auth_token: "{{ b64auth_token.content | b64decode }}"
   delegate_to: localhost
   run_once: true
 
