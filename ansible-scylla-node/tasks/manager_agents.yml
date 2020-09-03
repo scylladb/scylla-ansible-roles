@@ -35,7 +35,6 @@
 - name: Decode data and store as fact
   set_fact:
     auth_token: "{{ b64_auth_token.content | b64decode }}"
-  register: b64auth_token
   delegate_to: localhost
   run_once: true
 
