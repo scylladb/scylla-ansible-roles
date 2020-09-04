@@ -3,6 +3,8 @@
 This repo contains the Ansible roles and example playbooks used for deploiying and maintaining Scylla clusters.
 The roles produce some outputs that can be used with the other roles, running all 3 in tandem is recommended, but not required. 
 
+For detailed documentation of each role and some of the example playbooks, please see the Wiki: https://github.com/scylladb/scylla-ansible-roles/wiki
+
 
 
 ## Roles:
