@@ -20,7 +20,9 @@ prefer_local={{ gpfs_prefer_local|default('false')|lower }}
 {% endif %}
 
 {% if scylla_snitch == 'Ec2Snitch' or scylla_snitch == 'Ec2MultiRegionSnitch' or scylla_snitch == 'GoogleCloudSnitch' %}
+{% if dc_suffix is defined %}
 dc_suffix={{ dc_suffix }}
+{% endif %}
 {% endif %}
 
 
