@@ -1,5 +1,7 @@
 ---
-# set to true if the role should enable the specified repos, install the binaries and stop
+scylla_cluster_name: 'testcluster123'
+
+  # set to true if the role should enable the specified repos, install the binaries and stop
 install_only: false
 
 # Change here or override in vars
@@ -21,8 +23,6 @@ elrepo_kernel: True
 scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
 scylla_repo_keys:
   - 5e08fbd8b5d6ec9c
-  #- 6B2BFD3660EF3F5B
-  #- 17723034C56D4B19
 
 scylla_manager_repo_keys:
   - 6B2BFD3660EF3F5B
@@ -50,8 +50,6 @@ scylla_version: latest
 #scylla_edition: oss
 scylla_edition: enterprise
 
-# scylla.yaml settables. Additional changes can be added to templates/scylla.yaml.j2
-scylla_cluster_name: 'testcluster123'
 scylla_snitch: GossipingPropertyFileSnitch
 
 # OPTIONAL: If GossipingPropertyFileSnitch in use, set this variable as per Scylla documentation
@@ -134,7 +132,7 @@ scylla_manager_agent_config: |
     use_accelerate_endpoint: false
 
 # Configure raid disks via scylla_setup. This requires a list of disks to add to the raid
-scylla_raid_setup:
+# scylla_raid_setup:
   # - /dev/nvme0n1
   # - /dev/nvme0n2
   # - /dev/nvme0n3

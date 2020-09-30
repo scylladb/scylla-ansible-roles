@@ -51,6 +51,7 @@
     line: "{{ io_conf }}"
     create: yes
   become: true
+  when: io_conf is defined
 
 - name: Set io_properties
   template:
