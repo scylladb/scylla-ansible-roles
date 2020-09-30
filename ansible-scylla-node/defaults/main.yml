@@ -69,6 +69,7 @@ scylla_io_probe: True
 #       write_iops: 9722999
 #       write_bandwidth: 352182944
 
+io_conf: 'SEASTAR_IO="--io-properties-file /etc/scylla.d/io_properties.yaml"'
 
 # Seeds node list
 scylla_seeds:
