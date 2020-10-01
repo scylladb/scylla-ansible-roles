@@ -15,38 +15,50 @@
       when: ansible_limit is not defined
       run_once: true
 
-    - name: register scylla listen address
+    - name: register seeds list
       shell: |
-        grep '^listen_address:' /etc/scylla/scylla.yaml |awk '{ print $2 }'
-      register: listen_address
+        grep "- seeds:" | awk '{ print $2 }'
+      register: _seeds
 
-    - name: run nodetool drain
-      shell: |
-        nodetool drain
+    - name: Store seeds list as a variable
+      set_fact:
+        seeds: "{{ _seeds | split(',') }}"
 
-    - name: wait for DRAIN to complete
-      shell: |
-        journalctl -u scylla-server --since "1 minute ago" | grep 'storage_service - DRAINED:'
-      retries: 300
-      delay: 1
-      register: drain_result
-      until: drain_result.rc == 0
-      ignore_errors: true
+    - debug:
+        msg: "{{ seeds }}"
 
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: stopped
+    # - name: register scylla listen address
+    #   shell: |
+    #     grep '^listen_address:' /etc/scylla/scylla.yaml |awk '{ print $2 }'
+    #   register: listen_address
 
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: started
+    # - name: run nodetool drain
+    #   shell: |
+    #     nodetool drain
 
-    - name: wait for the cluster to become healthy
-      shell: |
-        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
-      register: node_status
-      until: node_status.rc == 0
-      retries: 300
-      delay: 1
+    # - name: wait for DRAIN to complete
+    #   shell: |
+    #     journalctl -u scylla-server --since "1 minute ago" | grep 'storage_service - DRAINED:'
+    #   retries: 300
+    #   delay: 1
+    #   register: drain_result
+    #   until: drain_result.rc == 0
+    #   ignore_errors: true
+
+    # - name: Stop Scylla service
+    #   service:
+    #     name: scylla-server
+    #     state: stopped
+
+    # - name: Stop Scylla service
+    #   service:
+    #     name: scylla-server
+    #     state: started
+
+    # - name: wait for the cluster to become healthy
+    #   shell: |
+    #     nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+    #   register: node_status
+    #   until: node_status.rc == 0
+    #   retries: 300
+    #   delay: 1
