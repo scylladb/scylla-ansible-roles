@@ -31,11 +31,17 @@
       delay: 1
       register: drain_result
       until: drain_result.rc == 0
+      ignore_errors: true
 
-    - name: Restart Scylla service
+    - name: Stop Scylla service
       service:
         name: scylla-server
-        state: restarted
+        state: stopped
+
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: started
 
     - name: wait for the cluster to become healthy
       shell: |
