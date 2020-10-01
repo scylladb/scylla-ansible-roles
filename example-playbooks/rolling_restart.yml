@@ -19,10 +19,12 @@
       shell: |
         grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
       register: _seeds
+      run_once: true
 
     - name: Store seeds list as a variable
       set_fact:
         seeds: "{{ _seeds.stdout.split(',') }}"
+      run_once: true
 
     - name: restart seeds first
       block:
