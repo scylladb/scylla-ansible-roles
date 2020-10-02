@@ -40,7 +40,7 @@ murmur3_partitioner_ignore_msb_bits: 12
 api_ui_dir: /opt/scylladb/swagger-ui/dist/
 api_doc_dir: /opt/scylladb/api/api-doc/
 
-{% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
+{% if scylla_ssl is defined and scylla_ssl.client.enabled %}
 native_transport_port_ssl: 9142
 native_shard_aware_transport_port_ssl: 19142
 
