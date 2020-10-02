@@ -3,8 +3,7 @@
 # The play must be run with the --limit argument, specifying either "all" or a list of node IPs
 
 - name: Rolling restart across a Scylla cluster - gather information
-  hosts: groups['scylla'][0]
-  serial: 1
+  hosts: scylla[0]
   become: true
   gather_facts: false
   tasks:
@@ -25,18 +24,18 @@
     - name: Store seeds as a host group
       add_host:
         name: "{{ item }}"
-        groups: seeds
-      with_items: seeds
+        groups: seeds_group
+      with_items: "{{ seeds }}"
 
     - name: Store non-seeds as a host group
       add_host:
         name: "{{ item }}"
         groups: non_seeds
-      with_items: groups['scylla']
-      when: item not in groups['seeds']
+      with_items: "{{ groups['scylla'] }}"
+      when: item not in groups['seeds_group']
 
 - name: Rolling restart across a Scylla cluster - restart only the seeds
-  hosts: groups['seeds']
+  hosts: seeds_group
   serial: 1
   become: true
   gather_facts: false
@@ -77,8 +76,8 @@
       retries: 300
       delay: 1
 
-- name: Rolling restart across a Scylla cluster - restart only the seeds
-  hosts: groups['non_seeds']
+- name: Rolling restart across a Scylla cluster - restart only the non-seeds
+  hosts: non_seeds
   serial: 1
   become: true
   gather_facts: false
@@ -118,5 +117,3 @@
       until: node_status.rc == 0
       retries: 300
       delay: 1
-
-
