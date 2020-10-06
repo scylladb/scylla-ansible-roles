@@ -167,12 +167,12 @@
 
   - name: set perftune command for reloc
     set_fact:
-      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --mode {{ perf_mode }} | /opt/scylladb/scripts/hex2list.py"
+      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /opt/scylladb/scripts/hex2list.py"
     when: is_reloc.stdout == 'reloc'
 
   - name: set perftune command for non-reloc
     set_fact:
-      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --mode {{ perf_mode }} | /usr/lib/scylla/hex2list.py"
+      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /usr/lib/scylla/hex2list.py"
     when: is_reloc.stdout == 'non-reloc'
 
   - name: run perftune
