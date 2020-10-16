@@ -136,10 +136,6 @@
   - name: configure sysconfig
     shell: |
       scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
-
-  - name: configure selinux
-    shell: |
-      scylla_selinux_setup
   become: true
 
 - name: perftune related operations
