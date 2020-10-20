@@ -68,3 +68,11 @@
         - "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+
+- name: Generate cqlshrc
+  template:
+    src: templates/cqlsh.j2
+    dest: ./cqlshrc
+  delegate_to: localhost
+  run_once: true
+

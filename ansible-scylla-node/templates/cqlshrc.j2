@@ -1,0 +1,17 @@
+[authentication] ;; Change these after the user/password has been updated from the default
+username = cassandra
+password = cassandra
+
+[connection]
+hostname = {{ groups['scylla'][0] }}
+port = 9142
+
+[ssl]
+certfile = ./ssl/{{ groups['scylla'][0] }}/{{ groups['scylla'][0] }}.crt
+validate = false ;; Optional, true by default. See the paragraph below.
+
+[certfiles] ;; Optional section, overrides the default certfile in the [ssl] section.
+{% for host in groups['scylla'] %}
+{{ host }} = ./ssl/{{ host }}/{{ host }}.crt
+{% endfor %}
+
