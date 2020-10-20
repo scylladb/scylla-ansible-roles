@@ -47,5 +47,5 @@ while not success and retries > 0:
 if success:
     print(out)
 else:
-    print("Failed to read and parse %s, \nError %s" % (str(r), out)
+    print("Failed to read and parse %s, \nError %s" % (str(r), out))
     sys.exit(1)
