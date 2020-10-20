@@ -71,7 +71,7 @@
 
 - name: Generate cqlshrc
   template:
-    src: templates/cqlsh.j2
+    src: templates/cqlshrc.j2
     dest: ./cqlshrc
   delegate_to: localhost
   run_once: true
