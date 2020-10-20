@@ -5,7 +5,7 @@ import argparse
 import json
 from time import sleep
 
-def read_endpoints(r):
+def read_endpoints(r, cluster_name):
     succ = False
     t = []
     d = {}
@@ -20,12 +20,12 @@ def read_endpoints(r):
             else:
                 d[dc].append(addrs)
         for dc in d.keys():
-            t.append({'targets': d[dc], 'labels': {'cluster': args.cluster_name, 'dc': dc}})
+            t.append({'targets': d[dc], 'labels': {'cluster': cluster_name, 'dc': dc}})
         ret = yaml.safe_dump(t, default_flow_style=False, indent=2)
         succ = True
-    except:
+    except Exception as e:
         succ = False
-        ret = ''
+        ret = str(e)
     return succ, ret
 
 parser = argparse.ArgumentParser(description='Generates a scylla_servers.yml standard file form the data stored on a cluster node. Run on any node in cluster')
@@ -41,10 +41,11 @@ success = False
 while not success and retries > 0:
     sleep(3)
     r = json.loads(subprocess.check_output(['curl', '-s', url]))
-    success, out = read_endpoints(r)
+    success, out = read_endpoints(r, args.cluster_name)
+    retries -= 1
 
 if success:
     print(out)
 else:
-    print("Failed to read and parse %s" % str(r))
+    print("Failed to read and parse %s, \nError %s" % (str(r), out)
     sys.exit(1)
