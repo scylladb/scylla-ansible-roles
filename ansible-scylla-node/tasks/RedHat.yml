@@ -2,7 +2,7 @@
 - name: Add EPEL key
   rpm_key:
     state: present
-    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-8
+    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}
   when: install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
