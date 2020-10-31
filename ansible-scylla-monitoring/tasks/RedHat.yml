@@ -39,6 +39,8 @@
           - docker-latest-logrotate
           - docker-logrotate
           - docker-engine
+          - podman
+          - podman-docker
         state: absent
 
     - name: download docker-ce repo
