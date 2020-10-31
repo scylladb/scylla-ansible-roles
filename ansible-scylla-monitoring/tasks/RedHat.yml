@@ -73,20 +73,20 @@
         state: started
         enabled: yes
   become: true
-  when: install_type == "docker" and ansible_distribution_major_version|int == 7
+  when: install_type == "docker" #and ansible_distribution_major_version|int == 7
 
-- name: run docker related tasks for EL8
-  block:
-    - name: install podman-docker
-      package:
-        name: podman-docker
-        state: present
+# - name: run docker related tasks for EL8
+#   block:
+#     - name: install podman-docker
+#       package:
+#         name: podman-docker
+#         state: present
 
-    - name: remove stdout garbage from podman
-      shell: |
-        touch /etc/containers/nodocker
-  become: true
-  when: install_type == "docker" and ansible_distribution_major_version|int > 7
+#     - name: remove stdout garbage from podman
+#       shell: |
+#         touch /etc/containers/nodocker
+#   become: true
+#   when: install_type == "docker" and ansible_distribution_major_version|int > 7
 
 
 
