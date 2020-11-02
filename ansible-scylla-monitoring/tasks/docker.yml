@@ -23,7 +23,6 @@
   shell: |
     cd {{ base_dir }}
     ./kill-all.sh
-  become: true
 
 - name: start scylla-monitoring
   shell: |
@@ -35,4 +34,3 @@
       -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
       -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
       {{ scylla_monitoring_params | default('') }}
-  become: true
