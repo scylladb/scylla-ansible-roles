@@ -34,3 +34,28 @@
       -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
       -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
       {{ scylla_monitoring_params | default('') }}
+  ignore_errors: true
+
+# Workaround for potential inner networking issue under docker
+- name: Stop monitoring again
+  shell: |
+    cd {{ base_dir }}
+    ./kill-all.sh
+
+- name: Restart the docker service
+  service:
+    name: docker
+    state: restarted
+  become: true
+
+- name: start scylla-monitoring
+  shell: |
+    cd {{ base_dir }}
+    ./start-all.sh \
+      -d {{ scylla_monitoring_data_path }} \
+      -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+      -s {{ base_dir }}/prometheus/scylla_servers.yml \
+      -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+      -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+      {{ scylla_monitoring_params | default('') }}
+
