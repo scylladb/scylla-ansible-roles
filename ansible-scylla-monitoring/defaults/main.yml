@@ -4,6 +4,10 @@
 # Default and recommended install is via docker
 install_type: 'docker'
 
+# In some rare scenarios, it is impossible to run docker containers as a regular user. Set this to True if you need
+# to use `sudo`
+run_docker_with_sudo: False
+
 # The scylla_node role generates this file, which should be used with the monitoring.
 # Alternatively, this file can be written manually, following the example at the
 # scylla-monitoring github: https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/scylla_servers.example.yml

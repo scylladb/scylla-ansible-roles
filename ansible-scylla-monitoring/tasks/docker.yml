@@ -19,43 +19,96 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
-- name: ensure monitoring is stopped
-  shell: |
-    cd {{ base_dir }}
-    ./kill-all.sh
+- name: Start monitoring
+  block:
+  - name: ensure monitoring is stopped
+    shell: |
+      cd {{ base_dir }}
+      ./kill-all.sh
 
-- name: start scylla-monitoring
-  shell: |
-    cd {{ base_dir }}
-    ./start-all.sh \
-      -d {{ scylla_monitoring_data_path }} \
-      -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-      -s {{ base_dir }}/prometheus/scylla_servers.yml \
-      -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
-      -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-      {{ scylla_monitoring_params | default('') }}
-  ignore_errors: true
+  - name: start scylla-monitoring
+    shell: |
+      cd {{ base_dir }}
+      ./start-all.sh \
+        -d {{ scylla_monitoring_data_path }} \
+        -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+        -s {{ base_dir }}/prometheus/scylla_servers.yml \
+        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        {{ scylla_monitoring_params | default('') }}
+    ignore_errors: true
 
-# Workaround for potential inner networking issue under docker
-- name: Stop monitoring again
-  shell: |
-    cd {{ base_dir }}
-    ./kill-all.sh
+  # Workaround for potential inner networking issue under docker
+  - name: Stop monitoring again
+    shell: |
+      cd {{ base_dir }}
+      ./kill-all.sh
 
-- name: Restart the docker service
-  service:
-    name: docker
-    state: restarted
-  become: true
+  - name: Restart the docker service
+    service:
+      name: docker
+      state: restarted
+    become: true
 
-- name: start scylla-monitoring
-  shell: |
-    cd {{ base_dir }}
-    ./start-all.sh \
-      -d {{ scylla_monitoring_data_path }} \
-      -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-      -s {{ base_dir }}/prometheus/scylla_servers.yml \
-      -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
-      -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-      {{ scylla_monitoring_params | default('') }}
+  - name: start scylla-monitoring
+    shell: |
+      cd {{ base_dir }}
+      ./start-all.sh \
+        -d {{ scylla_monitoring_data_path }} \
+        -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+        -s {{ base_dir }}/prometheus/scylla_servers.yml \
+        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        {{ scylla_monitoring_params | default('') }}
+  when:
+    - run_docker_with_sudo is defined and run_docker_with_sudo|bool == False
+    - run_docker_with_sudo is not defined
+
+- name: Start monitoring
+  block:
+  - name: ensure monitoring is stopped
+    shell: |
+      cd {{ base_dir }}
+      ./kill-all.sh
+    become: true
+
+  - name: start scylla-monitoring
+    shell: |
+      cd {{ base_dir }}
+      ./start-all.sh \
+        -d {{ scylla_monitoring_data_path }} \
+        -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+        -s {{ base_dir }}/prometheus/scylla_servers.yml \
+        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        {{ scylla_monitoring_params | default('') }}
+    ignore_errors: true
+    become: true
+
+  # Workaround for potential inner networking issue under docker
+  - name: Stop monitoring again
+    shell: |
+      cd {{ base_dir }}
+      ./kill-all.sh
+    become: true
+
+  - name: Restart the docker service
+    service:
+      name: docker
+      state: restarted
+    become: true
+
+  - name: start scylla-monitoring
+    shell: |
+      cd {{ base_dir }}
+      ./start-all.sh \
+        -d {{ scylla_monitoring_data_path }} \
+        -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
+        -s {{ base_dir }}/prometheus/scylla_servers.yml \
+        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        {{ scylla_monitoring_params | default('') }}
+    become: true
+  when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
+
 
