@@ -1,4 +1,4 @@
-ansible-scylla-minitoring
+ansible-scylla-monitoring
 =========
 
 Deploy Scylla Monitoring configured for a cluster, with or without Docker
