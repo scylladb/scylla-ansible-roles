@@ -12,7 +12,7 @@
   file:
     path: "{{ scylla_monitoring_data_path }}"
     state: directory
-    mode: '1775'
+    mode: '1777'
     recurse: yes
     owner: "{{ ansible_user_id }}"
   become: true
