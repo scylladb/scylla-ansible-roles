@@ -198,14 +198,18 @@
     name: scylla-server
     state: started
   become: true
-  when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds
+  when:
+    - vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds
+    - inventory_hostname in scylla_seeds
 
 - name: start scylla non-seeds
   service:
     name: scylla-server
     state: started
   become: true
-  when: vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
+  when:
+    - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
+    - inventory_hostname not in scylla_seeds
 
 - name: wait for the API port to come up on all nodes
   wait_for:
