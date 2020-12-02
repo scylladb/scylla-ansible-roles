@@ -201,6 +201,8 @@
   when:
     - vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds
     - inventory_hostname in scylla_seeds
+  ignore_errors: true
+  #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
 - name: start scylla non-seeds
   service:
@@ -210,6 +212,8 @@
   when:
     - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
     - inventory_hostname not in scylla_seeds
+  ignore_errors: true
+  #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
 - name: wait for the API port to come up on all nodes
   wait_for:
