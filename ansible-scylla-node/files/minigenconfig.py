@@ -35,11 +35,11 @@ args = parser.parse_args()
 
 #r = requests.get(args.api_string + '/failure_detector/endpoints/').json()
 url = args.api_string + '/failure_detector/endpoints/'
-retries = 5
+retries = 12
 success = False
 
 while not success and retries > 0:
-    sleep(3)
+    sleep(10)
     r = json.loads(subprocess.check_output(['curl', '-s', url]))
     success, out = read_endpoints(r, args.cluster_name)
     retries -= 1
