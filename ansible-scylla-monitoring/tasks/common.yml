@@ -17,6 +17,15 @@
     owner: "{{ ansible_user_id }}"
   become: true
 
+- name: create the config directory
+  file:
+    path: "{{ scylla_monitoring_config_path }}"
+    state: directory
+    mode: '1775'
+    recurse: yes
+    owner: "{{ ansible_user_id }}"
+  become: true
+
 - name: download the monitoring archive
   get_url:
     url: "{{ scylla_monitoring_archive_url }}"
@@ -39,12 +48,27 @@
 - name: insert scylla_servers.yml
   copy:
     src: "{{ scylla_servers_yml_path }}"
-    dest: "{{ base_dir }}/prometheus/scylla_servers.yml"
+    dest: "{{ scylla_monitoring_config_path }}/scylla_servers.yml"
     mode: '0644'
 
 - name: set up scylla_manager_servers.yml
   copy:
     content: |
       - targets:
-        - {{ groups['scylla-manager'][0]|default('127.0.0.1') }}:56090
-    dest: "{{ base_dir }}/prometheus/scylla_manager_servers.yml"
+        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:56090
+    dest: "{{ scylla_monitoring_config_path }}/scylla_manager_servers.yml"
+
+- name: set prometheus rules file from preset file
+  copy:
+    src: "{{ prometheus_rules_file }}"
+    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml }}"
+    mode: '0644'
+  when: prometheus_rules_file is set and prometheus_rules_file != 'default'
+
+- name: set prometheus rules file from the default file
+  copy:
+    src: "{{ base_dir }}/prometheus/prometheus.rules.yml"
+    remote_src: true
+    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml }}"
+    mode: '0644'
+  when: prometheus_rules_file is set and prometheus_rules_file == 'default'
