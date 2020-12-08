@@ -24,3 +24,21 @@
     state: started
     enabled: yes
 
+- name: scylla-manager-agent start
+  become: true
+  service:
+    name: scylla-manager-agent
+    state: started
+    enabled: true
+
+- name: scylla-manager-agent stop
+  become: true
+  service:
+    name: scylla-manager-agent
+    state: stopped
+
+- name: scylla-manager-agent restart
+  become: true
+  service:
+    name: scylla-manager-agent
+    state: restarted
