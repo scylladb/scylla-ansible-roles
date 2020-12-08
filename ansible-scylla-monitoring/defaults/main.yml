@@ -28,15 +28,17 @@ scylla_monitoring_dashboards_versions:
   - 'latest'
   - '2020.1'
 
-# If a path is provided, the file will be taken from a local path and pushed to the config directory for the monitoring installation.
+# Prometheus configuration, alerting and monitoring settings files:
+# ---
+# If a path is provided, the file(s) will be taken from a local path and pushed to the config directory for the monitoring installation.
 # If "default" is set, the default file will be taken from the prometheus directory in the unpacked monitoring stack distribution.
+#
 # See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.rules.yml
 prometheus_rules_file: default
-
-# If a path is provided, the file will be taken from a local path and pushed to the config directory for the monitoring installation.
-# If "default" is set, the default file will be taken from the prometheus directory in the unpacked monitoring stack distribution.
 # See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.yml.template
 prometheus_yml_template_file: default
+# See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/rule_config.yml
+rule_config_file: default
 
 # How long to keep data for.
 # Format: [NUMBER][s|m|h|d]
