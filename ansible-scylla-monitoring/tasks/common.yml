@@ -63,7 +63,7 @@
     src: "{{ prometheus_rules_file }}"
     dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml }}"
     mode: '0644'
-  when: prometheus_rules_file is set and prometheus_rules_file != 'default'
+  when: prometheus_rules_file is defined and prometheus_rules_file != 'default'
 
 - name: set prometheus rules file from the default file
   copy:
@@ -71,14 +71,14 @@
     remote_src: true
     dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml }}"
     mode: '0644'
-  when: prometheus_rules_file is set and prometheus_rules_file == 'default'
+  when: prometheus_rules_file is defined and prometheus_rules_file == 'default'
 
 - name: set prometheus template file from preset file
   copy:
     src: "{{ prometheus_yml_template_file }}"
     dest: "{{ scylla_monitoring_config_path }}/prometheus.yml.template }}"
     mode: '0644'
-  when: prometheus_yml_template_file is set and prometheus_yml_template_file != 'default'
+  when: prometheus_yml_template_file is defined and prometheus_yml_template_file != 'default'
 
 - name: set prometheus template from the default file
   copy:
@@ -86,14 +86,14 @@
     remote_src: true
     dest: "{{ scylla_monitoring_config_path }}/prometheus.yml.template }}"
     mode: '0644'
-  when: prometheus_yml_template_file is set and prometheus_yml_template_file == 'default'
+  when: prometheus_yml_template_file is defined and prometheus_yml_template_file == 'default'
 
 - name: set rule_config file from preset file
   copy:
     src: "{{ rule_config_file }}"
     dest: "{{ scylla_monitoring_config_path }}/rule_config.yml }}"
     mode: '0644'
-  when: rule_config_file is set and rule_config_file != 'default'
+  when: rule_config_file is defined and rule_config_file != 'default'
 
 - name: set rule_config from the default file
   copy:
@@ -101,4 +101,4 @@
     remote_src: true
     dest: "{{ scylla_monitoring_config_path }}/rule_config.yml }}"
     mode: '0644'
-  when: rule_config_file is set and rule_config_file == 'default'
+  when: rule_config_file is defined and rule_config_file == 'default'
