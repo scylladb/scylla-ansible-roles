@@ -115,6 +115,7 @@ generate_monitoring_config: True
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
+scylla_manager_agent_upgrade: true
 
 # Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
 # Please ensure it is a valid and working configuration. Please refer to the example configuration file and the
