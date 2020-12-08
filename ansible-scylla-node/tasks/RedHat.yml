@@ -108,7 +108,7 @@
       yum:
         name: scylla-manager-agent
         state: latest
-      when: scylla_manager_agent_upgrade is defined and scyalla_manager_agent_upgrade|bool
+      when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
 
   become: true
   when: scylla_manager_enabled|bool == true
