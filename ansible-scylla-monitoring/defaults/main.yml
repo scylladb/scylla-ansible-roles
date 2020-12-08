@@ -33,6 +33,11 @@ scylla_monitoring_dashboards_versions:
 # See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.rules.yml
 prometheus_rules_file: default
 
+# If a path is provided, the file will be taken from a local path and pushed to the config directory for the monitoring installation.
+# If "default" is set, the default file will be taken from the prometheus directory in the unpacked monitoring stack distribution.
+# See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.yml.template
+prometheus_yml_template_file: default
+
 # How long to keep data for.
 # Format: [NUMBER][s|m|h|d]
 # Example: "1000h" will keep data to 1000 hours
