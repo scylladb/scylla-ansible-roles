@@ -25,6 +25,7 @@
     shell: |
       cd {{ base_dir }}
       ./kill-all.sh
+      sudo ./kill-all.sh
 
   - name: start scylla-monitoring
     shell: |
@@ -32,8 +33,10 @@
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ base_dir }}/prometheus/scylla_servers.yml \
-        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
+        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
+        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
+        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
@@ -43,6 +46,7 @@
     shell: |
       cd {{ base_dir }}
       ./kill-all.sh
+      sudo ./kill-all.sh
 
   - name: Restart the docker service
     service:
@@ -56,8 +60,10 @@
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ base_dir }}/prometheus/scylla_servers.yml \
-        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
+        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
+        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
+        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
   when:
@@ -78,8 +84,10 @@
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ base_dir }}/prometheus/scylla_servers.yml \
-        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
+        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
+        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
+        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
@@ -104,11 +112,11 @@
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ base_dir }}/prometheus/scylla_servers.yml \
-        -N {{ base_dir }}/prometheus/scylla_manager_servers.yml \
+        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
+        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
+        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
+        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     become: true
   when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
-
-
