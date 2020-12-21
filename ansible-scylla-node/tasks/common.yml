@@ -12,6 +12,7 @@
         scylla_raid_setup --disks "{{ scylla_raid_setup | join(',') }}" --update-fstab
       become: true
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
+      ignore_errors: true
 
 - name: IO settings probe
   block:
