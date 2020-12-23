@@ -227,6 +227,7 @@
   until: node_count.stdout|int == ansible_play_batch|length
   retries: 300
   delay: 1
+  when: full_inventory|bool
 
 - name: check API access
   shell: |

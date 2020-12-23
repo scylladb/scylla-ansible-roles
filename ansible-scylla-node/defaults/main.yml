@@ -19,6 +19,9 @@ scylla_repos:
 # Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
 elrepo_kernel: True
 
+# set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
+full_inventory: true
+
 # Only relevant for Debian/Ubuntu
 scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
 scylla_repo_keys:

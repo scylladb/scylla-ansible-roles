@@ -4,10 +4,10 @@
 # new_nodes should be a list containing new node addresses
 
 - name: Add Scylla node(s)
-  hosts: {{ new_nodes }}
+  hosts: new_nodes
   become: true
   vars:
-
+    full_inventory: false
     # variables for the Scylla node role
     # Please use the same parameters as were used for the rest of the existing cluster
 
