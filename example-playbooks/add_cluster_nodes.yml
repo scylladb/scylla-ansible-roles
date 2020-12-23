@@ -1,0 +1,36 @@
+---
+# Usage: add the new nodes to the existing ansible inventory and run this playbook using the same
+# variable settings as were used for the original cluster
+# new_nodes should be a list containing new node addresses
+
+- name: Add Scylla node(s)
+  hosts: {{ new_nodes }}
+  become: true
+  vars:
+
+    # variables for the Scylla node role
+    # Please use the same parameters as were used for the rest of the existing cluster
+
+  roles:
+    - geerlingguy.swap
+    - ansible-scylla-node
+
+- name: Run cleanup on the old nodes
+  hosts: scylla
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Run cleanup
+      script:  files/repair.sh
+
+    - name: Add new nodes to the inventory file
+      lineinfile:
+        line: "{{ item }}"
+        path: "{{ inventory_dir }}/{{ inventory_file }}"
+        insertafter: '[scylla]'
+        state: present
+      loop: "{{ new_nodes }}"
+
+
+
+

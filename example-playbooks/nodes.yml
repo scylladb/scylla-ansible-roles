@@ -3,18 +3,6 @@
   hosts: scylla
   become: true
   vars:
-    #variables for the mdadm role
-    mdadm_arrays:
-    - name: 'md0'
-      devices:
-        - '/dev/nvme1n1'
-        - '/dev/nvme2n1'
-        - '/dev/nvme3n1'
-      filesystem: 'xfs'
-      level: '0'
-      mountpoint: '/var/lib/scylla'
-      state: 'present'
-      opts: 'noatime,nofail'
 
     #variables for the swap role
     swap_file_size_mb: '1024'
@@ -45,16 +33,8 @@
     scylla_manager_enabled: true
     scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
 
-  tasks:
-    # Workaround for some Debian versions that might not have XFS support out of the box
-    - name: install XFSprogs
-      package:
-        name: xfsprogs
-        state: present
-      become: true
   roles:
     - geerlingguy.swap
-    - mrlesmithjr.mdadm
     - ansible-scylla-node
 
 

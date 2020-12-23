@@ -124,3 +124,9 @@
 
   become: true
   when: scylla_manager_enabled|bool == true
+
+- name: install XFSprogs
+  apt:
+    name: xfsprogs
+    state: present
+  become: true
