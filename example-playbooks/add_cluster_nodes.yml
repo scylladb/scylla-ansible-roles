@@ -1,7 +1,9 @@
 ---
-# Usage: add the new nodes to the existing ansible inventory and run this playbook using the same
-# variable settings as were used for the original cluster
+# Usage:
+# Add the new nodes to the existing ansible inventory under [new_nodes]
+# and run this playbook using the same variable settings as were used for the original cluster
 # new_nodes should be a list containing new node addresses
+# After the run is finished, update the inventory moving the new nodes into the [scylla] group
 
 - name: Add Scylla node(s)
   hosts: new_nodes
@@ -23,13 +25,6 @@
     - name: Run cleanup
       script:  files/repair.sh
 
-    - name: Add new nodes to the inventory file
-      lineinfile:
-        line: "{{ item }}"
-        path: "{{ inventory_dir }}/{{ inventory_file }}"
-        insertafter: '[scylla]'
-        state: present
-      loop: "{{ new_nodes }}"
 
 
 
