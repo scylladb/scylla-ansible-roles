@@ -1,0 +1,33 @@
+#!/usr/bin/ansible-playbook --inventory=inventory.ini
+---
+- name: Start loaders
+  hosts: loaders
+  gather_facts: no
+  serial: 500
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Insert load.yml for cassandra-stress
+      template:
+        src: templates/load.yml.j2
+        dest: "/home/{{ ansible_user }}/load.yml"
+        mode: 0644
+      when: load_type == "cassandra-stress"
+
+    - name: Insert run command
+      template:
+        src: templates/run_load.sh.j2
+        dest: "/home/{{ ansible_user }}/run_load.sh"
+        mode: 0775
+
+    - name: Run load
+      shell: |
+        "/home/{{ ansible_user }}/run_load.sh"
+      async: 9000
+      poll: 0
+
+    - name: Report loader count
+      debug:
+        msg: "Started {{ groups['loaders'] | length }} loaders"
+      run_once: true

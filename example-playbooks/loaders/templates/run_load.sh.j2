@@ -1,0 +1,78 @@
+# This is the file that contains the actual load run command. Several examples for various
+# loads and tunings are shown.
+
+#!/bin/bash
+
+
+tlp-stress run BasicTimeSeries \
+  -d 30m \
+  -p 100M \
+  -c 50 \
+  --pg sequence \
+  -t 8 \
+  -r 0.2 \
+  --rate 40k \
+  --populate 2000000000 \
+  --compaction "{'class': 'SizeTieredCompactionStrategy', 'min_threshold' : '2'} AND speculative_retry = 'NONE'" \
+  --host {{ groups['scylla'][0] }}
+
+#Regular write-only load
+# cassandra-stress user profile=/home/{{ user_scylla }}/load.yml \
+#  duration={{ load_duration }} \
+#  no-warmup ops\(insert=1\) \
+#  -rate "threads={{ load_threads }}" \
+#  -mode cql3 native connectionsPerHost={{ load_connections }} \
+#  -log file=run.log \
+#  -node {{ groups['scylla'][0] }}
+
+ulimit -u {{ loaders_ulimit }}
+
+# maxPending should be used for shard-aware driver
+#JVM_OPTS='-Dcom.datastax.driver.FLUSHER_SCHEDULE_PERIOD_NS={{ FLUSHER_SCHEDULE_PERIOD_NS }}' \
+#cassandra-stress user profile=/home/{{ user_scylla }}/load.yml \
+#  duration={{ load_duration }} \
+#  no-warmup ops\(insert=1\) \
+#  -rate "threads={{ load_threads }}" \
+#  -mode cql3 native maxPending={{ maxpending_value }} \
+#  -log file=/home/centos/c-s.log \
+#  -node {{ groups['scylla'][0] }}
+
+# Shard aware read load
+# cassandra-stress user profile=/home/{{ user_scylla }}/load.yml \
+#   duration={{ load_duration }} \
+#   no-warmup ops\(read1=1\) \
+#   cl=QUORUM \
+#   -rate "threads={{ load_threads }}" \
+#   -mode cql3 native maxPending=4096 \
+#   -node {{ groups['scylla'][0] }}
+
+# cassandra-stress write \
+#     no-warmup \
+#     cl=ONE \
+#     n=1 \
+#     -schema "replication(factor=1)" \
+#     -mode cql3 native \
+#     -errors ignore \
+#     -node {{ groups['scylla'][0] }}
+
+# cassandra-stress read \
+#   no-warmup \
+#   cl=ONE \
+#   duration=30m \
+#   -schema 'replication(factor=1)' \
+#   -mode cql3 native maxPending=4096 \
+#   -rate  "threads={{ load_threads }}" \
+#   -pop 'seq=1..1000000000' \
+#   -errors ignore \
+#   -node {{ groups['scylla'][0] }}
+
+# cassandra-stress read \
+#   no-warmup \
+#   cl=ONE \
+#   duration=30m \
+#   -schema 'replication(factor=1)' \
+#   -mode cql3 native connectionsPerHost={{ load_connections }} \
+#   -rate  "threads={{ load_threads }}" \
+#   -pop 'seq=1..1000000000' \
+#   -errors ignore \
+#   -node {{ groups['scylla'][0] }}

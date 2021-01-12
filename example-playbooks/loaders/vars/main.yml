@@ -1,0 +1,12 @@
+# Options are "cassandra-stress", "tlp-stress", "ycsb", "java" - simply use the name of the binary that runs the load.
+load_type: cassandra-stress
+
+# the following variables can e used for cassandra-stress, check the run-load.sh.j2 template for specific usage
+load_threads: 5500
+load_connections: 92
+load_duration: "10m"
+load_count: 1000000
+#A special Java variable for cassandra-stress
+FLUSHER_SCHEDULE_PERIOD_NS: 11000000
+loaders_ulimit: 8000
+maxpending_value: 10000

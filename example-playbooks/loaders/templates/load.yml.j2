@@ -1,0 +1,46 @@
+# This is an example cassandra-stress load.yml file, replace with your own
+
+
+keyspace: kvtest
+keyspace_definition: |
+  CREATE KEYSPACE kvtest WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
+table: kvexample
+table_definition: |
+  CREATE TABLE kvexample (
+    pkey int,
+    val int,
+    PRIMARY KEY (pkey))
+    WITH compression = {}
+    AND compaction = {'class' : 'NullCompactionStrategy'}
+
+#  CREATE TABLE kvexample (
+#    key text,
+#    val text,
+#    PRIMARY KEY (key))
+#    WITH compression = {}
+
+
+columnspec:
+  - name: pkey
+    population: uniform(1..4000000)
+  - name: val
+    population: uniform(1..500B)
+
+#  - name: key
+#    size: gaussian(4..8)
+#    population: uniform(1..4000)
+#  - name: val
+#    size: gaussian(4..8)
+#    population: gaussian(1..500B)
+
+insert:
+  partitions: fixed(1)
+  batchtype: UNLOGGED
+  select: fixed(1)/1
+
+queries:
+   simple1:
+      cql: select * from kvexample
+      fields: samerow
+   read1:
+      cql: select * from kvtest.kvexample where key = ? LIMIT 1

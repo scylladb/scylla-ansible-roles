@@ -1,0 +1,96 @@
+---
+- name: Add EPEL key
+  rpm_key:
+    state: present
+    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}
+  become: true
+
+- name: Add EPEL repository
+  yum:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+  become: true
+
+- name: Install ELRepo kernel
+  block:
+    - name: install ELRepo key
+      rpm_key:
+        state: present
+        key: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+
+    - name: Add ELRepo repository
+      yum_repository:
+        name: elrepo
+        description: ELREPO
+        baseurl: https://elrepo.org/linux/kernel/el$releasever/$basearch/
+
+    - name: Install the ELRepo kernel
+      yum:
+        name: kernel-ml
+        state: present
+  when: elrepo_kernel == True and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+  become: true
+
+- name: Install Scylla repo
+  get_url:
+    url: "{{ item }}"
+    dest: '/etc/yum.repos.d/{{ item.split("/")[-1] | lower }}'
+    mode: '0644'
+    owner: root
+  with_items: "{{ scylla_repos }}"
+  when: item.split(".")[-1] == "repo"
+  become: true
+
+- name: Install deps
+  package:
+    name: "{{ item }}"
+    state: present
+  become: true
+  with_items:
+    - java-1.8.0-openjdk-devel
+    - git
+    - python3
+    - python3-pyudev
+    - hwloc
+    - gcc
+    - python3-devel
+    - libev
+    - libev-devel
+    - python3-pip
+    - "{{ scylla_dependencies|default(omit) }}"
+
+- name: install prerequisite python-yaml
+  shell: |
+    for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
+  become: true
+
+- name: install scylla-tools-core|scylla-enterprise-tools-core
+  block:
+    - package:
+        name: scylla-tools
+        state: present
+      when: scylla_edition == 'oss'
+    - package:
+        name: scylla-enterprise-tools
+        state: present
+      when: scylla_edition == 'enterprise'
+  become: true
+
+- name: install tlp-stress repo
+  copy:
+    dest: /etc/yum.repos.d/tlp-stress.repo
+    content: |
+      [bintraybintray-thelastpickle-tlp-tools-rpm]
+      name=bintray-thelastpickle-tlp-tools-rpm
+      baseurl=https://dl.bintray.com/thelastpickle/tlp-tools-rpm
+      gpgcheck=0
+      repo_gpgcheck=0
+      enabled=1
+  become: true
+
+- name: install tlp-stress
+  yum:
+    name: tlp-stress
+    state: latest
+  become: true
+

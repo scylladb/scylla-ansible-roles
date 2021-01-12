@@ -1,0 +1,73 @@
+---
+- name: os-specific tasks
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+# - name: insert load.yml
+#   template:
+#     src: templates/load.yml.j2
+#     dest: "/home/{{ ansible_user }}/load.yml"
+#     mode: 0777
+#   become: true
+
+# - name: Insert run command
+#   template:
+#     src: templates/run_load.sh.j2
+#     dest: "/home/{{ ansible_user }}/run_load.sh"
+#     mode: 0777
+#   become: true
+
+- name: Inject perftune.py
+  get_url:
+    url: "{{ perftune_download_url }}"
+    dest: "/home/{{ ansible_user }}/perftune.py"
+    mode: 0777
+
+- name: Run perftune
+  shell: |
+    sudo /home/"{{ ansible_user }}"/perftune.py --nic "{{ loader_nic }}" --mode "{{ loader_perftune_mode }}" --tune net
+  become: true
+
+- name: Adjust ulimit
+  blockinfile:
+    path: /etc/security/limits.d/billy.conf
+    block: |
+      centos  -  nproc    10000
+      root    -  nproc    10000
+    create: yes
+    mode: 0644
+    state: present
+  become: true
+
+- name: Increase allowed FDs by 10
+  shell: |
+    # FD=$(cat /proc/sys/fs/file-max)
+    # sysctl -w fs.file-max=$FD"0"
+    FD=$(ulimit -n)
+    ulimit -n $FD"0"
+  become: true
+
+- name: Install python-driver and dependencies
+  pip:
+    name:
+      - scylla-driver
+      - scylla-driver[graph]
+      - lz4
+      - python-snappy
+      - scales
+    executable: 'pip3'
+  become: true
+
+- name: create dir for YCSB
+  file:
+    path: "/home/{{ ansible_user }}/ycsb"
+    state: directory
+    recurse: yes
+
+- name: download YCSB
+  unarchive:
+    src: "{{ ycsb_download_url }}"
+    dest: "/home/{{ ansible_user }}/ycsb"
+    remote_src: yes
+
+
+

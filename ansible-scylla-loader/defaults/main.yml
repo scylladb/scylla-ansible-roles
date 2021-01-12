@@ -1,0 +1,40 @@
+loader_perftune_mode: mq
+ycsb_download_url: https://github.com/brianfrankcooper/YCSB/releases/download/0.17.0/ycsb-0.17.0.tar.gz
+perftune_download_url: https://raw.githubusercontent.com/scylladb/seastar/seastar-19.06-branch/scripts/perftune.yaml
+
+# Change here or override in vars
+loader_nic: "{{ ansible_default_ipv4.interface }}"
+
+# URL of an RPM .repo file or a DEB .list file
+scylla_repos:
+  - http://downloads.scylladb.com/rpm/centos/scylla-2020.1.repo
+  - http://downloads.scylladb.com/deb/ubuntu/scylla-2020.1-bionic.list
+
+# Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
+elrepo_kernel: True
+
+# Only relevant for Debian/Ubuntu
+scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
+scylla_repo_keys:
+  - 5e08fbd8b5d6ec9c
+  - 2895100917357435
+#for TLP-stress 2895100917357435 is also added to the list. If it doesn't work, review the Debian installation
+#recommendations on the tlp-stress website
+
+# Set when relevant (Debian for example)
+scylla_repo_keyfile_urls:
+  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
+
+# Configure when additional dependency packages are required (only for some distributions)
+scylla_dependencies:
+  - curl
+  - wget
+  #- software-properties-common
+  #- apt-transport-https
+  #- gnupg2
+  #- dirmngr
+
+# Options are oss|enterprise
+#scylla_edition: oss
+scylla_edition: enterprise
+

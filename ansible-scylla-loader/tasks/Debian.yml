@@ -1,0 +1,98 @@
+---
+- name: add Scylla repos
+  block:
+  - name: Install Scylla repo
+    get_url:
+      url: "{{ item }}"
+      dest: '/etc/apt/sources.list.d/{{ item.split("/")[-1] | lower }}'
+      mode: '0644'
+      owner: root
+    with_items: "{{ scylla_repos }}"
+    when: item.split(".")[-1] == "list"
+
+  - name: Add an apt key by id from a keyserver
+    apt_key:
+      keyserver: "{{ scylla_repo_keyserver }}"
+      id: "{{ item }}"
+    with_items: "{{ scylla_repo_keys }}"
+    when: scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+
+  - name: Add an Apt signing key for Debian
+    apt_key:
+      url: "{{ item }}"
+      state: present
+    with_items: "{{ scylla_repo_keyfile_urls }}"
+    when: scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0)
+  become: true
+
+- name: Upgrade all packages to the latest version
+  apt:
+    name: "*"
+    state: latest
+    force_apt_get: yes
+    update_cache: yes
+  become: true
+
+- name: install Debian-specific dependencies
+  apt:
+    name:
+      - python3-pip
+      - python3-yaml
+      - git
+      - gcc
+      - hwloc
+    state: latest
+    force_apt_get: yes
+  become: true
+
+- name: Install additional dependencies
+  apt:
+    name: "{{ scylla_dependencies }}"
+    state: present
+    force_apt_get: yes
+  when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
+  become: true
+
+- name: Install Java
+  apt:
+    name: openjdk-8-jre-headless
+    state: present
+    force_apt_get: yes
+  become: true
+
+- name: Correct java version selected
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+  become: true
+
+- name: install scylla-tools-core|scylla-enterprise-tools-core
+  block:
+    - package:
+        name: scylla-tools
+        state: present
+      when: scylla_edition == 'oss'
+    - package:
+        name: scylla-enterprise-tools
+        state: present
+      when: scylla_edition == 'enterprise'
+  become: true
+
+- name: find debian name
+  shell: |
+    lsb_release -s -c
+  register: debian_ver_name
+
+- name: add tlp-stress repo
+  ansible.builtin.apt_repository:
+    repo: "deb https://dl.bintray.com/thelastpickle/tlp-tools-deb {{ debian_ver_name.stdout }} main"
+    state: present
+  become: true
+
+- name: install tlp-stress
+  apt:
+    name: tlp-stress
+    state: present
+    force_apt_get: yes
+    update_cache: yes
+  become: true

@@ -1,0 +1,7 @@
+---
+- name: Build Scylla Loaders
+  hosts: loaders
+
+  roles:
+    - ../../ansible-scylla-loader
+

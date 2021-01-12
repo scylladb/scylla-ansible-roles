@@ -1,0 +1,21 @@
+#!/usr/bin/ansible-playbook --inventory=inventory.ini
+---
+- name: Stop loaders
+  hosts: loaders
+  gather_facts: no
+  serial: 500
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Stop load
+      shell: |
+        /usr/bin/pkill {{ load_type }} || /bin/true
+      become: true
+      async: 60
+      poll: 0
+
+    - name: Report loader count
+      debug:
+        msg: "Stopped {{ groups['loaders'] | length }} loaders"
+      run_once: true
