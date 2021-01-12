@@ -28,6 +28,18 @@ This role will install Scylla Monitoring (a prometheus/grafana based, containeri
 
 [Manual](https://github.com/scylladb/scylla-ansible-roles/wiki/Deploying-Scylla-Monitoring-and-connecting-it-to-a-Scylla-Cluster)
 
+### ansible-scylla-loader role
+
+This role will prepare a host to run a stress load against a Scylla cluster.
+The following components get installed:
+
+- Scylla Java driver
+- Scylla Python driver
+- cassandra-stress (in $PATH)
+- tlp-stress (in $PATH)
+- YCSB (in /home/ANSIBLE_USER/ycsb/VERSION)
+
+
 ### example-playbooks
 
 Some basic playbooks showing off how the roles can be utilized, as well as some playbooks used for standard day-2 ops with Scylla
