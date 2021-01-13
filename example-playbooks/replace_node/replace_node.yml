@@ -22,6 +22,11 @@
     - ansible-scylla-node
 
   tasks:
+    - name: check for the replaced node being a seed
+      fail:
+        msg: "The node being replaced {{ replaced_node }} is a seed node. Please demote it to a non-seed first and try again."
+      when: replaced_node in scylla_seeds
+
     - name: start scylla
       service:
         name: scylla-server
