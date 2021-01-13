@@ -33,7 +33,7 @@
       when: compact.tables == "all"
 
     - name: Run ks/table compaction
-      script: files/compact.sh -t {{ compact['keyspace'] }} {{ item }}
+      script: files/compact.sh -t {{ compact['keyspace'] }}.{{ item }}
       loop: "{{ compact['tables'] }}"
       when: compact.tables != "all" and compact != "all"
 
