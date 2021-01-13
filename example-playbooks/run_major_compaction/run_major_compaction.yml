@@ -26,16 +26,27 @@
   tasks:
     - name: Run compaction for all ks/tables
       script:  files/compact.sh -a
-      when: compact == "all"
+      when:
+        - compact is defined
+        - compact == "all"
 
     - name: Run ks compactions
       script: files/compact.sh -k "{{ compact['keyspace'] }}"
-      when: compact.tables == "all"
+      when:
+        - compact is defined
+        - compact.tables is defined
+        - compact.keyspace is defined
+        - compact.tables == "all"
 
     - name: Run ks/table compaction
       script: files/compact.sh -t {{ compact['keyspace'] }}.{{ item }}
       loop: "{{ compact['tables'] }}"
-      when: compact.tables != "all" and compact != "all"
+      when:
+        - compact is defined
+        - compact.tables is defined
+        - compact.keyspace is defined
+        - compact.tables != "all"
+        - compact != "all"
 
 
 
