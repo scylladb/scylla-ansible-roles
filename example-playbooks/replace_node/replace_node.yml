@@ -1,5 +1,5 @@
 ---
-- name: Add Scylla node
+- name: Add Scylla without starting
   # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
   hosts: new_node
   become: true
@@ -17,16 +17,23 @@
     scylla_yaml_params:
       replace_address_first_boot: {{ replaced_node }}
 
-  roles:
-    - geerlingguy.swap
-    - ansible-scylla-node
-
   tasks:
     - name: check for the replaced node being a seed
       fail:
         msg: "The node being replaced {{ replaced_node }} is a seed node. Please demote it to a non-seed first and try again."
       when: replaced_node in scylla_seeds
 
+  roles:
+    - geerlingguy.swap
+    - ansible-scylla-node
+
+
+- name: Check for seeds and start scylla services
+  # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
+  hosts: new_node
+  become: true
+
+  tasks:
     - name: start scylla
       service:
         name: scylla-server
@@ -35,12 +42,6 @@
       ignore_errors: true
       #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
-    - name: wait for the API port to come up on all nodes
-      wait_for:
-        port: "{{ scylla_api_port }}"
-        host: "{{ scylla_api_address }}"
-        timeout: 300
-
     - name: wait for the cluster to become healthy
       shell: |
         nodetool status|grep -E '^UN|^UJ|^DN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
@@ -48,5 +49,10 @@
       until: node_count.stdout|int == 1
       retries: 300
       delay: 1
+
+    - name: run nodetool repair -pr
+      shell: |
+        nodetool repair -pr
+
 
 
