@@ -28,7 +28,7 @@
     - ansible-scylla-node
 
 
-- name: Check for seeds and start scylla services
+- name: Start scylla services
   # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
   hosts: new_node
   become: true
@@ -49,6 +49,13 @@
       until: node_count.stdout|int == 1
       retries: 300
       delay: 1
+
+    - name: remove the replace_address_first_boot record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^replace_address_first_boot:'
+        state: absent
+      become: true
 
     - name: run nodetool repair -pr
       shell: |
