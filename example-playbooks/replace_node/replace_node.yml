@@ -1,0 +1,47 @@
+---
+- name: Add Scylla node
+  # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
+  hosts: new_node
+  become: true
+  vars:
+    full_inventory: false
+    start_scylla_service: false
+
+    #address of the node being replaced. Please make sure to remove it from the inventory when done.
+    replaced_node: 1.2.3.4
+
+    # variables for the Scylla node role
+    # Please use the same parameters as were used for the rest of the existing cluster
+
+    # Use the same parameters as for the rest of the cluster with the addition of the following:
+    scylla_yaml_params:
+      replace_address_first_boot: {{ replaced_node }}
+
+  roles:
+    - geerlingguy.swap
+    - ansible-scylla-node
+
+  tasks:
+    - name: start scylla
+      service:
+        name: scylla-server
+        state: started
+      become: true
+      ignore_errors: true
+      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
+
+    - name: wait for the API port to come up on all nodes
+      wait_for:
+        port: "{{ scylla_api_port }}"
+        host: "{{ scylla_api_address }}"
+        timeout: 300
+
+    - name: wait for the cluster to become healthy
+      shell: |
+        nodetool status|grep -E '^UN|^UJ|^DN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
+      register: node_count
+      until: node_count.stdout|int == 1
+      retries: 300
+      delay: 1
+
+

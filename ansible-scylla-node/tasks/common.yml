@@ -194,44 +194,56 @@
     - (scylla_ssl.internode.enabled|bool) or
       (scylla_ssl.client.enabled|bool)
 
-- name: start scylla seeds
-  service:
-    name: scylla-server
-    state: started
-  become: true
-  when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
-  ignore_errors: true
-  #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
+- name: start_scylla_service dependent tasks
+  block:
+    - name: start scylla seeds
+      service:
+        name: scylla-server
+        state: started
+      become: true
+      when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
+      ignore_errors: true
+      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
-- name: start scylla non-seeds
-  service:
-    name: scylla-server
-    state: started
-  become: true
-  when:
-    - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
-    - inventory_hostname not in scylla_seeds
-  ignore_errors: true
-  #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
+    - name: start scylla non-seeds
+      service:
+        name: scylla-server
+        state: started
+      become: true
+      when:
+        - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
+        - inventory_hostname not in scylla_seeds
+      ignore_errors: true
+      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
-- name: wait for the API port to come up on all nodes
-  wait_for:
-    port: "{{ scylla_api_port }}"
-    host: "{{ scylla_api_address }}"
-    timeout: 300
+    - name: wait for the API port to come up on all nodes
+      wait_for:
+        port: "{{ scylla_api_port }}"
+        host: "{{ scylla_api_address }}"
+        timeout: 300
 
-- name: wait for the cluster to become healthy
-  shell: |
-    nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
-  register: node_count
-  until: node_count.stdout|int == ansible_play_batch|length
-  retries: 300
-  delay: 1
-  when: full_inventory|bool
+    - name: wait for the cluster to become healthy
+      shell: |
+        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+      register: node_count
+      until: node_count.stdout|int == ansible_play_batch|length
+      retries: 300
+      delay: 1
+      when: full_inventory|bool
 
-- name: check API access
-  shell: |
-    curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/
+    - name: check API access
+      shell: |
+        curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/
+
+    - name: generate monitoring configuration
+      include_tasks: monitoring_config.yml
+      when: generate_monitoring_config|bool
+      run_once: true
+
+    - name: configure the Manager agents
+      include_tasks: manager_agents.yml
+      when: scylla_manager_enabled|bool
+  when:  start_scylla_service is defined and start_scylla_service|bool
 
 - name: Update sysctl
   lineinfile:
@@ -250,11 +262,3 @@
   become: true
   when: update_sysctl|bool is defined and update_sysctl|bool
 
-- name: generate monitoring configuration
-  include_tasks: monitoring_config.yml
-  when: generate_monitoring_config|bool
-  run_once: true
-
-- name: configure the Manager agents
-  include_tasks: manager_agents.yml
-  when: scylla_manager_enabled|bool

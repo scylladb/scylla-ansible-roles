@@ -1,7 +1,7 @@
 ---
 scylla_cluster_name: 'testcluster123'
 
-  # set to true if the role should enable the specified repos, install the binaries and stop
+# set to true if the role should enable the specified repos, install the binaries and stop
 install_only: false
 
 # Change here or override in vars
@@ -21,6 +21,11 @@ elrepo_kernel: True
 
 # set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
 full_inventory: true
+
+# set to enabled when the scylla-server service should be started by applying the role.
+# if, for example, we add a node, but prefer to wait before we start the service and add it to the cluster,
+# this should be set to false
+start_scylla_service: true
 
 # Only relevant for Debian/Ubuntu
 scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
