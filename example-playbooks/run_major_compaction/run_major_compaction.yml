@@ -1,6 +1,8 @@
 ---
 # Use limits (-l) to limit the nodes where the compactions will be run
 # To run on multiple nodes at a time, run with `-e "node_batch_size=N"`
+# (to run on all nodes use node_batch_size=100%)
+#
 # Check the vars below for the format of the compaction targets
 
 - name: Run major compaction
@@ -11,7 +13,6 @@
     # compact all tables in keyspace "ks1"
     # compact:
     #   keyspace: ks1
-    #   tables: all
 
     # compact tables "tb3" and "tb1" in keyspace "ks2"
     # compact:
@@ -30,22 +31,20 @@
         - compact is defined
         - compact == "all"
 
-    - name: Run ks compactions
+    - name: Run ks all tables compactions
       script: files/compact.sh -k "{{ compact['keyspace'] }}"
       when:
         - compact is defined
-        - compact.tables is defined
+        - compact.tables is not defined
         - compact.keyspace is defined
-        - compact.tables == "all"
 
-    - name: Run ks/table compaction
+    - name: Run ks/tables compaction
       script: files/compact.sh -t {{ compact['keyspace'] }}.{{ item }}
       loop: "{{ compact['tables'] }}"
       when:
         - compact is defined
         - compact.tables is defined
         - compact.keyspace is defined
-        - compact.tables != "all"
         - compact != "all"
 
 
