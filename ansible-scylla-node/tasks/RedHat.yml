@@ -10,10 +10,11 @@
   yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
+    lock_timeout: 180
   when: install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
-- name: Install ELRepo kernel
+- name: Install ELRepo kernel and reboot in to it
   block:
     - name: install ELRepo key
       rpm_key:
@@ -30,6 +31,39 @@
       yum:
         name: kernel-ml
         state: present
+        lock_timeout: 180
+
+    - name: Configure grub2 to boot first entry
+      lineinfile:
+        dest: /etc/default/grub
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+        create: yes
+        regexp: '{{ item.regexp }}'
+        line: '{{ item.line }}'
+        state: present
+      with_items:
+        - regexp: 'GRUB_DEFAULT='
+          line: 'GRUB_DEFAULT=0'
+        - regexp: 'GRUB_TIMEOUT='
+          line: 'GRUB_TIMEOUT=30'
+
+    - name: Reconfigure Grub2
+      command: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+    - name: Reboot the server
+      tags: reboot
+      become: yes
+      become_user: root
+      shell: "sleep 5 && shutdown -r now \"Ansible updates triggered\""
+      async: 1
+      poll: 0
+
+    - name: Wait for TCP port 22 to be open again
+      wait_for_connection:
+        delay: 20
   when: elrepo_kernel == True and install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
@@ -55,6 +89,7 @@
     yum:
       name: scylla
       state: latest
+      lock_timeout: 180
     when: scylla_version == 'latest' and scylla_edition == 'oss'
 
   - name: Install latest Enterprise Scylla
@@ -67,12 +102,14 @@
     yum:
       name: "scylla-{{ scylla_version }}"
       state: present
+      lock_timeout: 180
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
   - name: Install specified Enterprise Scylla
     yum:
       name: "scylla-enterprise-{{ scylla_version }}"
       state: present
+      lock_timeout: 180
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
@@ -100,12 +137,14 @@
       yum:
         name: scylla-manager-agent
         state: present
+        lock_timeout: 180
       when: scylla_manager_agent_upgrade is not defined or scylla_manager_agent_upgrade|bool == False
 
     - name: install the latest manager agent
       yum:
         name: scylla-manager-agent
         state: latest
+        lock_timeout: 180
       when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
 
   become: true
