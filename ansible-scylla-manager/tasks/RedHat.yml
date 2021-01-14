@@ -9,7 +9,7 @@
   yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
-    lock_timeout: 60
+    lock_timeout: 180
   become: true
 
 - name: add scylla-manager repo
@@ -27,7 +27,7 @@
           - scylla-manager-server
           - scylla-manager-client
         state: present
-        lock_timeout: 60
+        lock_timeout: 180
       become: true
       when: enable_upgrade is not defined or enable_upgrade is defined and enable_upgrade|bool == False
 
@@ -36,7 +36,7 @@
           - scylla-manager-server
           - scylla-manager-client
         state: latest
-        lock_timeout: 60
+        lock_timeout: 180
       become: true
       when: enable_upgrade is defined and enable_upgrade|bool
 
