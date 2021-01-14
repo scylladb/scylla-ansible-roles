@@ -93,11 +93,3 @@
 #         touch /etc/containers/nodocker
 #   become: true
 #   when: install_type == "docker" and ansible_distribution_major_version|int > 7
-
-
-
-
-
-
-
-
