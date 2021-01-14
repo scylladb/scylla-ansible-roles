@@ -10,7 +10,7 @@
   yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
-    lock_timeout: 60
+    lock_timeout: 180
   when: install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
@@ -88,7 +88,7 @@
     yum:
       name: scylla
       state: latest
-      lock_timeout: 60
+      lock_timeout: 180
     when: scylla_version == 'latest' and scylla_edition == 'oss'
 
   - name: Install latest Enterprise Scylla
@@ -101,14 +101,14 @@
     yum:
       name: "scylla-{{ scylla_version }}"
       state: present
-      lock_timeout: 60
+      lock_timeout: 180
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
   - name: Install specified Enterprise Scylla
     yum:
       name: "scylla-enterprise-{{ scylla_version }}"
       state: present
-      lock_timeout: 60
+      lock_timeout: 180
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
@@ -137,14 +137,14 @@
       yum:
         name: scylla-manager-agent
         state: present
-        lock_timeout: 60
+        lock_timeout: 180
       when: scylla_manager_agent_upgrade is not defined or scylla_manager_agent_upgrade|bool == False
 
     - name: install the latest manager agent
       yum:
         name: scylla-manager-agent
         state: latest
-        lock_timeout: 60
+        lock_timeout: 180
       when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
 
   become: true
