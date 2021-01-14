@@ -35,6 +35,6 @@
 
   roles:
     - geerlingguy.swap
-    - ansible-scylla-node
+    - { name: ansible-scylla-node, become: false }
 
 

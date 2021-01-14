@@ -12,7 +12,12 @@
       name:
         - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
       state: present
+<<<<<<< HEAD
       lock_timeout: 60
+||||||| parent of 1788a54 (Add README for major compaction play)
+=======
+      lock_timeout: 180
+>>>>>>> 1788a54 (Add README for major compaction play)
 
   - name: install additional dependencies
     yum:
@@ -20,7 +25,12 @@
         - git
         - python3
       state: present
+<<<<<<< HEAD
       lock_timeout: 60
+||||||| parent of 1788a54 (Add README for major compaction play)
+=======
+      lock_timeout: 180
+>>>>>>> 1788a54 (Add README for major compaction play)
   become: true
 
 - name: install prerequisite python-yaml
@@ -44,7 +54,7 @@
           - podman
           - podman-docker
         state: absent
-        lock_timeout: 60
+        lock_timeout: 180
 
     - name: download docker-ce repo
       get_url:
@@ -60,7 +70,7 @@
           - docker-ce-cli
           - containerd.io
         state: present
-        lock_timeout: 60
+        lock_timeout: 180
 
     - name: create docker group
       group:
