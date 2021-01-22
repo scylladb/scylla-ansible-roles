@@ -17,7 +17,9 @@ scylla_repos:
 
 
 # Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
+# Reboot after the elrepo kernel has been installed is recommended as well.
 elrepo_kernel: True
+reboot_after_kernel_upgrade: True
 
 # set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
 full_inventory: true
