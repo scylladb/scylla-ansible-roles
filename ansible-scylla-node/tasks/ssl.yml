@@ -37,43 +37,74 @@
 
 - name: Generate keys signed by the local CA and push them to the nodes
   block:
+<<<<<<< HEAD
+||||||| parent of 5045af3 (This looks like it works, but checks each host too many times)
+    - name: Check hostname folder exists
+      stat:
+        path: "./ssl/{{ inventory_hostname }}"
+      register: hostname_folder_details
+
+=======
+    - name: Check hostname folder exists
+      stat:
+        path: "./ssl/{{ item }}"
+      with_inventory_hostnames:
+        - scylla
+      register: hostname_folder_details
+      delegate_to: localhost
+
+>>>>>>> 5045af3 (This looks like it works, but checks each host too many times)
     - name: Create a directory for the key
       file:
-        path: "./ssl/{{ inventory_hostname }}"
+        path: "./ssl/{{ item }}"
         state: directory
       delegate_to: localhost
 
     - name: Check private keys exist
       stat:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+        path: "./ssl/{{ item }}/{{ item }}.pem"
+      with_inventory_hostnames:
+        - scylla
       register: hostname_private_details
       delegate_to: localhost
 
     - name: Check certificates exist
       stat:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+        path: "./ssl/{{ item }}/{{ item }}.crt"
+      with_inventory_hostnames:
+        - scylla
       register: hostname_cert_details
       delegate_to: localhost
 
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+        path: "./ssl/{{ item }}/{{ item }}.pem"
       delegate_to: localhost
       when: hostname_private_details.stat.exists == False
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
-        privatekey_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
-        common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
+        path: "./ssl/{{ item }}/{{ item }}.csr"
+        privatekey_path: "./ssl/{{ item }}/{{ item }}.pem"
+        common_name: "{{ item }}.{{ scylla_cluster_name }}.internal"
       delegate_to: localhost
       when: hostname_cert_details.stat.exists == False
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
       openssl_certificate:
+<<<<<<< HEAD
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
         csr_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
         ownca_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+||||||| parent of 5045af3 (This looks like it works, but checks each host too many times)
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+        csr_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
+        ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+=======
+        path: "./ssl/{{ item }}/{{ item }}.crt"
+        csr_path: "./ssl/{{ item }}/{{ inventory_hostname }}.csr"
+        ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+>>>>>>> 5045af3 (This looks like it works, but checks each host too many times)
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
       delegate_to: localhost
