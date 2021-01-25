@@ -12,6 +12,7 @@
       name:
         - "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
       state: present
+      lock_timeout: 60
 
   - name: install additional dependencies
     yum:
@@ -19,6 +20,7 @@
         - git
         - python3
       state: present
+      lock_timeout: 60
   become: true
 
 - name: install prerequisite python-yaml
@@ -42,6 +44,7 @@
           - podman
           - podman-docker
         state: absent
+        lock_timeout: 60
 
     - name: download docker-ce repo
       get_url:
@@ -57,6 +60,7 @@
           - docker-ce-cli
           - containerd.io
         state: present
+        lock_timeout: 60
 
     - name: create docker group
       group:
