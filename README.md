@@ -5,6 +5,7 @@ The roles produce some outputs that can be used with the other roles, running al
 
 For detailed documentation of each role and some of the example playbooks, please see the Wiki: https://github.com/scylladb/scylla-ansible-roles/wiki
 
+Discussion on Slack: https://scylladb-users.slack.com/archives/C01KV03RTEV
 
 
 ## Roles:
