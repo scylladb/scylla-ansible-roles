@@ -1,0 +1,29 @@
+---
+- name: add scylla-manager repo
+  get_url:
+    url: "{{ scylla_manager_repo_url }}"
+    dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+    mode: '0644'
+    owner: root
+  become: true
+
+- name: install manager
+  block:
+    - yum:
+        name:
+          - scylla-manager-server
+          - scylla-manager-client
+        state: present
+        lock_timeout: 180
+      become: true
+      when: enable_upgrade is not defined or enable_upgrade is defined and enable_upgrade|bool == False
+
+    - yum:
+        name:
+          - scylla-manager-server
+          - scylla-manager-client
+        state: latest
+        lock_timeout: 180
+      become: true
+      when: enable_upgrade is defined and enable_upgrade|bool
+
