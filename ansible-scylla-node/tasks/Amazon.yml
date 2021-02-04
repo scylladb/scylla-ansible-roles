@@ -1,0 +1,83 @@
+---
+- name: remove abrt
+  package:
+    name: abrt
+    state: absent
+  become: true
+
+- name: Install Scylla repo
+  get_url:
+    url: "{{ item }}"
+    dest: '/etc/yum.repos.d/{{ item.split("/")[-1] | lower }}'
+    mode: '0644'
+    owner: root
+  with_items: "{{ scylla_repos }}"
+  when: item.split(".")[-1] == "repo"
+  become: true
+
+- name: Install Scylla
+  block:
+  - name: Install latest OSS Scylla
+    yum:
+      name: scylla
+      state: latest
+      lock_timeout: 180
+    when: scylla_version == 'latest' and scylla_edition == 'oss'
+
+  - name: Install latest Enterprise Scylla
+    yum:
+      name: scylla-enterprise
+      state: latest
+    when: scylla_version == 'latest' and scylla_edition == 'enterprise'
+
+  - name: Install specified OSS Scylla
+    yum:
+      name: "scylla-{{ scylla_version }}"
+      state: present
+      lock_timeout: 180
+    when: scylla_version != 'latest' and scylla_edition == 'oss'
+
+  - name: Install specified Enterprise Scylla
+    yum:
+      name: "scylla-enterprise-{{ scylla_version }}"
+      state: present
+      lock_timeout: 180
+    when: scylla_version != 'latest' and scylla_edition == 'enterprise'
+  become: true
+
+- name: Configure SELinux
+  shell: |
+    scylla_selinux_setup
+  become: true
+
+- name: install prerequisite python-yaml
+  shell: |
+    for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
+  become: true
+
+- name: install and configure Scylla Manager Agent
+  block:
+    - name: add Scylla Manager repo
+      get_url:
+        url: "{{ scylla_manager_repo_url }}"
+        dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+        mode: '0644'
+        owner: root
+      when: scylla_manager_repo_url.split(".")[-1] == "repo"
+
+    - name: install the manager agent
+      yum:
+        name: scylla-manager-agent
+        state: present
+        lock_timeout: 180
+      when: scylla_manager_agent_upgrade is not defined or scylla_manager_agent_upgrade|bool == False
+
+    - name: install the latest manager agent
+      yum:
+        name: scylla-manager-agent
+        state: latest
+        lock_timeout: 180
+      when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
+
+  become: true
+  when: scylla_manager_enabled|bool
