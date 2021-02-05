@@ -38,6 +38,7 @@
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
         -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        -g 4000 \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
 
@@ -65,6 +66,7 @@
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
         -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        -g 4000 \
         {{ scylla_monitoring_params | default('') }}
   when:
     - run_docker_with_sudo is defined and run_docker_with_sudo|bool == False or
@@ -89,6 +91,7 @@
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
         -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        -g 4000 \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
     become: true
@@ -117,6 +120,7 @@
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
         -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
         -b -storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        -g 4000 \
         {{ scylla_monitoring_params | default('') }}
     become: true
   when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
