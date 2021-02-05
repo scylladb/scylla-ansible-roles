@@ -11,7 +11,7 @@
   block:
   - name: generate the agent key
     shell: |
-      tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
+      LC_CTYPE=C tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
     register: scyllamgr_auth_token
     delegate_to: localhost
     run_once: true
