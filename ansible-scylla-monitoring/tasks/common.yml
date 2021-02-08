@@ -55,7 +55,7 @@
   copy:
     content: |
       - targets:
-        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:56090
+        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:5090
     dest: "{{ scylla_monitoring_config_path }}/scylla_manager_servers.yml"
     mode: '0644'
 
