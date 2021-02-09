@@ -2,7 +2,7 @@
 # defaults file for ansible-scylla-manager
 
 # Repo URL for the Manager
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.2.repo"
 
 scylla_db_vars:
   # Repo URLs for the ScyllaDB datastore installation
