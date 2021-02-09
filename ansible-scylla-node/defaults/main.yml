@@ -207,5 +207,7 @@ sysctl:
     value: '1440000'
   - name: 'net.ipv4.tcp_tw_reuse'
     value: '1'
+  - name: 'fs.aio-max-nr'
+    value: '5048576'
   # - name: 'net.ipv4.tcp_tw_recycle'
   #   value: '1'

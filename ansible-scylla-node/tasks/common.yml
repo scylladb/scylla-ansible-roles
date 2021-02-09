@@ -14,6 +14,23 @@
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
       ignore_errors: true
 
+- name: Update sysctl
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "{{ item.name }} = {{ item.value }}"
+    regexp: '^{{ item.name }}'
+    state: present
+    create: yes
+  become: true
+  loop: "{{ sysctl }}"
+  when: update_sysctl|bool is defined and update_sysctl|bool
+
+- name: Reload sysctl
+  shell: |
+    sysctl -p
+  become: true
+  when: update_sysctl|bool is defined and update_sysctl|bool
+
 - name: IO settings probe
   block:
     - name: check for existing io_properties
@@ -244,21 +261,3 @@
       include_tasks: manager_agents.yml
       when: scylla_manager_enabled|bool
   when:  start_scylla_service is defined and start_scylla_service|bool
-
-- name: Update sysctl
-  lineinfile:
-    path: /etc/sysctl.conf
-    line: "{{ item.name }} = {{ item.value }}"
-    regexp: '^{{ item.name }}'
-    state: present
-    create: yes
-  become: true
-  loop: "{{ sysctl }}"
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
-- name: Reload sysctl
-  shell: |
-    sysctl -p
-  become: true
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
