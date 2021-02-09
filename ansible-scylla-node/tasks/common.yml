@@ -1,24 +1,4 @@
 ---
-
-- name: Deactivate firewall
-  block:
-    - name: Deactivate front-end firewall services
-      service:
-        name: "{{ item }}"
-        state: stopped
-        enabled: false
-      loop:
-        - firewalld.service
-        - iptables_services.service
-        - ufw.service
-      when: ansible_facts.services[item] is defined
-    - name: Flush all iptables rules
-      iptables:
-        flush: yes
-      when: "'iptables' in ansible_facts.packages"
-  when: not firewall_enabled
-  become: true
-
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid
@@ -33,6 +13,23 @@
       become: true
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
       ignore_errors: true
+
+- name: Update sysctl
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "{{ item.name }} = {{ item.value }}"
+    regexp: '^{{ item.name }}'
+    state: present
+    create: yes
+  become: true
+  loop: "{{ sysctl }}"
+  when: update_sysctl|bool is defined and update_sysctl|bool
+
+- name: Reload sysctl
+  shell: |
+    sysctl -p
+  become: true
+  when: update_sysctl|bool is defined and update_sysctl|bool
 
 - name: IO settings probe
   block:
@@ -87,7 +84,6 @@
   shell: |
     scylla_ntp_setup
   become: true
-  when: skip_ntp is defined and skip_ntp|bool == false
 
 - name: node exporter setup
   shell: |
@@ -99,9 +95,21 @@
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions
 
+- name: Populate service facts
+  service_facts:
+  # example output:
+  #   "ansible_facts.services": {
+  #     "scylla-server.service": {
+  #         "name": "scylla-server.service",
+  #         "source": "systemd",
+  #         "state": "running",
+  #         "status": "enabled"
+  #     }
+  #  }
+
 - name: configure Scylla
   shell: |
-    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup
+    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter
   become: true
   when: ansible_facts.services["scylla-server.service"] is defined and ansible_facts.services["scylla-server.service"]["state"] != "running"
 
@@ -133,7 +141,7 @@
   - name: set up coredump
     shell: |
       scylla_coredump_setup --dump-to-raiddir
-    when: skip_coredump is defined and skip_coredump|bool == false
+    when: skip_coredump is defined and skip_coredump|bool == True
 
   - name: configure cpu scaling
     shell: |
@@ -146,7 +154,6 @@
   - name: configure sysconfig
     shell: |
       scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
-    when: skip_sysconfig is defined and skip_sysconfig|bool == false
   become: true
 
 - name: perftune related operations
@@ -197,7 +204,11 @@
     shell: |
       {{ cpuset }}
     become: true
-    when: skip_cpuset is defined and skip_cpuset|bool == false
+
+  - name: run perftune
+    shell: |
+      {{ perftune }}
+    become: true
 
 - name: configure custom scylla.yaml paramaters
   lineinfile:
@@ -217,13 +228,6 @@
 
 - name: start_scylla_service dependent tasks
   block:
-    # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
-    # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
-    # have an actual value resolved.
-    # One way to do that is to resolve it and store as an Ansible fact.
-    - name: Resolve a scylla_listen_address as a fact
-      set_fact:
-        listen_address: "{{ scylla_listen_address }}"
     - name: start scylla seeds
       service:
         name: scylla-server
@@ -233,32 +237,12 @@
       ignore_errors: true
       #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
-    # The same relates to the below
-    - name: Resolve scylla_broadcast_address
-      set_fact:
-        broadcast_address: "{{ scylla_broadcast_address }}"
-
-    # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
-    - name: start scylla on seeders
+    - name: start scylla non-seeds
       service:
         name: scylla-server
         state: started
       become: true
-      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
-
-    - name: Wait for CQL port on seeders
-      wait_for:
-        port: 9042
-        host: "{{ listen_address }}"
-      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
-
-    - name: Start scylla non-seeds nodes serially
-      run_once: true
-      include_tasks: start_one_node.yml
-      loop: "{{ groups['scylla'] }}"
       when:
-        - item not in scylla_seeds
-        - hostvars[item]['broadcast_address'] not in scylla_seeds
         - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
         - inventory_hostname not in scylla_seeds
       ignore_errors: true
@@ -280,15 +264,8 @@
       when: full_inventory|bool
 
     - name: check API access
-      uri:
-        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
-        follow_redirects: none
-        method: GET
-      register: _result
-      until: _result.status == 200
-      retries: 3000
-      delay: 10
-    when: start_scylla_service is defined and start_scylla_service|bool
+      shell: |
+        curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/
 
     - name: generate monitoring configuration
       include_tasks: monitoring_config.yml
@@ -301,10 +278,18 @@
   when:  start_scylla_service is defined and start_scylla_service|bool
 
 - name: Update sysctl
-  ansible.posix.sysctl:
-    name: "{{ item.name }}"
-    value: "{{ item.value }}"
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: "{{ item.name }} = {{ item.value }}"
+    regexp: '^{{ item.name }}'
+    state: present
+    create: yes
   become: true
   loop: "{{ sysctl }}"
-  ignore_errors: true
+  when: update_sysctl|bool is defined and update_sysctl|bool
+
+- name: Reload sysctl
+  shell: |
+    sysctl -p
+  become: true
   when: update_sysctl|bool is defined and update_sysctl|bool
