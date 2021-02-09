@@ -17,7 +17,7 @@ scylla_servers_yml_path: scylla_servers.yml
 scylla_manager_ip: '127.0.0.1'
 
 # Download the scylla-monitoring from here
-scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.4.3.tar.gz'
+scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.6.1.tar.gz'
 
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
