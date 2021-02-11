@@ -26,8 +26,6 @@
       cd {{ base_dir }}
       ./kill-all.sh\
         -g 4000
-      sudo ./kill-all.sh\
-             -g 4000
 
   - name: start scylla-monitoring
     shell: |
@@ -50,8 +48,6 @@
       cd {{ base_dir }}
       ./kill-all.sh\
         -g 4000
-      sudo ./kill-all.sh\
-             -g 4000
 
   - name: Restart the docker service
     service:
