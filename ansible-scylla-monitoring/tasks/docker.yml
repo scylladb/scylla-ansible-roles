@@ -24,8 +24,10 @@
   - name: ensure monitoring is stopped
     shell: |
       cd {{ base_dir }}
-      ./kill-all.sh
-      sudo ./kill-all.sh
+      ./kill-all.sh\
+        -p 4000
+      sudo ./kill-all.sh\
+             -p 4000
 
   - name: start scylla-monitoring
     shell: |
@@ -46,8 +48,10 @@
   - name: Stop monitoring again
     shell: |
       cd {{ base_dir }}
-      ./kill-all.sh
-      sudo ./kill-all.sh
+      ./kill-all.sh\
+        -p 4000
+      sudo ./kill-all.sh\
+             -p 4000
 
   - name: Restart the docker service
     service:
