@@ -82,7 +82,7 @@
     shell: |
       cd {{ base_dir }}
       ./kill-all.sh \
-        -p 4000
+        -g 4000
     become: true
 
   - name: start scylla-monitoring
