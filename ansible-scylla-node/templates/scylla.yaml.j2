@@ -8,8 +8,10 @@ data_file_directories:
 
 commitlog_directory: /var/lib/scylla/commitlog
 
+{% if scylla_authentication is defined and scylla_authentication|bool %}
 authenticator: PasswordAuthenticator
 authorizer: CassandraAuthorizer
+{% endif %}
 
 num_tokens: 256
 commitlog_sync: periodic
