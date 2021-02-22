@@ -24,6 +24,13 @@ reboot_after_kernel_upgrade: True
 # set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
 full_inventory: true
 
+# set this to false to disable automatic
+# authenticator: PasswordAuthenticator
+# authorizer: CassandraAuthorizer
+# injected into scylla.yaml
+# !!! also make sure you override scylla_yaml_params and remove authorization from there !!!
+scylla_authentication: True
+
 # set to enabled when the scylla-server service should be started by applying the role.
 # if, for example, we add a node, but prefer to wait before we start the service and add it to the cluster,
 # this should be set to false
