@@ -18,6 +18,7 @@
     dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
     mode: '0644'
     owner: root
+    timeout: 30
   become: true
 
 - name: install manager
