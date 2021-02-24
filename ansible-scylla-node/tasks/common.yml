@@ -139,54 +139,6 @@
       scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
   become: true
 
-- name: perftune related operations
-  block:
-  #TODO: additional testing on Debian/Ubuntu required.
-  - name: set perf_mode for 4 cores or less
-    set_fact:
-      perf_mode: mq
-    when: ansible_processor_vcpus <= 4
-
-  - name: set perf_mode for 5 to 8 cores
-    set_fact:
-      perf_mode: "sq"
-    when: ansible_processor_vcpus > 4 and ansible_processor_vcpus <= 8
-
-  - name: set perf_mode for 9+ cores
-    set_fact:
-      perf_mode: "sq_split"
-    when: ansible_processor_vcpus > 8
-
-  - name: find perftune in the system
-    shell: |
-      if [ -f /usr/lib/scylla/perftune.py ]; then echo non-reloc; fi
-      if [ -f /opt/scylladb/scripts/perftune.py ]; then echo reloc; fi
-    register: is_reloc
-
-  - name: set perftune command for reloc
-    set_fact:
-      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /opt/scylladb/scripts/hex2list.py"
-    when: is_reloc.stdout == 'reloc'
-
-  - name: set perftune command for non-reloc
-    set_fact:
-      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /usr/lib/scylla/hex2list.py"
-    when: is_reloc.stdout == 'non-reloc'
-
-  - name: set cpuset command
-    set_fact:
-      cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
-
-  - name: run cpuset
-    shell: |
-      {{ cpuset }}
-    become: true
-
-  - name: run perftune
-    shell: |
-      {{ perftune }}
-    become: true
-
 - name: configure custom scylla.yaml paramaters
   lineinfile:
     path: /etc/scylla/scylla.yaml
