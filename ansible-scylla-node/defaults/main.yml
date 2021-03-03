@@ -119,7 +119,7 @@ scylla_yaml_params:
 # The playbook will use the CA certificate to generate a signed host certificate for the .pem file and push them into the nodes
 # To skip this configuration entirely, set enabled: false for both options or comment out the scylla_ssl variable.
 scylla_ssl:
-  cert_path: /etc/scylla/
+  cert_path: /etc/scylla
   internode:
     enabled: true
     internode_encryption: all
