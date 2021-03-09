@@ -66,13 +66,13 @@
 
   - name: Install specified OSS Scylla
     apt:
-      name: "scylla-{{ scylla_version }}"
+      name: "scylla={{ scylla_version }}*"
       state: present
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
   - name: Install specified Enterprise Scylla
     apt:
-      name: "scylla-enterprise-{{ scylla_version }}"
+      name: "scylla-enterprise={{ scylla_version }}*"
       state: present
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
