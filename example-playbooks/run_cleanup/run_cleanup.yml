@@ -7,13 +7,13 @@
   tasks:
     - name: checking limit arg
       fail:
-        msg: "You must use -l or --limit. To restart the entire cluster, use -l 'all'"
+        msg: "You must use -l or --limit. To cleanup the entire cluster, use -l 'all'"
       when: ansible_limit is not defined
 
     - name: Run cleanup
       script:  files/repair.sh
+      register: cleanup_output
 
-
-
-
+    - name: Cleanup logs
+      debug: var=cleanup_output
 
