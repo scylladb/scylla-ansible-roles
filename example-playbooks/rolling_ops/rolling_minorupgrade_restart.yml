@@ -1,15 +1,15 @@
 ---
-# This playbook follows the standard Scylla rolling restart procedure described at https://docs.scylladb.com/operating-scylla/procedures/config-change/rolling_restart/
+# This playbook follows the standard Scylla rolling minor upgrade restart procedure as per https://docs.scylladb.com
 # The play must be run with the --limit argument, specifying either "all" or a list of node IPs
 
-- name: Rolling restart across a Scylla cluster - gather information
+- name: Rolling minor upgrade restart across a Scylla cluster - gather information
   hosts: scylla[0]
   become: true
   gather_facts: false
   tasks:
     - name: checking limit arg
       fail:
-        msg: "You must use -l or --limit. To restart the entire cluster, use -l 'all'"
+        msg: "You must use -l or --limit. To upgrade restart the entire cluster, use -l 'all'"
       when: ansible_limit is not defined
 
     - name: register seeds list
@@ -34,7 +34,7 @@
       with_items: "{{ groups['scylla'] }}"
       when: item not in groups['seeds_group']
 
-- name: Rolling restart across a Scylla cluster - restart only the seeds
+- name: Rolling minor upgrade restart across a Scylla cluster - minor upgrade restart only the seeds
   hosts: seeds_group
   serial: 1
   become: true
@@ -63,6 +63,11 @@
         name: scylla-server
         state: stopped
 
+    - name: Upgrading to latest minor version of scylla
+      yum:
+        name: scylla
+        state: latest
+
     - name: Start Scylla service
       service:
         name: scylla-server
@@ -76,7 +81,7 @@
       retries: 300
       delay: 1
 
-- name: Rolling restart across a Scylla cluster - restart only the non-seeds
+- name: Rolling minor upgrade restart across a Scylla cluster - minor upgrade restart only the non-seeds
   hosts: non_seeds
   serial: 1
   become: true
@@ -104,6 +109,11 @@
       service:
         name: scylla-server
         state: stopped
+    
+    - name: Upgrading to latest minor version of scylla
+      yum:
+        name: scylla
+        state: latest
 
     - name: Start Scylla service
       service:
