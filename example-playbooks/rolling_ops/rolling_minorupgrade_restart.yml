@@ -64,9 +64,10 @@
         state: stopped
 
     - name: Upgrading to latest minor version of scylla
-      yum:
-        name: scylla
-        state: latest
+      shell: |
+        yum update scylla\* -y
+      args:
+        warn: false
 
     - name: Start Scylla service
       service:
@@ -111,9 +112,10 @@
         state: stopped
     
     - name: Upgrading to latest minor version of scylla
-      yum:
-        name: scylla
-        state: latest
+      shell: |
+        yum update scylla\* -y
+      args:
+        warn: false
 
     - name: Start Scylla service
       service:
