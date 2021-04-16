@@ -11,7 +11,7 @@
       when: ansible_limit is not defined
 
     - name: Run cleanup
-      script:  files/repair.sh
+      script:  files/cleanup.sh
       register: cleanup_output
 
     - name: Cleanup logs
