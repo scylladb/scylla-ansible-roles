@@ -34,13 +34,6 @@
     - set_fact:
         io_properties: "{{ _io_properties.stdout }}"
 
-    - name: store /etc/scylla.d/io.conf
-      shell: |
-        cat /etc/scylla.d/io.conf
-      register: _io_conf
-
-    - set_fact:
-        io_conf: "{{ _io_conf.stdout_lines[0] }}"
   when: scylla_io_probe|bool == True
   run_once: true
   become: true
