@@ -18,6 +18,7 @@ galaxy_info:
     - 9
   - name: Ubuntu
     versions:
+    - 20.04
     - 16.04
     - 18.04
   - galaxy_tags:
