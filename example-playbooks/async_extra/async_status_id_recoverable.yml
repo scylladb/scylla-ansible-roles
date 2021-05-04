@@ -1,0 +1,55 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+# CTRL+C and try again.
+#
+# Example playbook.
+#
+# The playbook demonstrates how to simulate named jobs that can be
+# recovered on playbook restart with the only additional async_status_id
+# module.
+#
+# The algorithm is as follows:
+# 1. Find if there existing job by the name (alias)
+# 2. If the job does not exist we:
+#    2.1. Create a job
+#    2.2. Register it's name on a system
+# 3. If the job exists 2.x steps are skipped.
+# 4. Wait for the job to finish in max 100 tries with 5 secs delay retry.
+#    This specific example would fail a wait try if the job is killed or failed to finish.
+#    So that if the job is unfinished it will exhaust all trial attempts.
+# 5. Delete the job name.
+#    Names are soft-link to the job state.
+#    If the job name (alias) is deleted than you can start a new one.
+#    If you would not delete a job alias its possible to turn it into a singleton.
+---
+- hosts: localhost
+  tasks:
+    - name: Find if the task exists
+      async_status_id: alias="blah"
+      register: job_result
+    - name: Execute an async job Blah
+      shell: |
+        echo Hello &&
+        sleep 60
+      async: 1000
+      poll: 0
+      register: async_task_obj
+      when: not job_result.started
+    - name: Register task alias
+      file:
+        src: "{{ async_task_obj.results_file }}"
+        dest: "{{ async_task_obj.results_file | dirname }}/jid_blah"
+        state: link
+      when: not job_result.started
+    - name: Wait for task to finish
+      async_status_id: alias="blah"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 5
+    - name: Cleanup
+      async_status_id:
+        alias: "blah"
+        mode: "cleanup"
+    - name: Print final object
+      debug:
+        msg: "{{job_result}}"
