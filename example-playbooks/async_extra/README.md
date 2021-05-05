@@ -122,7 +122,7 @@ Simplest usage:
       async_status_id: alias="blah"
       register: job_result
 
-Example
+Example 1
 ---
 
 Possible implementation of the named recoverable jobs with this component alone:
@@ -158,7 +158,37 @@ Possible implementation of the named recoverable jobs with this component alone:
 This implementation do not handle overwrite of the aliases from other jobs
 at the step of registering a job alias. Neither it handles killed jobs.
 
-Example
+Example 2
+---
+
+The same as Example 1 but with `async_alias`:
+
+    - name: Find if the task exists
+      async_status_id: alias="blah"
+      register: job_result
+    - name: Execute an async job Blah
+      shell: |
+        echo Hello &&
+        sleep 60
+      async: 1000
+      poll: 0
+      register: async_task_obj
+      when: not job_result.started
+    - name: Register task alias
+      async_alias: job=async_task_obj alias=blah
+      when: not job_result.started
+    - name: Wait for task to finish
+      async_status_id: alias="blah"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 5
+    - name: Cleanup
+      async_status_id:
+        alias: "blah"
+        mode: "cleanup"
+
+Example 3
 ---
 
 An example shows an implementation of simple wait for an async job.
@@ -197,3 +227,20 @@ Module alone can be tested with:
 or
 
     $ echo "{ \"ANSIBLE_MODULE_ARGS\": { \"alias\": \"$1\", \"_async_dir\": \"$HOME/.ansible_async\" } }" | PYTHONPATH=library python -m async_status_id
+
+async_alias
+===
+
+Registers job alias by its id.
+
+Is equivalent to:
+
+    - file:
+        src: "{{ async_task_obj.results_file }}"
+        dest: "{{ async_task_obj.results_file | dirname }}/jid_{{alias}}"
+        state: link
+
+Simple example:
+
+    - async_alias: job=async_task_obj alias=blah
+      when: not job_result.started

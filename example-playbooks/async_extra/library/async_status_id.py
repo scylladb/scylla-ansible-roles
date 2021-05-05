@@ -113,6 +113,36 @@ EXAMPLES = r'''
   async_status_id:
     alias: "blah"
     mode: "cleanup"
+
+---
+- name: Find and wait for task if it exists
+  async_status_id: alias=blah
+  register: job_result
+  
+- name: Async job Blah
+  shell: |
+    echo Hello &&
+    sleep 10
+  async: 1000
+  poll: 0
+  register: async_task_obj
+  when: not job_result.started
+  
+- name: Register task alias
+  async_alias: job=async_task_obj alias=blah
+  when: not job_result.started
+  
+- name: Wait for task to finish
+  async_status_id: alias=blah
+  register: job_result
+  until: job_result.finished
+  retries: 100
+  delay: 5
+  
+- name: Cleanup
+  async_status_id:
+    alias: "blah"
+    mode: "cleanup"
 '''
 
 RETURN = r'''

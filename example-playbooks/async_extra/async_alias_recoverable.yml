@@ -1,4 +1,4 @@
-#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+#!/usr/sbin/ansible-playbook ./async_alias_recoverable.yml -vvvv
 # CTRL+C and try again.
 #
 # Example playbook.
@@ -35,10 +35,7 @@
       register: async_task_obj
       when: not job_result.started
     - name: Register task alias
-      file:
-        src: "{{ async_task_obj.results_file }}"
-        dest: "{{ async_task_obj.results_file | dirname }}/jid_blah"
-        state: link
+      async_alias: job=async_task_obj alias=blah
       when: not job_result.started
     - name: Wait for task to finish
       async_status_id: alias=blah
