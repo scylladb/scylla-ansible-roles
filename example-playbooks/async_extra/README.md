@@ -112,6 +112,7 @@ Features:
 - always outputs started and finished fields
 - default `cleanup` mode cleanups only an alias if the job was specified
   by its name. if it was specified by a jid it deletes the whole state.
+- `full_cleanup` deletes job's state and all related links
 
 Quick start
 ---

@@ -168,7 +168,7 @@ def main():
     module = AnsibleModule(argument_spec=dict(
         jid=dict(type='str'),
         alias=dict(type='str'),
-        mode=dict(type='str', default='status', choices=['cleanup', 'status']),
+        mode=dict(type='str', default='status', choices=['full_cleanup', 'cleanup', 'status']),
         # passed in from the async_status action plugin
         _async_dir=dict(type='path', required=True),
     ),
@@ -185,6 +185,13 @@ def main():
     t.update_state(data)
 
     if request.mode == 'cleanup':
+        if request.alias:
+            os.unlink(request.alias_path)
+        elif request.jid:
+            os.unlink(request.log_path)
+        module.exit_json(erased=request.log_path, **response.data())
+
+    if request.mode == 'full_cleanup':
         os.unlink(request.log_path)
         module.exit_json(erased=request.log_path, **response.data())
 
