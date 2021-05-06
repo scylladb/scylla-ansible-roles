@@ -245,3 +245,35 @@ Simple example:
 
     - async_alias: job=async_task_obj alias=blah
       when: not job_result.started
+
+async_wait
+===
+
+Waits an async job to finish, fail or being killed. By default, cleanups the
+job alias after it is finished.
+
+Arguments: {jid, alias, job}, cleanup = True, retries, delay.
+
+Examples:
+
+    - name: Wait for task to finish
+      async_wait:
+        alias: blah
+        retries: 100
+        delay: 5
+
+or 
+
+    - name: Wait for task to finish
+      async_wait:
+        jid: "{{async_task_obj.ansible_job_id}}"
+        retries: 100
+        delay: 5
+
+or 
+
+    - name: Wait for task to finish
+      async_wait:
+        job: async_task_obj
+        retries: 100
+        delay: 5
