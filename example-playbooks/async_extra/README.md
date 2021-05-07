@@ -5,6 +5,22 @@ The set of modules and plugins offers the mechanism to organize
 named jobs on top of the Ansible standard async architecture. It
 is fully compatible with Ansible native async wrapper and status.
 
+Quick start
+===
+
+    $ ansible-playbook ./play.yml
+
+    ---
+    - name: Async recoverable job blah
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 10
+        alias: blah
+        async: 1000
+        retries: 100
+        delay: 5
+
 Architecture
 ===
 
@@ -275,5 +291,43 @@ or
     - name: Wait for task to finish
       async_wait:
         job: async_task_obj
+        retries: 100
+        delay: 5
+
+async_task
+===
+
+The main task to create named async jobs.
+
+    ---
+    - name: Async recoverable job blah
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 10
+        alias: blah
+        async: 1000
+        retries: 100
+        delay: 5
+
+Is a replacement for:
+
+    - name: Find if the task exists
+      async_status_id: alias=blah
+      register: job_result
+    - name: Async job Blah
+      shell: |
+        echo Hello &&
+        sleep 10
+      async: 1000
+      poll: 0
+      register: async_task_obj
+      when: not job_result.started
+    - name: Register task alias
+      async_alias: job=async_task_obj alias=blah
+      when: not job_result.started
+    - name: Wait for task to finish
+      async_wait:
+        alias: blah
         retries: 100
         delay: 5

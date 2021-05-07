@@ -1,0 +1,13 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Long running task
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 3600
+        alias: blah
+        async: 1000
+        retries: 720
+        delay: 5
