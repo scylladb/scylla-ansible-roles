@@ -331,3 +331,26 @@ Is a replacement for:
         alias: blah
         retries: 100
         delay: 5
+
+async_kill
+===
+
+Kill started job. 
+
+Kills job wrapper by sending SIGTERM (15) to the wrapper group (killpg).
+
+The status will be reported killed == 1 and finished == 0 and started == 1.
+
+    ---
+    - hosts: localhost
+      tasks:
+      - name: Task to kill
+        async_task:
+          shell: |
+            echo Hello &&
+            sleep 3600
+          alias: blah
+          async: 3600
+      - name: Kill job
+        async_kill:
+          alias: blah
