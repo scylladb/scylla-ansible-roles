@@ -94,6 +94,7 @@
       when: inventory_hostname == groups.all[0]
 
     - name: Start Scylla service
+      throttle: 1
       service:
         name: scylla-server
         state: started
@@ -110,7 +111,8 @@
           \g<1> - seeds: {{ _seeds.stdout }}
         backrefs: yes
 
-    - name: Restrart Scylla service
+    - name: Restart Scylla service
+      throttle: 1
       service:
         name: scylla-server
         state: restarted
