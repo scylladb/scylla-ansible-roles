@@ -113,6 +113,7 @@
         name: "*"
         state: latest
         force_apt_get: yes
+        update_cache: yes
 
     - name: install the manager agent
       apt:
