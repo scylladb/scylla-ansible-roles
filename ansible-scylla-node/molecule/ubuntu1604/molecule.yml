@@ -1,0 +1,50 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+lint: |
+  yamllint .
+  ansible-lint
+  flake8
+platforms:
+  - name: node1
+    image: jrei/systemd-ubuntu:16.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - scylla
+  - name: node2
+    image: jrei/systemd-ubuntu:16.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - scylla
+  - name: node3
+    image: jrei/systemd-ubuntu:16.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    groups:
+      - scylla
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      scylla:
+        scylla_repos:
+          - "http://downloads.scylladb.com/deb/ubuntu/scylla-4.4-xenial.list"
+        scylla_manager_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.3-xenial.list"
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+verifier:
+  name: ansible
