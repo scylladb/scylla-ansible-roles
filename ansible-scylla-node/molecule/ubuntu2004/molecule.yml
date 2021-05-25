@@ -6,10 +6,6 @@ dependency:
     role-file: requirements.yml
 driver:
   name: docker
-lint: |
-  yamllint .
-  ansible-lint
-  flake8
 platforms:
   - name: node1
     image: jrei/systemd-ubuntu:20.04
