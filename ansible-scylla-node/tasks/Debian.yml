@@ -127,6 +127,7 @@
       apt:
         name: scylla-manager-agent
         state: present
+      notify: scylla-manager-agent restart
       when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
 
   become: true
