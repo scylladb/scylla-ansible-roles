@@ -124,7 +124,7 @@
   - name: set up coredump
     shell: |
       scylla_coredump_setup --dump-to-raiddir
-    when: skip_coredump is defined and skip_coredump|bool == True
+    when: skip_coredump is defined and skip_coredump|bool == false
 
   - name: configure cpu scaling
     shell: |
