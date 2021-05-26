@@ -51,6 +51,8 @@ provisioner:
               read_bandwidth: 1000
               write_iops: 100
               write_bandwidth: 1000
+        dc: "test_dc"
+        rack: "test_rack"
         scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.3.repo"
   playbooks:
     converge: ../shared/converge.yml
