@@ -44,6 +44,13 @@ provisioner:
           - "http://repositories.scylladb.com/scylla/repo/4a57aebd-c6ac-46e9-8030-bdcf5a51ee0e/centos/scylladb-4.4.repo"
         scylla_edition: "oss"
         scylla_io_probe: false
+        io_properties:
+          disks:
+            - mountpoint: "/var/lib/scylla/data"
+              read_iops: 100
+              read_bandwidth: 1000
+              write_iops: 100
+              write_bandwidth: 1000
         scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.3.repo"
   playbooks:
     converge: ../shared/converge.yml

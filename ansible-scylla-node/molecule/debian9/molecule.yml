@@ -44,6 +44,13 @@ provisioner:
           - "http://repositories.scylladb.com/scylla/repo/deb/debian/scylladb-4.4-stretch.list"
         scylla_edition: "oss"
         scylla_io_probe: false
+        io_properties:
+          disks:
+            - mountpoint: "/var/lib/scylla/data"
+              read_iops: 100
+              read_bandwidth: 1000
+              write_iops: 100
+              write_bandwidth: 1000
         scylla_manager_repo_url: "http://downloads.scylladb.com/deb/debian/scylladb-manager-2.3-stretch.list"
   playbooks:
     converge: ../shared/converge.yml
