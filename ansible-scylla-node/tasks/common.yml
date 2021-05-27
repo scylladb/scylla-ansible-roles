@@ -137,6 +137,7 @@
   - name: configure sysconfig
     shell: |
       scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
+    when: skip_sysconfig is defined and skip_sysconfig|bool == false
   become: true
 
 - name: perftune related operations
@@ -187,11 +188,7 @@
     shell: |
       {{ cpuset }}
     become: true
-
-  - name: run perftune
-    shell: |
-      {{ perftune }}
-    become: true
+    when: skip_cpuset is defined and skip_cpuset|bool == false
 
 - name: configure custom scylla.yaml paramaters
   lineinfile:
