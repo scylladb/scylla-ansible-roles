@@ -47,6 +47,10 @@ provisioner:
               read_bandwidth: 1000
               write_iops: 100
               write_bandwidth: 1000
+        scylla_seeds:
+          - "{{ groups['scylla'][0] }}"
+          - "{{ groups['scylla'][1] }}"
+          - "{{ groups['scylla'][2] }}"
         dc: "test_dc"
         rack: "test_rack"
         skip_coredump: True
