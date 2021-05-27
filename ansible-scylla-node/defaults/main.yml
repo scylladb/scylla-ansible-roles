@@ -156,8 +156,9 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n2
   # - /dev/nvme0n3
 
-skip_coredump: True
-
+skip_coredump: False
+skip_sysconfig: False
+skip_cpuset: False
 
 # sysctl tuning defaults, please leave in place if unsure
 update_sysctl: True
