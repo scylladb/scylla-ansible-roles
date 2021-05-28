@@ -33,6 +33,9 @@ platforms:
       - scylla
 provisioner:
   name: ansible
+  log: True
+  options:
+    vvv: True
   inventory:
     group_vars:
       scylla:
