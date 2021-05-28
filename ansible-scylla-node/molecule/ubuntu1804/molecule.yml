@@ -6,10 +6,6 @@ dependency:
     role-file: requirements.yml
 driver:
   name: docker
-lint: |
-  yamllint .
-  ansible-lint
-  flake8
 platforms:
   - name: node1
     image: jrei/systemd-ubuntu:18.04
@@ -51,8 +47,15 @@ provisioner:
               read_bandwidth: 1000
               write_iops: 100
               write_bandwidth: 1000
+        scylla_seeds:
+          - "{{ groups['scylla'][0] }}"
+          - "{{ groups['scylla'][1] }}"
+          - "{{ groups['scylla'][2] }}"
         dc: "test_dc"
         rack: "test_rack"
+        skip_coredump: True
+        skip_sysconfig: True
+        skip_cpuset: True
         scylla_manager_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.3-bionic.list"
   playbooks:
     converge: ../shared/converge.yml
