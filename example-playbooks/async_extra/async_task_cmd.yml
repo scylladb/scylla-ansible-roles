@@ -1,0 +1,11 @@
+#!/usr/sbin/ansible-playbook ./async_task_cmd.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Async command
+      async_task:
+        cmd: /usr/sbin/sleep 10
+        alias: blah
+        async: 1000
+        retries: 720
+        delay: 5

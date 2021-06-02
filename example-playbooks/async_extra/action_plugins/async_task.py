@@ -94,6 +94,18 @@ started:
 
 class ActionModule(ActionBase):
 
+    _VALID_ARGS = frozenset((
+        # required
+        'alias', 'async',
+        # optional
+        'retries', 'delay', 'poll',
+        'cleanup',
+        # ansible.legacy.command
+        'shell', 'cmd', 'argv',
+        'chdir', 'executable', 'creates', 'removes', 'warn', 'stdin',
+        'stdin_add_newline', 'strip_empty_ends'
+    ))
+
     def run(self, tmp=None, task_vars=None):
         result = super(ActionModule, self).run(tmp, task_vars)
         del tmp  # tmp no longer has any effect
@@ -184,6 +196,14 @@ class ActionModule(ActionBase):
             # Shell module is implemented via command with a special arg
             task.args['_uses_shell'] = True
             task.args.pop('shell')
+        elif 'cmd' in task.args:
+            task.args['_raw_params'] = task.args['cmd']
+            # Shell module is implemented via command with a special arg
+            task.args['_uses_shell'] = False
+            task.args.pop('cmd')
+        elif 'argv' in task.args:
+            # Shell module is implemented via command with a special arg
+            task.args['_uses_shell'] = False
 
         allowed = ('_raw_params', '_uses_shell', 'argv', 'chdir', 'executable', 'creates', 'removes', 'warn', 'stdin',
                    'stdin_add_newline', 'strip_empty_ends')
