@@ -332,6 +332,25 @@ Is a replacement for:
         retries: 100
         delay: 5
 
+Temporary files
+---
+
+`async_task` does not cleanup temporary directory resulting from
+the execution of the async job because the lifetime of the async
+job is disconnected from the modules/plugins lifetime.
+
+Failures
+---
+
+If the execution of the `async_task` async job finishes with a bad
+result the task will NOT cleanup the job _alias_ because it may
+not know what is the correct way of recover from the previous job
+bad state.
+
+To be able to restart such a job the state must be cleaned up
+manually by at least erasing (`rm`) the job's _alias_ from the
+ansible async wrapper directory: by default `~/.ansible_async/`.
+
 async_kill
 ===
 

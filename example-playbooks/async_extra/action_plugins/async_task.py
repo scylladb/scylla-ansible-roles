@@ -71,6 +71,27 @@ EXAMPLES = r'''
     async: 1000
     retries: 100
     delay: 5
+    
+---
+- name: Async recoverable job with cmd
+  async_task:
+    cmd: /usr/sbin/sleep 10
+    alias: blah
+    async: 1000
+    retries: 720
+    delay: 5
+
+---
+- name: Async recoverable job with argv
+  async_task:
+    argv:
+      - /usr/sbin/sleep
+      - 10
+    alias: blah
+    async: 1000
+    retries: 720
+    delay: 5
+        
 '''
 
 RETURN = r'''
@@ -157,6 +178,12 @@ class ActionModule(ActionBase):
         elif poll:
             raise AnsibleActionFail("poll is not supported yet")
 
+        # plugin do not cleanup tmp dir with:
+        # if not wrap_async:
+        #     # remove a temporary path we created
+        #     self._remove_tmp_path(self._connection._shell.tmpdir)
+        # because async jobs lifetime is disconnected from the plugin lifetime.
+
         return result
 
     def find_running_task(self, alias, vars):
@@ -187,22 +214,22 @@ class ActionModule(ActionBase):
         task.async_val = int(task.args['async'])
         task.args.pop('async')
 
+        # poll is only used by the Ansible TaskExecutor._execute -> _poll_async_result()
+        # we are just trying to pass everything related to async even if its not used.
         if 'poll' in task.args:
             task.poll = int(task.args['poll'])
             task.args.pop('poll')
 
+        # Shell module is implemented via command with a special arg
         if 'shell' in task.args:
             task.args['_raw_params'] = task.args['shell']
-            # Shell module is implemented via command with a special arg
             task.args['_uses_shell'] = True
             task.args.pop('shell')
         elif 'cmd' in task.args:
             task.args['_raw_params'] = task.args['cmd']
-            # Shell module is implemented via command with a special arg
             task.args['_uses_shell'] = False
             task.args.pop('cmd')
         elif 'argv' in task.args:
-            # Shell module is implemented via command with a special arg
             task.args['_uses_shell'] = False
 
         allowed = ('_raw_params', '_uses_shell', 'argv', 'chdir', 'executable', 'creates', 'removes', 'warn', 'stdin',
