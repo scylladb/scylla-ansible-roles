@@ -155,6 +155,9 @@ class ActionModule(ActionBase):
         running = self.find_running_task(alias, task_vars)
         if is_failed(running):
             result.update(running)
+            if is_finished(running):
+                result['warning'] = 'The job is finished and was not cleaned up properly. Please, delete job alias ' \
+                                    'manually to restart.'
             return result
 
         if running['started'] != 1:
@@ -189,6 +192,10 @@ class ActionModule(ActionBase):
                 delay=delay,
                 vars=task_vars
             ))
+
+            if is_failed(result):
+                result['warning'] = 'The job has failed and was not cleaned up properly. Please, delete job alias ' \
+                                    'manually to restart.'
         elif poll:
             raise AnsibleActionFail("poll is not supported yet")
 
@@ -388,3 +395,6 @@ class ActionModule(ActionBase):
 def is_failed(result):
     return 'failed' in result and result['failed']
 
+
+def is_finished(x):
+    return 'finished' in x and x['finished']
