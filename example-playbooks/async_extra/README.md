@@ -21,6 +21,17 @@ Quick start
         retries: 100
         delay: 5
 
+or 
+
+    ---
+    - name: Long running task
+      async_task:
+        script: sleep.sh 10
+        alias: blah
+        async: 1000
+        retries: 720
+        delay: 5
+
 Architecture
 ===
 
@@ -330,6 +341,16 @@ Is a replacement for:
       async_wait:
         alias: blah
         retries: 100
+        delay: 5
+
+Another example with `script`:
+
+    - name: Async recoverable job with script
+      async_task:
+        script: sleep.sh 10
+        alias: blah
+        async: 60
+        retries: 10
         delay: 5
 
 Temporary files
