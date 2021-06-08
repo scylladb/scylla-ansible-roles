@@ -129,7 +129,6 @@ pyyaml-env-tag==0.1
     # via mkdocs
 pyyaml==5.4.1
     # via
-    #   -r requirements.in
     #   ansible-base
     #   ansible-lint
     #   mkdocs
