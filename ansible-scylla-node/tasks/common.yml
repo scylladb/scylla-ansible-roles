@@ -240,9 +240,14 @@
       when: full_inventory|bool
 
     - name: check API access
-      shell: "curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
-      args:
-        warn: false # temp hotfix to suppress warning
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
+        follow_redirects: none
+        method: GET
+      register: _result
+      until: _result.status == 200
+      retries: 30
+      delay: 1
 
     - name: generate monitoring configuration
       include_tasks: monitoring_config.yml
