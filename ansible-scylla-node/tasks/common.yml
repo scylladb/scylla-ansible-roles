@@ -213,8 +213,6 @@
         name: scylla-server
         state: started
       become: true
-      ignore_errors: true
-      failed_when: false # prevent failure for debug purpose
       when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
 
     - name: start scylla non-seeds
@@ -222,20 +220,9 @@
         name: scylla-server
         state: started
       become: true
-      ignore_errors: true
-      failed_when: false # prevent failure for debug purpose
       when:
         - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
         - inventory_hostname not in scylla_seeds
-
-    - meta: clear_host_errors
-
-    - command:
-        cmd: "journalctl -xeu scylla-server -n200"
-      register: scylla_log
-
-    - debug:
-        var: scylla_log
 
     - name: wait for the API port to come up on all nodes
       wait_for:
