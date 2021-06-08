@@ -253,8 +253,9 @@
       when: full_inventory|bool
 
     - name: check API access
-      shell: |
-        curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/
+      shell: "curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
+      args:
+        warn: false # temp hotfix to suppress warning
 
     - name: generate monitoring configuration
       include_tasks: monitoring_config.yml

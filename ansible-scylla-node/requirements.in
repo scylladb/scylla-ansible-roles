@@ -1,5 +1,5 @@
 # Python requirements for executing
-ansible
+ansible ~=3.0
 ansible-lint
 docker
 mkdocs
@@ -7,3 +7,4 @@ molecule[docker]
 pip-tools
 yamllint
 netaddr
+PyYAML
