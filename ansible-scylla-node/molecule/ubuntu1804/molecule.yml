@@ -61,5 +61,15 @@ provisioner:
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy
 verifier:
   name: ansible
