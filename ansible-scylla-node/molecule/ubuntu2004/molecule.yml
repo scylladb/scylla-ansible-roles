@@ -50,6 +50,8 @@ provisioner:
               read_bandwidth: 1000
               write_iops: 100
               write_bandwidth: 1000
+        scylla_seeds:
+          - "172.17.0.2"
         dc: "test_dc"
         rack: "test_rack"
         skip_coredump: True
