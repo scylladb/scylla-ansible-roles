@@ -54,6 +54,7 @@ scylla_repo_keyfile_urls:
 scylla_dependencies:
   - curl
   - wget
+  - python3-yaml # this will fail on non centos systems
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
