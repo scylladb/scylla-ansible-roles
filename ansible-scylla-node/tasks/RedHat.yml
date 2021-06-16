@@ -16,21 +16,21 @@
 
 - name: Install ELRepo kernel and reboot in to it if configured
   block:
-    - name: install ELRepo key
+    - name: Install ELRepo key
       rpm_key:
         state: present
         key: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 
-    - name: Add ELRepo repository
-      yum_repository:
-        name: elrepo
-        description: ELREPO
-        baseurl: https://elrepo.org/linux/kernel/el$releasever/$basearch/
+    - name: Install ELRepo repository
+      yum:
+        name: "https://www.elrepo.org/elrepo-release-{{ ansible_facts['distribution_major_version'] }}.el{{ ansible_facts['distribution_major_version'] }}.elrepo.noarch.rpm"
+        state: present
 
-    - name: Install the ELRepo kernel
+    - name: Install ELRepo mainline kernel
       yum:
         name: kernel-ml
         state: present
+        enablerepo: elrepo-kernel
         lock_timeout: 60
       register: kernel_installed
 
