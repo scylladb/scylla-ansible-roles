@@ -1,4 +1,23 @@
 ---
+
+- name: Deactivate firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes    
+  when: not firewall_enabled
+  become: true
+
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid
