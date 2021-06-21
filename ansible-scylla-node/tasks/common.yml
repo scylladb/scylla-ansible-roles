@@ -296,20 +296,3 @@
   become: true
   when: update_sysctl|bool is defined and update_sysctl|bool
 
-- name: Deactivate firewall
-  block:
-    - name: Deactivate front-end firewall services
-      service:
-        name: "{{ item }}"
-        state: stopped
-        enabled: false
-      loop:
-        - firewalld
-        - iptables_services
-        - ufw
-    - name: Flush all iptables rules
-      iptables:
-        flush: yes    
-  when: not firewall_enabled
-  ignore_errors: yes
-  become: true
