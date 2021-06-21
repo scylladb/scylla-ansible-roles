@@ -14,7 +14,8 @@
       when: ansible_facts.services[item] is defined
     - name: Flush all iptables rules
       iptables:
-        flush: yes    
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
   when: not firewall_enabled
   become: true
 
@@ -96,18 +97,6 @@
     - node_exporter start
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions
-
-- name: Populate service facts
-  service_facts:
-  # example output:
-  #   "ansible_facts.services": {
-  #     "scylla-server.service": {
-  #         "name": "scylla-server.service",
-  #         "source": "systemd",
-  #         "state": "running",
-  #         "status": "enabled"
-  #     }
-  #  }
 
 - name: configure Scylla
   shell: |
