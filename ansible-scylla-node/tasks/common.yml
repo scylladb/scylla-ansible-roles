@@ -1,4 +1,24 @@
 ---
+
+- name: Deactivate firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
+  when: not firewall_enabled
+  become: true
+
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid
@@ -77,18 +97,6 @@
     - node_exporter start
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions
-
-- name: Populate service facts
-  service_facts:
-  # example output:
-  #   "ansible_facts.services": {
-  #     "scylla-server.service": {
-  #         "name": "scylla-server.service",
-  #         "source": "systemd",
-  #         "state": "running",
-  #         "status": "enabled"
-  #     }
-  #  }
 
 - name: configure Scylla
   shell: |
