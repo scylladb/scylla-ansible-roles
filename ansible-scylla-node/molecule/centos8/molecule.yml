@@ -40,6 +40,7 @@ provisioner:
   inventory:
     group_vars:
       scylla:
+        elrepo_kernel: False
         scylla_repos:
           - "https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.4.repo"
         scylla_edition: "oss"

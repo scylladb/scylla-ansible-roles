@@ -50,8 +50,8 @@ scylla_manager_repo_keys:
 
 
 # Set when relevant (Debian for example)
-scylla_repo_keyfile_urls:
-  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
+#scylla_repo_keyfile_urls:
+#  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
 
 # Configure when additional dependency packages are required (only for some distributions)
 scylla_dependencies:
