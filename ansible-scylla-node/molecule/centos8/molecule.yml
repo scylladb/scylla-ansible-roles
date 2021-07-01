@@ -6,10 +6,10 @@ dependency:
     role-file: requirements.yml
 driver:
   name: docker
-lint: |
-  yamllint .
-  ansible-lint
-  flake8
+# lint: |
+#   yamllint .
+#   ansible-lint
+#   flake8
 platforms:
   - name: node1
     image: jrei/systemd-centos:8
@@ -41,7 +41,7 @@ provisioner:
     group_vars:
       scylla:
         scylla_repos:
-          - "http://repositories.scylladb.com/scylla/repo/4a57aebd-c6ac-46e9-8030-bdcf5a51ee0e/centos/scylladb-4.4.repo"
+          - "https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.4.repo"
         scylla_edition: "oss"
         scylla_io_probe: false
         io_properties:
@@ -53,9 +53,23 @@ provisioner:
               write_bandwidth: 1000
         dc: "test_dc"
         rack: "test_rack"
-        scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.3.repo"
+        scylla_seeds:
+          - "172.17.0.2"
+        skip_coredump: True
+        skip_sysconfig: True
+        skip_cpuset: True
+        scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
 verifier:
   name: ansible

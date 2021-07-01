@@ -72,5 +72,3 @@ scenario:
     - verify
 verifier:
   name: ansible
-verifier:
-  name: ansible
