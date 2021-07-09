@@ -87,6 +87,7 @@
   shell: |
     scylla_ntp_setup
   become: true
+  when: skip_ntp is defined and skip_ntp|bool == false
 
 - name: node exporter setup
   shell: |

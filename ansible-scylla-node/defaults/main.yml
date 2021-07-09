@@ -164,6 +164,7 @@ skip_coredump: False
 skip_sysconfig: False
 skip_cpuset: False
 skip_selinux: False
+skip_ntp: False
 
 # sysctl tuning defaults, please leave in place if unsure
 update_sysctl: True
