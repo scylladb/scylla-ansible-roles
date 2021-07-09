@@ -59,6 +59,7 @@ provisioner:
         skip_coredump: True
         skip_sysconfig: True
         skip_cpuset: True
+        skip_selinux: True
         scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
   playbooks:
     converge: ../shared/converge.yml
