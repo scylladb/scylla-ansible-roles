@@ -116,6 +116,7 @@
   shell: |
     scylla_selinux_setup
   become: true
+  when: skip_selinux is defined and skip_selinux|bool == false
 
 - name: install prerequisite python-yaml
   shell: |

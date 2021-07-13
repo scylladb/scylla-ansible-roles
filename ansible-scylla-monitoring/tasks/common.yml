@@ -66,13 +66,31 @@
     mode: '0644'
   when: prometheus_rules_file is defined and prometheus_rules_file != 'default'
 
+- name: Check that prometheus rules file from the default file exists
+  stat:
+    path: "{{ base_dir }}/prometheus/prometheus.rules.yml"
+  register: prom_rules_file
+
 - name: set prometheus rules file from the default file
   copy:
     src: "{{ base_dir }}/prometheus/prometheus.rules.yml"
     remote_src: true
     dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml"
     mode: '0644'
-  when: prometheus_rules_file is defined and prometheus_rules_file == 'default'
+  when: prometheus_rules_file is defined and prometheus_rules_file == 'default' and prom_rules_file.stat.exists
+
+- name: Check that prometheus rules file from the default file exists in new 3.8 path
+  stat:
+    path: "{{ base_dir }}/prometheus/prom_rules/prometheus.rules.yml"
+  register: prom_rules_sub_file
+
+- name: set prometheus rules file from the default prom_rules file
+  copy:
+    src: "{{ base_dir }}/prometheus/prom_rules/prometheus.rules.yml"
+    remote_src: true
+    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml"
+    mode: '0644'
+  when: prometheus_rules_file is defined and prometheus_rules_file == 'default' and prom_rules_sub_file.stat.exists
 
 - name: set prometheus template file from preset file
   copy:
