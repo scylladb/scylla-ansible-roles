@@ -17,7 +17,7 @@ scylla_servers_yml_path: scylla_servers.yml
 scylla_manager_ip: '127.0.0.1'
 
 # Download the scylla-monitoring from here
-scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.6.2.tar.gz'
+scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.8.0.tar.gz'
 
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
@@ -26,14 +26,14 @@ scylla_monitoring_config_path:  "{{ scylla_monitoring_deploy_path }}/config"
 # List of monitoring dashboards to enable
 scylla_monitoring_dashboards_versions:
   - 'latest'
-  - '2020.1'
+  - '2021.1'
 
 # Prometheus configuration, alerting and monitoring settings files:
 # ---
 # If a path is provided, the file(s) will be taken from a local path and pushed to the config directory for the monitoring installation.
 # If "default" is set, the default file will be taken from the prometheus directory in the unpacked monitoring stack distribution.
 #
-# See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.rules.yml
+# See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prom_rules/prometheus.rules.yml
 prometheus_rules_file: default
 # See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.yml.template
 prometheus_yml_template_file: default
@@ -51,10 +51,10 @@ scylla_monitoring_retention: "14d"
 ### The following settings are only relevant for non-dockerized setup
 
 # Check https://prometheus.io/download/ for newer versions or stick to the default below
-alert_manager_url: 'https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz'
+alert_manager_url: 'https://github.com/prometheus/alertmanager/releases/download/v0.22.1/alertmanager-0.22.1.linux-amd64.tar.gz'
 
 # Check https://prometheus.io/download/ for newer versions or stick to the default below
-prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.19.2/prometheus-2.19.2.linux-amd64.tar.gz'
+prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.27.1/prometheus-2.27.1.linux-amd64.tar.gz'
 
 # Additional arguments to pass to the prometheus binary
 #prometheus_args: "--web.enable-admin-api --storage.tsdb.retention.size=50G"
