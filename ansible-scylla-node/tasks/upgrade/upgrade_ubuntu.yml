@@ -1,5 +1,13 @@
 ---
 
+# Ensure apt-transport-https is installed
+- name: Ensure apt-transport-https is installed
+  ansible.builtin.apt:
+    name: apt-transport-https
+    state: present
+  become: true
+
+
 # Add Scylla apt key
 - name: Add Scylla apt key
   ansible.builtin.apt_key:
