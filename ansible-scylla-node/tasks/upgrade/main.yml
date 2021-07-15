@@ -112,7 +112,7 @@
       scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']] is not defined or
       ansible_facts['distribution_version'] is version(scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']]['minimum_version'],'<')
 
-- name: Check existing Scylla installation edition and version inccompatibility
+- name: Check existing Scylla installation edition and version incompatibility
   ansible.builtin.fail:
     msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ scylla_detected['version'] }} is not supported."
   when: scylla_detected['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_detected['edition']]
