@@ -29,13 +29,13 @@
       debian: {
         '10': {
           minimum_version: '10',
-          template: 'debian10',
+          template: 'debian',
           oss: ['4.4','4.3','4.2','4.1'],
           enterprise: ['2021.1','2020.1'] 
         },
         '9': {
           minimum_version: '9',
-          template: 'debian9',
+          template: 'debian',
           oss: ['4.4','4.3','4.2','4.1','4.0'],
           enterprise: ['2021.1','2020.1'] 
         }
