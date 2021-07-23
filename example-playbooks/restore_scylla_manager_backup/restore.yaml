@@ -66,6 +66,7 @@
     - name: Wait for CQL port
       wait_for:
         port: 9042
+        host: "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}"
 
     - name: Stop Scylla service
       service:
@@ -102,6 +103,7 @@
     - name: Wait for CQL port
       wait_for:
         port: 9042
+        host: "{{ ansible_default_ipv4.address|default(ansible_all_ipv4_addresses[0]) }}"
 
     - name: Resore seeds list
       lineinfile:
