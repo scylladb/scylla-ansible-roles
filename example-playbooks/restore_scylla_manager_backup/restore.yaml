@@ -103,7 +103,7 @@
       wait_for:
         port: 9042
 
-    - name: Resore seeds list
+    - name: Restore seeds list
       lineinfile:
         path: /etc/scylla/scylla.yaml
         regexp: '^(\s+) - seeds:'
