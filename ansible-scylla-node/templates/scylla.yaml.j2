@@ -4,9 +4,11 @@
 cluster_name: "{{ scylla_cluster_name }}"
 
 data_file_directories:
-    - /var/lib/scylla/data
+{%- for path in data_file_directories %}
+    - {{ path }}
+{%- endfor %}
 
-commitlog_directory: /var/lib/scylla/commitlog
+commitlog_directory: "{{ commitlog_directory }}"
 
 {% if scylla_authentication is defined and scylla_authentication|bool %}
 authenticator: PasswordAuthenticator

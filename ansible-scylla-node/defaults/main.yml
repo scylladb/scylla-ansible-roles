@@ -92,6 +92,13 @@ scylla_io_probe: True
 
 io_conf: 'SEASTAR_IO="--io-properties-file /etc/scylla.d/io_properties.yaml"'
 
+# Data file directory
+data_file_directories:
+    - /var/lib/scylla/data
+
+# commit log directory
+commitlog_directory: "/var/lib/scylla/commitlog"
+
 # Seeds node list
 scylla_seeds:
   - "{{ groups['scylla'][0] }}"
