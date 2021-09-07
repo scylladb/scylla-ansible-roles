@@ -1,0 +1,131 @@
+---
+# This playbook follows the standard Scylla rolling minor upgrade restart procedure as per https://docs.scylladb.com
+# The play must be run with the --limit argument, specifying either "all" or a list of node IPs
+
+- name: Rolling minor upgrade restart across a Scylla cluster - gather information
+  hosts: scylla[0]
+  become: true
+  gather_facts: false
+  tasks:
+    - name: checking limit arg
+      fail:
+        msg: "You must use -l or --limit. To upgrade restart the entire cluster, use -l 'all'"
+      when: ansible_limit is not defined
+
+    - name: register seeds list
+      shell: |
+        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
+      register: _seeds
+
+    - name: Store seeds list as a variable
+      set_fact:
+        seeds: "{{ _seeds.stdout.split(',') }}"
+
+    - name: Store seeds as a host group
+      add_host:
+        name: "{{ item }}"
+        groups: seeds_group
+      with_items: "{{ seeds }}"
+
+    - name: Store non-seeds as a host group
+      add_host:
+        name: "{{ item }}"
+        groups: non_seeds
+      with_items: "{{ groups['scylla'] }}"
+      when: item not in groups['seeds_group']
+
+- name: Rolling minor upgrade restart across a Scylla cluster - minor upgrade restart only the seeds
+  hosts: seeds_group
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: register scylla listen address
+      shell: |
+        grep '^listen_address:' /etc/scylla/scylla.yaml |awk '{ print $2 }'
+      register: listen_address
+
+    - name: run nodetool drain
+      shell: |
+        nodetool drain
+
+    - name: wait for DRAIN to complete
+      shell: |
+        journalctl -u scylla-server --since "1 minute ago" | grep 'storage_service - DRAINED:'
+      retries: 300
+      delay: 1
+      register: drain_result
+      until: drain_result.rc == 0
+      ignore_errors: true
+
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
+    - name: Upgrading to latest minor version of scylla
+      shell: |
+        yum update scylla\* -y
+      args:
+        warn: false
+
+    - name: Start Scylla service
+      service:
+        name: scylla-server
+        state: started
+
+    - name: wait for the cluster to become healthy
+      shell: |
+        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+      register: node_status
+      until: node_status.rc == 0
+      retries: 300
+      delay: 1
+
+- name: Rolling minor upgrade restart across a Scylla cluster - minor upgrade restart only the non-seeds
+  hosts: non_seeds
+  serial: 1
+  become: true
+  gather_facts: false
+  tasks:
+    - name: register scylla listen address
+      shell: |
+        grep '^listen_address:' /etc/scylla/scylla.yaml |awk '{ print $2 }'
+      register: listen_address
+
+    - name: run nodetool drain
+      shell: |
+        nodetool drain
+
+    - name: wait for DRAIN to complete
+      shell: |
+        journalctl -u scylla-server --since "1 minute ago" | grep 'storage_service - DRAINED:'
+      retries: 300
+      delay: 1
+      register: drain_result
+      until: drain_result.rc == 0
+      ignore_errors: true
+
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+    
+    - name: Upgrading to latest minor version of scylla
+      shell: |
+        yum update scylla\* -y
+      args:
+        warn: false
+
+    - name: Start Scylla service
+      service:
+        name: scylla-server
+        state: started
+
+    - name: wait for the cluster to become healthy
+      shell: |
+        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+      register: node_status
+      until: node_status.rc == 0
+      retries: 300
+      delay: 1

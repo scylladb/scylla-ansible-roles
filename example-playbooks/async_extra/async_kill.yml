@@ -1,0 +1,14 @@
+#!/usr/sbin/ansible-playbook ./async_kill.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Task to kill
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 3600
+        alias: blah
+        async: 3600
+    - name: Kill job
+      async_kill:
+        alias: blah

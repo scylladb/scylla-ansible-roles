@@ -14,7 +14,7 @@
       openssl_csr:
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
         privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
-        common_name: "{{ scylla_cluster_name}}.internal"
+        common_name: "{{ scylla_cluster_name }}.internal"
 
     - name: Generate a Self Signed OpenSSL certificate for the CA
       openssl_certificate:

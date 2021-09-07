@@ -63,7 +63,7 @@
         name: scylla-server
         state: stopped
 
-    - name: Stop Scylla service
+    - name: Start Scylla service
       service:
         name: scylla-server
         state: started
@@ -105,7 +105,7 @@
         name: scylla-server
         state: stopped
 
-    - name: Stop Scylla service
+    - name: Start Scylla service
       service:
         name: scylla-server
         state: started

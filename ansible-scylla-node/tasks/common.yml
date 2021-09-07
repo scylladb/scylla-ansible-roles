@@ -1,4 +1,24 @@
 ---
+
+- name: Deactivate firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
+  when: not firewall_enabled
+  become: true
+
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid
@@ -67,6 +87,7 @@
   shell: |
     scylla_ntp_setup
   become: true
+  when: skip_ntp is defined and skip_ntp|bool == false
 
 - name: node exporter setup
   shell: |
@@ -78,21 +99,9 @@
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions
 
-- name: Populate service facts
-  service_facts:
-  # example output:
-  #   "ansible_facts.services": {
-  #     "scylla-server.service": {
-  #         "name": "scylla-server.service",
-  #         "source": "systemd",
-  #         "state": "running",
-  #         "status": "enabled"
-  #     }
-  #  }
-
 - name: configure Scylla
   shell: |
-    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter
+    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup
   become: true
   when: ansible_facts.services["scylla-server.service"] is defined and ansible_facts.services["scylla-server.service"]["state"] != "running"
 
@@ -124,7 +133,7 @@
   - name: set up coredump
     shell: |
       scylla_coredump_setup --dump-to-raiddir
-    when: skip_coredump is defined and skip_coredump|bool == True
+    when: skip_coredump is defined and skip_coredump|bool == false
 
   - name: configure cpu scaling
     shell: |
@@ -137,6 +146,7 @@
   - name: configure sysconfig
     shell: |
       scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
+    when: skip_sysconfig is defined and skip_sysconfig|bool == false
   become: true
 
 - name: perftune related operations
@@ -163,20 +173,31 @@
       if [ -f /opt/scylladb/scripts/perftune.py ]; then echo reloc; fi
     register: is_reloc
 
+  - name: upload hex2list.py to /tmp
+    copy:
+      src: files/hex2list.py
+      dest: /tmp/hex2list.py
+      mode: '755'
+
   - name: set perftune command for reloc
     set_fact:
-      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /opt/scylladb/scripts/hex2list.py"
+      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /tmp/hex2list.py"
     when: is_reloc.stdout == 'reloc'
 
   - name: set perftune command for non-reloc
     set_fact:
-      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /usr/lib/scylla/hex2list.py"
+      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /tmp/hex2list.py"
     when: is_reloc.stdout == 'non-reloc'
 
-  - name: run perftune
+  - name: set cpuset command
+    set_fact:
+      cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
+
+  - name: run cpuset
     shell: |
-      {{ perftune }}
+      {{ cpuset }}
     become: true
+    when: skip_cpuset is defined and skip_cpuset|bool == false
 
 - name: configure custom scylla.yaml paramaters
   lineinfile:
@@ -202,8 +223,6 @@
         state: started
       become: true
       when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
-      ignore_errors: true
-      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
     - name: start scylla non-seeds
       service:
@@ -213,8 +232,6 @@
       when:
         - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
         - inventory_hostname not in scylla_seeds
-      ignore_errors: true
-      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
     - name: wait for the API port to come up on all nodes
       wait_for:
@@ -232,8 +249,14 @@
       when: full_inventory|bool
 
     - name: check API access
-      shell: |
-        curl -XGET http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
+        follow_redirects: none
+        method: GET
+      register: _result
+      until: _result.status == 200
+      retries: 30
+      delay: 1
 
     - name: generate monitoring configuration
       include_tasks: monitoring_config.yml
@@ -246,19 +269,11 @@
   when:  start_scylla_service is defined and start_scylla_service|bool
 
 - name: Update sysctl
-  lineinfile:
-    path: /etc/sysctl.conf
-    line: "{{ item.name }} = {{ item.value }}"
-    regexp: '^{{ item.name }}'
-    state: present
-    create: yes
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
   become: true
   loop: "{{ sysctl }}"
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
-- name: Reload sysctl
-  shell: |
-    sysctl -p
-  become: true
+  ignore_errors: true
   when: update_sysctl|bool is defined and update_sysctl|bool
 
