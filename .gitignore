@@ -1,4 +1,17 @@
+<<<<<<< HEAD
 .cache
 .idea
 __pycache__
+<<<<<<< HEAD
 .code
+||||||| parent of dd07b87 (Updates from master)
+.idea
+.code
+=======
+||||||| parent of 93afbe3 (Updates from master)
+=======
+.cache
+>>>>>>> 93afbe3 (Updates from master)
+.idea
+__pycache__
+>>>>>>> dd07b87 (Updates from master)
