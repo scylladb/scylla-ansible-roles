@@ -10,6 +10,12 @@
     with_items: "{{ scylla_repos }}"
     when: install_type == 'online' and item.split(".")[-1] == "list"
 
+  - name: Install gnupg2 dependency
+    apt:
+      name: "gnupg2"
+      state: present
+    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+
   - name: Add an apt key by id from a keyserver
     apt_key:
       keyserver: "{{ scylla_repo_keyserver }}"
@@ -107,6 +113,7 @@
         name: "*"
         state: latest
         force_apt_get: yes
+        update_cache: yes
 
     - name: install the manager agent
       apt:
@@ -120,6 +127,7 @@
       apt:
         name: scylla-manager-agent
         state: present
+      notify: scylla-manager-agent restart
       when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
 
   become: true

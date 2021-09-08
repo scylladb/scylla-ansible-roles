@@ -2,14 +2,14 @@
 # defaults file for ansible-scylla-manager
 
 # Repo URL for the Manager
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.2.repo"
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
 
 scylla_db_vars:
   # Repo URLs for the ScyllaDB datastore installation
   # More information on the variables can be found in the documentation for the scylla-node role and it's heavily
   # commented `defaults/main.yml` file
   # scylla_repos:
-  #   - 'http://repositories.scylladb.com/scylla/repo/../scylladb-4.1.repo'
+  #   - 'https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.4.repo'
 
   # # Set when relevant (Debian/Ubuntu)
   # scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'

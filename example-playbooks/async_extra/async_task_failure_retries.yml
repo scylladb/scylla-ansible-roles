@@ -1,0 +1,13 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Failed async job
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 10
+        alias: blah
+        async: 1000
+        retries: 1
+        delay: 1

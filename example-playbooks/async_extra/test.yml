@@ -1,0 +1,10 @@
+#!/usr/bin/ansible-playbook --inventory=inventory.ini
+---
+- hosts: localhost
+  tasks:
+    - name: Blah
+      my_test:
+        name: lol
+        shell: |
+          echo 123 &&
+          sleep 60

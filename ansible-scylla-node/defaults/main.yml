@@ -11,9 +11,12 @@ scylla_nic: "{{ ansible_default_ipv4.interface }}"
 # node_exporter will need to be installed manually
 install_type: online
 
+# Defines if the node firewall should be enabled or not
+firewall_enabled: false
+
 # URL of an RPM .repo file or a DEB .list file
 scylla_repos:
-  - http://repositories.scylladb.com/scylla/repo/***/centos/scylladb-2019.1.repo
+  - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
 
 
 # Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
@@ -47,13 +50,14 @@ scylla_manager_repo_keys:
 
 
 # Set when relevant (Debian for example)
-scylla_repo_keyfile_urls:
-  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
+#scylla_repo_keyfile_urls:
+#  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
 
 # Configure when additional dependency packages are required (only for some distributions)
 scylla_dependencies:
   - curl
   - wget
+  - python3-yaml # this will fail on non centos systems
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
@@ -131,7 +135,7 @@ generate_monitoring_config: True
 
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
 scylla_manager_agent_upgrade: true
 
 # Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
@@ -156,8 +160,11 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n2
   # - /dev/nvme0n3
 
-skip_coredump: True
-
+skip_coredump: False
+skip_sysconfig: False
+skip_cpuset: False
+skip_selinux: False
+skip_ntp: False
 
 # sysctl tuning defaults, please leave in place if unsure
 update_sysctl: True
