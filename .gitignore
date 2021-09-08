@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 .cache
 .idea
 __pycache__
+||||||| parent of 93afbe3 (Updates from master)
+=======
+.cache
+>>>>>>> 93afbe3 (Updates from master)
 .idea
-.code
+__pycache__
