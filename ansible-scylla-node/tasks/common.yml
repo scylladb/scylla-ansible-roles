@@ -34,23 +34,6 @@
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
       ignore_errors: true
 
-- name: Update sysctl
-  lineinfile:
-    path: /etc/sysctl.conf
-    line: "{{ item.name }} = {{ item.value }}"
-    regexp: '^{{ item.name }}'
-    state: present
-    create: yes
-  become: true
-  loop: "{{ sysctl }}"
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
-- name: Reload sysctl
-  shell: |
-    sysctl -p
-  become: true
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
 - name: IO settings probe
   block:
     - name: check for existing io_properties
@@ -241,6 +224,14 @@
     - name: Resolve a scylla_listen_address as a fact
       set_fact:
         listen_address: "{{ scylla_listen_address }}"
+    - name: start scylla seeds
+      service:
+        name: scylla-server
+        state: started
+      become: true
+      when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
+      ignore_errors: true
+      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
     # The same relates to the below
     - name: Resolve scylla_broadcast_address
@@ -268,6 +259,10 @@
       when:
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
+        - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
+        - inventory_hostname not in scylla_seeds
+      ignore_errors: true
+      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
     - name: wait for the API port to come up on all nodes
       wait_for:
