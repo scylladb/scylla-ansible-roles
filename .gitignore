@@ -1,2 +1,3 @@
+.cache
 .idea
-.code
+__pycache__
