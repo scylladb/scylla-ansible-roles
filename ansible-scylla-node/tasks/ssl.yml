@@ -1,16 +1,10 @@
 ---
 - name: generate a self-signed CA and use it for node certs
   block:
-    - name: Check CA folder exists
-      stat:
-        path: ./ssl/ca
-      register: ca_folder_details
-
     - name: Create dir for the CA
       file:
         path: ./ssl/ca
         state: directory
-      when: ca_folder_details.stat.isdir == False
 
     - name: Check CA crt exists
       stat:
