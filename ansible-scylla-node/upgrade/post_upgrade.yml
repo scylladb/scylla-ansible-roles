@@ -1,8 +1,0 @@
----
-
-# Start Scylla service
-- name: Start Scylla service
-  ansible.builtin.service:
-    name: scylla-server
-    state: started
-  become: true
