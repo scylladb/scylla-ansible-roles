@@ -69,7 +69,7 @@
   retries: "{{ upgrade_api_default_retries |int }}"
   delay: "{{ upgrade_api_default_delay |int }}"
 
-- name: Get current gossip status afer disable it
+- name: Get current gossip status after disable it
   ansible.builtin.uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/gossiping"
     method: GET
@@ -136,6 +136,14 @@
   when: upgrade_generate_snapshots or scylla_process_kill is defined
 
 
+# Stop Scylla service
+- name: Stop Scylla service
+  ansible.builtin.service:
+    name: scylla-server
+    state: stopped
+  become: true
+
+
 # Prepare and create backup
 - name: Create backup folders structure
   ansible.builtin.file:
@@ -146,6 +154,7 @@
   loop:
     - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}"
     - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc"
+    - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/scylla.d"
 
 - name: Backup Scylla configuration file
   ansible.builtin.copy:
@@ -155,11 +164,11 @@
     remote_src: yes
   become: true
 
-# ----- TODO: Check if there are other files to backup and how -----
-
-# Stop Scylla service
-- name: Stop Scylla service
-  ansible.builtin.service:
-    name: scylla-server
-    state: stopped
+- name: Backup Scylla extra configuration files
+  ansible.builtin.copy:
+    src: /etc/scylla.d/
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/scylla.d/"
+    directory_mode: yes
+    mode: preserve
+    remote_src: yes
   become: true

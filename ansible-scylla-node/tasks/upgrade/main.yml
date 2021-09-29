@@ -176,7 +176,7 @@
     - name: Check if selected Scylla version is an upgrade or downgrade
       vars:
         detected_version: "{{ scylla_detected['major_version'] if upgrade_major else scylla_detected['version'] }}"
-        upgrade_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
+        upgraded_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
       ansible.builtin.set_fact:
         scylla_upgrade: {
           edition: "{{ scylla_upgrade['edition'] }}",
@@ -186,16 +186,16 @@
           id: "{{ scylla_upgrade['id'] }}",
           upgrade: false
         }
-      when: upgrade_version is version(detected_version,'<')
+      when: upgraded_version is version(detected_version,'<')
 
     - name: Check if downgrading is not allowed
       ansible.builtin.fail:
         msg: "Downgrade feature it not implemented yet."
       # vars:
       #   detected_version: "{{ scylla_detected['major_version'] if upgrade_major else scylla_detected['version'] }}"
-      #   upgrade_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
+      #   upgraded_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
       # ansible.builtin.fail:
-      #   msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ detected_version }} is installed and you are trying to downgrade to {{ upgrade_version }}, but downgrading is not allowed."
+      #   msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ detected_version }} is installed and you are trying to downgrade to {{ upgraded_version }}, but downgrading is not allowed."
       when:
         - not scylla_upgrade['upgrade']
         - not upgrade_allow_user_manual_downgrade
