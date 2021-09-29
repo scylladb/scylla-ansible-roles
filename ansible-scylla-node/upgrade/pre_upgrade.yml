@@ -69,7 +69,7 @@
   retries: "{{ upgrade_api_default_retries |int }}"
   delay: "{{ upgrade_api_default_delay |int }}"
 
-- name: Get current gossip status afer disable it
+- name: Get current gossip status after disable it
   ansible.builtin.uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/gossiping"
     method: GET
