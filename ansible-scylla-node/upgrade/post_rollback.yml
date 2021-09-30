@@ -1,5 +1,0 @@
----
-
-- name: Feature not implemented
-  ansible.builtin.fail:
-    msg: "This feature is not implemented yet"
