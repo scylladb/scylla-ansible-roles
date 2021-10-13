@@ -14,7 +14,7 @@ if [ -f "$CONF" ]; then
     fi
 fi
 
-if [ ! -d "$DIR " ]; then
+if [ ! -d "$DIR" ]; then
     echo "error: $DIR does not exist"
     exit 1
 fi
