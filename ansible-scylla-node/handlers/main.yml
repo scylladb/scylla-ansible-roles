@@ -1,4 +1,11 @@
 ---
+
+- name: Clean yum metadata
+  command: yum clean metadata
+  args:
+    warn: no
+  become: true 
+
 - name: reload systemd configuration
   become: true
   systemd:

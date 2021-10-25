@@ -1,5 +1,6 @@
 ---
 
+# Facts gathering
 - name: Populate service facts
   service_facts:
 
@@ -7,10 +8,17 @@
   package_facts:
     manager: auto
 
+# Upgrade
+- name: Upgrade Scylla
+  include_tasks: upgrade/main.yml
+  when: upgrade_version
+
+# Install
 - name: os-specific tasks
   include_tasks: "{{ ansible_os_family }}.yml"
+  when: not upgrade_version
 
 - name: common tasks
   include_tasks: common.yml
-  when: install_only|bool == false
+  when: not upgrade_version and install_only|bool == false
 

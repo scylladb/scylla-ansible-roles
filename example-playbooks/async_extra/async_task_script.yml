@@ -1,0 +1,11 @@
+#!/usr/sbin/ansible-playbook ./async_task_script.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Async recoverable job with script
+      async_task:
+        script: sleep.sh 10
+        alias: blah
+        async: 60
+        retries: 10
+        delay: 5
