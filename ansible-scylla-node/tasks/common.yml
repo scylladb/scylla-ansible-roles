@@ -294,18 +294,19 @@
         method: GET
       register: _result
       until: _result.status == 200
-      retries: 90
-      delay: 1
-  when: start_scylla_service is defined and start_scylla_service|bool
+      retries: 3000
+      delay: 10
+    when: start_scylla_service is defined and start_scylla_service|bool
 
-- name: generate monitoring configuration
-  include_tasks: monitoring_config.yml
-  when: generate_monitoring_config|bool
-  run_once: true
+    - name: generate monitoring configuration
+      include_tasks: monitoring_config.yml
+      when: generate_monitoring_config|bool
+      run_once: true
 
-- name: configure the Manager agents
-  include_tasks: manager_agents.yml
-  when: scylla_manager_enabled|bool
+    - name: configure the Manager agents
+      include_tasks: manager_agents.yml
+      when: scylla_manager_enabled|bool
+  when:  start_scylla_service is defined and start_scylla_service|bool
 
 - name: Update sysctl
   ansible.posix.sysctl:
@@ -314,10 +315,4 @@
   become: true
   loop: "{{ sysctl }}"
   ignore_errors: true
-  when: update_sysctl|bool is defined and update_sysctl|bool
-
-- name: Reload sysctl
-  shell: |
-    sysctl -p
-  become: true
   when: update_sysctl|bool is defined and update_sysctl|bool
