@@ -263,8 +263,8 @@
         method: GET
       register: _result
       until: _result.status == 200
-      retries: 30
-      delay: 1
+      retries: 3000
+      delay: 10
 
     - name: generate monitoring configuration
       include_tasks: monitoring_config.yml
