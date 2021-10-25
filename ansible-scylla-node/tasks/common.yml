@@ -326,9 +326,3 @@
   loop: "{{ sysctl }}"
   ignore_errors: true
   when: update_sysctl|bool is defined and update_sysctl|bool
-
-- name: Reload sysctl
-  shell: |
-    sysctl -p
-  become: true
-  when: update_sysctl|bool is defined and update_sysctl|bool
