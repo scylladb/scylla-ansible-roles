@@ -1,7 +1,6 @@
 ---
 - name: add Scylla repos
   block:
-
   - name: Install gnupg2 dependency
     apt:
       name: "gnupg2"
@@ -22,7 +21,6 @@
       state: present
     with_items: "{{ scylla_repo_keyfile_urls }}"
     when: scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0)
-  become: true
 
   - name: Install Scylla repo
     get_url:
@@ -32,6 +30,8 @@
       owner: root
     with_items: "{{ scylla_repos }}"
     when: install_type == 'online' and item.split(".")[-1] == "list"
+
+  become: true
 
 - name: Install Scylla
   block:
