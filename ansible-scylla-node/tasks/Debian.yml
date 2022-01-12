@@ -123,9 +123,7 @@
       apt:
         name: scylla-manager-agent
         state: present
-      when:
-        - scylla_manager_agent_upgrade is not defined
-        - scylla_manager_agent_upgrade|bool == False
+      when: (scylla_manager_agent_upgrade is not defined) or (scylla_manager_agent_upgrade|bool == False)
 
     - name: install the latest manager agent
       apt:
