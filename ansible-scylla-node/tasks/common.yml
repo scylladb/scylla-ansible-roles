@@ -255,7 +255,7 @@
         method: GET
       register: _result
       until: _result.status == 200
-      retries: 30
+      retries: 90
       delay: 1
 
     - name: generate monitoring configuration
