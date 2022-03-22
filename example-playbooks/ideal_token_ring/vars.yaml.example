@@ -1,0 +1,2 @@
+# path to where the files needed to run reside (ideal_token_ring.py , field_cloud_access.py)
+initial_token_script_path: /my_path_to/ideal_token_ring_scripts/

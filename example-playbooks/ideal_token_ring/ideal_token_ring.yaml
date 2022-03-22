@@ -1,0 +1,196 @@
+---
+
+- name: Gather important facts about Scylla nodes
+  hosts: scylla
+  become: true
+  gather_facts: false
+  tags:
+    - gather_facts
+  tasks:
+    - name: Get seeds list
+      shell: |
+        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }' | tr -d '"' | tr -d "'"
+      register: _seeds
+
+    - name: Save seeds list as a fact
+      set_fact:
+        old_seeds: "{{ _seeds.stdout }}"
+
+#    - name: Let's see our new facts
+#      debug:
+#        msg: "{{ inventory_hostname }} old seeds list is {{ old_seeds }}"
+
+    - name: Get listen address
+      shell: |
+        grep "^\s*listen_address" /etc/scylla/scylla.yaml | cut -d":" -f2 | tr -d ' '
+      register: _listen_address
+
+    - name: Save listen_address as a fact
+      set_fact:
+        listen_address: "{{ _listen_address.stdout }}"
+
+- name: Generate ideal token ring
+  hosts: scylla
+  become: true
+  gather_facts: false
+  #vars:
+# path to ideal_token_ring.py and field_cloud_access.py
+#    initial_token_script_path: /path_to_scripts/ideal_token_ring/
+  tasks:
+  #TODO make them a param passed on through variables?
+    - name: init vars to avoid calling default()
+      set_fact:
+       initial_tokens_map: {}
+       ideal_ring_script_names: ["field_cloud_access.py", "ideal_token_ring.py"]
+
+    - name: Copy ideal token ring scripts
+      ansible.builtin.copy:
+       src: "{{ initial_token_script_path }}/{{ item }}"
+       dest: /tmp/{{ item }}
+       mode: '0755'
+      with_items: "{{ ideal_ring_script_names }}"
+
+    - name: Copy inventory file
+      ansible.builtin.copy:
+       src: "{{ inventory_file }}"
+       dest: /tmp/inventory.ini
+       mode: '0644'
+
+#TODO make the binary name a param passed on through variables?
+    - name: Generate tokens lists
+      shell: |
+        /tmp/ideal_token_ring.py --inventory /tmp/inventory.ini
+      register: _tokens_lists
+
+    - name: 'set initial_tokens_map'
+      set_fact:
+       initial_tokens_map: >
+         {% set key, val = item.partition('=')[::2]|map('trim') -%}
+         {{ initial_tokens_map | combine({key: val}) }}
+      with_items: "{{ _tokens_lists.stdout.splitlines() }}"
+
+    - name: Remove ideal token ring scripts
+      ansible.builtin.file:
+        path: /tmp/{{ item }}
+        state: absent
+      with_items: "{{ ideal_ring_script_names }}"
+      when: (initial_token_script_path is defined) and (initial_token_script_path |length > 0)
+
+- name: Set ideal initial token ring - cluster has to be empty and never started for this
+  hosts: scylla
+  become: true
+  gather_facts: false
+  tags:
+    - ideal_initial_token_ring
+  tasks:
+    # - name: Stop Scylla service
+    #   service:
+    #     name: scylla-server
+    #     state: stopped
+
+    # - name: Remove Scylla directories
+    #   file:
+    #     path: "/var/lib/scylla/{{ item }}"
+    #     state: absent
+    #   loop:
+    #     - data
+    #     - commitlog
+    #     - hints
+    #     - view_hints
+
+    # - name: Recreate Scylla directories
+    #   file:
+    #     path: "/var/lib/scylla/{{ item }}"
+    #     state: directory
+    #     owner: scylla
+    #     group: scylla
+    #     mode: 0755
+    #   loop:
+    #     - data
+    #     - commitlog
+    #     - hints
+    #     - view_hints
+
+    - name: Set initial_token in scylla.yaml
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(#\s*)?initial_token:'
+        line: "initial_token: {{ initial_tokens_map[inventory_hostname] }}"
+        create: yes
+      when: (initial_token_script_path is defined) and (initial_token_script_path |length > 0)
+
+    - name: Make {{ groups.scylla[0] }} a seed
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ groups.scylla[0] }}
+        backrefs: yes
+      when: inventory_hostname == groups.scylla[0]
+
+    - name: Set seeds list to be {{ groups.scylla[0] }} plus a node itself
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ groups.scylla[0] }},{{ inventory_hostname }}
+        backrefs: yes
+      when: inventory_hostname != groups.scylla[0]
+
+- name: Start all nodes serially
+  hosts: scylla
+  become: true
+  gather_facts: false
+  serial: 1
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Start Scylla service on {{ inventory_hostname }}
+      service:
+        name: scylla-server
+        state: started
+
+    - name: Wait for CQL port on {{ inventory_hostname }}
+      wait_for:
+        port: 9042
+        host: "{{ listen_address }}"
+
+
+- name: Cleanup - restore the original cluster's configuration
+  hosts: scylla
+  become: true
+  gather_facts: false
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Delete initial_token in scylla.yaml of {{ inventory_hostname }}
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^initial_token:'
+        line: ""
+
+    - name: Restore seeds list
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ old_seeds }}
+        backrefs: yes
+
+
+- name: Restart Scylla with original seeds
+  hosts: scylla
+  become: true
+  gather_facts: false
+  tags:
+    - upload_snapshot
+  tasks:
+    - name: Restart Scylla service to force a new schema to be picked up
+      service:
+        name: scylla-server
+        state: restarted
+
+    - name: Wait for CQL port
+      wait_for:
+        port: 9042
+        host: "{{ listen_address }}"
