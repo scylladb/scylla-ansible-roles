@@ -2,6 +2,11 @@
 
 This is an ansible playbook that lets you assign ideal token ring to a known size cluster
 
+## Restrictions and setting expectations
+
+The cluster after using ideal token range HAS to use NetworkTopologyStrategy.
+NEVER try to use SimpleStrategy for such cluster (especially when multi-DC is set up).
+
 ## Prerequisites
 
 1. New cluster which is not initialized (its inventory.ini)
