@@ -4,8 +4,17 @@ This is an ansible playbook that lets you assign ideal token ring to a known siz
 
 ## Restrictions and setting expectations
 
-The cluster after using ideal token range HAS to use NetworkTopologyStrategy.
-NEVER try to use SimpleStrategy for such cluster (especially when multi-DC is set up).
+* If you invoked a script using an inventory file you should use a
+  NetworkTopologyStrategy and EverywhereStrategy across the board for
+  distributed keyspaces.
+* If you invoked a script by giving a total number of nodes then you
+  should use SimpleStrategy and EverywhereStrategy across the board
+  for distributed keyspaces.
+
+Ignoring rules above may cause a severe data distribution imbalance
+especially in a multi-DC case.
+
+This playbook uses the inventory file, so first rule/restriction has to be used.
 
 ## Prerequisites
 
