@@ -14,8 +14,8 @@
 
 - name: add scylla-manager repo
   get_url:
-    url: "{{ scylla_manager_repo_url }}"
-    dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+    url: "{{ scylla_manager_rpm_repo_url }}"
+    dest: '/etc/yum.repos.d/{{ scylla_manager_rpm_repo_url.split("/")[-1] | lower }}'
     mode: '0644'
     owner: root
   become: true
