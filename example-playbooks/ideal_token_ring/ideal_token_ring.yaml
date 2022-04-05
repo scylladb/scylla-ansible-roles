@@ -32,6 +32,7 @@
 - name: Generate ideal token ring
   hosts: scylla
   become: true
+  run_once: true
   gather_facts: false
   #vars:
 # path to ideal_token_ring.py and field_cloud_access.py
