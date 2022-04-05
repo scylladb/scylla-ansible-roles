@@ -10,11 +10,11 @@
 
     - name: add Scylla Manager repo
       get_url:
-        url: "{{ scylla_manager_repo_url }}"
-        dest: '/etc/apt/sources.list.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+        url: "{{ scylla_manager_deb_repo_url }}"
+        dest: '/etc/apt/sources.list.d/{{ scylla_manager_deb_repo_url.split("/")[-1] | lower }}'
         mode: '0644'
         owner: root
-      when: scylla_manager_repo_url.split(".")[-1] == "list"
+      when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
 
     - name: refresh apt cache
       apt:
