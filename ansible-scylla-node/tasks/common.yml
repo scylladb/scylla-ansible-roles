@@ -226,9 +226,9 @@
         listen_address: "{{ scylla_listen_address }}"
 
     # The same relates to the below
-    - name: Resolve Scylla NIC IPv4 address
+    - name: Resolve scylla_broadcast_address
       set_fact:
-        scylla_nic_ipv4: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+        broadcast_address: "{{ scylla_broadcast_address }}"
 
     # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
     - name: start scylla on seeders
@@ -236,13 +236,13 @@
         name: scylla-server
         state: started
       become: true
-      when: scylla_nic_ipv4 in scylla_seeds or inventory_hostname in scylla_seeds
+      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
 
     - name: Wait for CQL port on seeders
       wait_for:
         port: 9042
         host: "{{ listen_address }}"
-      when: scylla_nic_ipv4 in scylla_seeds or inventory_hostname in scylla_seeds
+      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
@@ -250,7 +250,7 @@
       loop: "{{ groups['scylla'] }}"
       when:
         - item not in scylla_seeds
-        - hostvars[item]['scylla_nic_ipv4'] not in scylla_seeds
+        - hostvars[item]['broadcast_address'] not in scylla_seeds
 
     - name: wait for the API port to come up on all nodes
       wait_for:
