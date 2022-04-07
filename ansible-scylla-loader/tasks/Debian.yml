@@ -53,9 +53,21 @@
   when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
   become: true
 
+- name: Set Java facts for Debian 8 and 9
+  set_fact:
+    java_package_name: "openjdk-8-jre-headless"
+    java_path: "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java"
+  when: ansible_distribution_major_version|int < 10
+
+- name: Set Java facts for Debian 10 and above
+  set_fact:
+    java_package_name: "openjdk-11-jre-headless"
+    java_path: "/usr/lib/jvm/java-11-openjdk-amd64/bin/java"
+  when: ansible_distribution_major_version|int > 9
+
 - name: Install Java
   apt:
-    name: openjdk-8-jre-headless
+    name: "{{ java_package_name }}"
     state: present
     force_apt_get: yes
   become: true
@@ -63,7 +75,7 @@
 - name: Correct java version selected
   alternatives:
     name: java
-    path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+    path: "{{ java_path }}"
   become: true
 
 - name: install scylla-tools-core|scylla-enterprise-tools-core
