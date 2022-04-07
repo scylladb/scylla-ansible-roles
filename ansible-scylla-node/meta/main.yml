@@ -3,6 +3,8 @@
 allow_duplicates: yes
 
 galaxy_info:
+  role_name: scylla_node
+  namespace: scylladb
   author: Dan Yasny, Lubos Kosco
   description: Scylla node role
   company: "ScyllaDB.com"
