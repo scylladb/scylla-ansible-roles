@@ -36,17 +36,12 @@
 
 - name: Install Scylla
   block:
-  - name: Upgrade all packages to the latest version
-    apt:
-      name: "*"
-      state: latest
-      force_apt_get: yes
-      update_cache: yes
 
   - name: Install additional dependencies
     apt:
       name: "{{ scylla_dependencies }}"
       state: present
+      update_cache: yes
       force_apt_get: yes
     when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
 
@@ -74,15 +69,91 @@
     when: scylla_version == 'latest' and scylla_edition == 'enterprise'
 
   - name: Install specified OSS Scylla
-    apt:
-      name: "scylla={{ scylla_version }}*"
-      state: present
+    block:
+      - name: Get dependencies of scylla package
+        shell: apt depends scylla={{ scylla_version }}*
+        register: aptdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scylladependencies: "{{ aptdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Get dependencies of scylla-tools package
+        shell: apt depends scylla-tools={{ scylla_version }}*
+        register: apttoolsdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scyllatoolsdependencies: "{{ apttoolsdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Get dependencies of scylla-server package
+        shell: apt depends scylla-server={{ scylla_version }}*
+        register: aptserverdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scyllaserverdependencies: "{{ aptserverdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Install specified OSS Scylla packages
+        apt:
+          name: "{{ item }}={{ scylla_version }}*"
+          state: present
+        with_items: "{{ scyllaserverdependencies + scyllatoolsdependencies + scylladependencies }}"
+
+      - name: Install meta Scylla package
+        apt:
+          name: "scylla={{ scylla_version }}*"
+          state: present
+
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
+#apt list -a scylla-enterprise | grep 2021.1.9
+#WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
+#scylla-enterprise/stable 2021.1.9-0.20220208.86e3ea4df-1 amd64
+
+
   - name: Install specified Enterprise Scylla
-    apt:
-      name: "scylla-enterprise={{ scylla_version }}*"
-      state: present
+    block:
+      - name: Get dependencies of scylla-enterprise package
+        shell: apt depends scylla-enterprise={{ scylla_version }}*
+        register: aptdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scylladependencies: "{{ aptdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Get dependencies of scylla-enterprise-server package
+        shell: apt depends scylla-enterprise-server={{ scylla_version }}*
+        register: aptserverdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scyllaserverdependencies: "{{ aptserverdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Get dependencies of scylla-enterprise-tools package
+        shell: apt depends scylla-enterprise-tools={{ scylla_version }}*
+        register: apttoolsdependencies
+      - name: Set dependencies of scylla package as fact
+        set_fact:
+          scyllatoolsdependencies: "{{ apttoolsdependencies.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \('
+
+      - name: Install specified Enterprise Scylla packages
+        apt:
+          name: "{{ item }}={{ scylla_version }}*"
+          state: present
+        with_items: "{{ scyllaserverdependencies + scyllatoolsdependencies + scylladependencies }}"
+
+      - name: Install meta Enterprise Scylla package
+        apt:
+          name: "scylla-enterprise={{ scylla_version }}*"
+          state: present
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
@@ -112,17 +183,11 @@
         owner: root
       when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
 
-    - name: refresh apt cache
-      apt:
-        name: "*"
-        state: latest
-        force_apt_get: yes
-        update_cache: yes
-
     - name: install the manager agent
       apt:
         name: scylla-manager-agent
         state: present
+        update_cache: yes
       when: (scylla_manager_agent_upgrade is not defined) or (scylla_manager_agent_upgrade|bool == False)
 
     - name: install the latest manager agent
