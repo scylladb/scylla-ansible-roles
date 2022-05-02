@@ -94,14 +94,21 @@ install_type: online
 firewall_enabled: false
 
 # URL of an RPM .repo file or a DEB .list file
+# deprecated in favour of below, it will be dropped soon, below should be used
 scylla_repos:
   - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
 
+scylla_deb_repos:
+  - http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
 
-# Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
+scylla_rpm_repos: "{{ scylla_repos }}"
+
+# Use a newer kernel from ELRepo (was recommended for RHEL/CentOS until 5.11)
 # Reboot after the elrepo kernel has been installed is recommended as well.
-elrepo_kernel: True
-reboot_after_kernel_upgrade: True
+# Note that kernel 5.16 has serious issues on GCP and on Azure, last known
+# working kernel was 5.11 that can now only be used from archives
+elrepo_kernel: False
+reboot_after_kernel_upgrade: False
 
 # set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
 full_inventory: true
@@ -124,6 +131,7 @@ scylla_repo_keys:
   - 5e08fbd8b5d6ec9c
 
 scylla_manager_repo_keys:
+  - 5e08fbd8b5d6ec9c
   - 6B2BFD3660EF3F5B
   - 17723034C56D4B19
 
@@ -214,7 +222,12 @@ generate_monitoring_config: True
 
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
+# deprecated in favour of below, it will be dropped soon, below should be used
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
+
+scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
+scylla_manager_rpm_repo_url: "{{ scylla_manager_repo_url }}"
+
 scylla_manager_agent_upgrade: true
 
 # Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
@@ -240,8 +253,9 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n3
 
 skip_coredump: False
-skip_sysconfig: False
+#below can be dangerous, sysconfig also sets cpuset, so disable both to not do any cpuset.conf changes!
 skip_cpuset: False
+skip_sysconfig: False
 skip_selinux: False
 skip_ntp: False
 

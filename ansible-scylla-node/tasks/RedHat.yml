@@ -78,7 +78,7 @@
     dest: '/etc/yum.repos.d/{{ item.split("/")[-1] | lower }}'
     mode: '0644'
     owner: root
-  with_items: "{{ scylla_repos }}"
+  with_items: "{{ scylla_rpm_repos }}"
   when: item.split(".")[-1] == "repo"
   become: true
 
@@ -127,11 +127,11 @@
   block:
     - name: add Scylla Manager repo
       get_url:
-        url: "{{ scylla_manager_repo_url }}"
-        dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+        url: "{{ scylla_manager_rpm_repo_url }}"
+        dest: '/etc/yum.repos.d/{{ scylla_manager_rpm_repo_url.split("/")[-1] | lower }}'
         mode: '0644'
         owner: root
-      when: scylla_manager_repo_url.split(".")[-1] == "repo"
+      when: scylla_manager_rpm_repo_url.split(".")[-1] == "repo"
 
     - name: install the manager agent
       yum:

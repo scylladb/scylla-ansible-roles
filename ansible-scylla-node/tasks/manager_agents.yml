@@ -63,5 +63,3 @@
   when: manager_agent_config_change.changed
   ignore_errors: true
   #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
-
-

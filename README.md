@@ -46,3 +46,4 @@ The following components get installed:
 Some basic playbooks showing off how the roles can be utilized, as well as some playbooks used for standard day-2 ops with Scylla
 
 [Rolling restart automation](https://github.com/scylladb/scylla-ansible-roles/wiki/Rolling-restart-automation)
+[Major upgrade automation](https://github.com/scylladb/scylla-ansible-roles/wiki/Upgrading-a-Scylla-Cluster)

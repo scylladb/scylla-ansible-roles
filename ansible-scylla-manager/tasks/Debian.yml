@@ -10,31 +10,25 @@
 
     - name: add Scylla Manager repo
       get_url:
-        url: "{{ scylla_manager_repo_url }}"
-        dest: '/etc/apt/sources.list.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
+        url: "{{ scylla_manager_deb_repo_url }}"
+        dest: '/etc/apt/sources.list.d/{{ scylla_manager_deb_repo_url.split("/")[-1] | lower }}'
         mode: '0644'
         owner: root
-      when: scylla_manager_repo_url.split(".")[-1] == "list"
+      when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
 
     - name: refresh apt cache
       apt:
         update_cache: yes
-        cache_valid_time: 600
-        name: "*"
-        state: latest
-        force_apt_get: yes
 
-    - name: install the manager agent
+    - name: install the manager server
       apt:
         name:
           - scylla-manager-server
           - scylla-manager-client
         state: present
-      when:
-        - enable_upgrade is not defined
-        - enable_upgrade is defined and enable_upgrade|bool == False
+      when: (enable_upgrade is not defined) or (enable_upgrade is defined and enable_upgrade|bool == False)
 
-    - name: install the manager agent
+    - name: install the manager server
       apt:
         name:
           - scylla-manager-server

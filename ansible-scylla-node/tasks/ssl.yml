@@ -28,8 +28,8 @@
         path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         csr_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
-        issuer:
-          commonName: "{{ scylla_cluster_name }}.internal"
+#        issuer:
+#          commonName: "{{ scylla_cluster_name }}.internal"
         provider: selfsigned
       when: ca_crt_details.stat.exists == False
   delegate_to: localhost

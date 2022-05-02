@@ -8,7 +8,7 @@ driver:
   name: docker
 platforms:
   - name: node1
-    image: jrei/systemd-ubuntu:18.04
+    image: jrei/systemd-ubuntu:20.04
     privileged: true
     command: /lib/systemd/systemd
     volumes:
@@ -16,7 +16,7 @@ platforms:
     groups:
       - scylla
   - name: node2
-    image: jrei/systemd-ubuntu:18.04
+    image: jrei/systemd-ubuntu:20.04
     privileged: true
     command: /lib/systemd/systemd
     volumes:
@@ -24,7 +24,7 @@ platforms:
     groups:
       - scylla
   - name: node3
-    image: jrei/systemd-ubuntu:18.04
+    image: jrei/systemd-ubuntu:20.04
     privileged: true
     command: /lib/systemd/systemd
     volumes:
@@ -40,8 +40,8 @@ provisioner:
     group_vars:
       scylla:
         scylla_deb_repos:
-          - "http://downloads.scylladb.com/deb/ubuntu/scylla-4.6-bionic.list"
-        scylla_edition: "oss"
+          - "http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list"
+        scylla_edition: "enterprise"
         scylla_io_probe: false
         io_properties:
           disks:
@@ -57,6 +57,7 @@ provisioner:
         skip_coredump: True
         skip_sysconfig: True
         skip_cpuset: True
+#        skip_ntp: True
         scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6-bionic.list"
   playbooks:
     converge: ../shared/converge.yml

@@ -41,7 +41,7 @@ provisioner:
     group_vars:
       scylla:
         elrepo_kernel: False
-        scylla_repos:
+        scylla_rpm_repos:
           - "https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.4.repo"
         scylla_edition: "oss"
         scylla_io_probe: false
@@ -61,7 +61,7 @@ provisioner:
         skip_cpuset: True
         skip_selinux: True
         skip_ntp: True
-        scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
+        scylla_manager_rpm_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
