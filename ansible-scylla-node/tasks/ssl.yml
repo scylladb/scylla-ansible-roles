@@ -6,24 +6,32 @@
         path: ./ssl/ca
         state: directory
 
+    - name: Check CA crt exists
+      stat:
+        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+      register: ca_crt_details
+
     - name: Generate an OpenSSL private key for the CA.
       openssl_privatekey:
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+      when: ca_crt_details.stat.exists == False
 
     - name: Generate an OpenSSL Certificate Signing Request for the CA
       openssl_csr:
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
         privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         common_name: "{{ scylla_cluster_name }}.internal"
+      when: ca_crt_details.stat.exists == False
 
     - name: Generate a Self Signed OpenSSL certificate for the CA
       openssl_certificate:
         path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         csr_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.csr"
-        issuer:
-          commonName: "{{ scylla_cluster_name }}.internal"
+#        issuer:
+#          commonName: "{{ scylla_cluster_name }}.internal"
         provider: selfsigned
+      when: ca_crt_details.stat.exists == False
   delegate_to: localhost
   run_once: true
 
@@ -35,10 +43,23 @@
         state: directory
       delegate_to: localhost
 
+    - name: Check private keys exist
+      stat:
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+      register: hostname_private_details
+      delegate_to: localhost
+
+    - name: Check certificates exist
+      stat:
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+      register: hostname_cert_details
+      delegate_to: localhost
+
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
       delegate_to: localhost
+      when: hostname_private_details.stat.exists == False
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
@@ -46,15 +67,17 @@
         privatekey_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
         common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
       delegate_to: localhost
+      when: hostname_cert_details.stat.exists == False
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
       openssl_certificate:
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
         csr_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
-        ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        ownca_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
       delegate_to: localhost
+      when: hostname_cert_details.stat.exists == False
 
     - name: Copy the certificates into their proper locations
       copy:
@@ -75,4 +98,3 @@
     dest: ./cqlshrc
   delegate_to: localhost
   run_once: true
-

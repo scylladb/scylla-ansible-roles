@@ -10,8 +10,14 @@
         msg: "You must use -l or --limit. To cleanup the entire cluster, use -l 'all'"
       when: ansible_limit is not defined
 
+    # 2592000 a month of seconds, retry every 1 minute
     - name: Run cleanup
-      script:  files/cleanup.sh
+      async_task:
+        script:  files/cleanup.sh
+        alias: scylla_cleanup
+        async: 2592000
+        retries: 43200
+        delay: 60
       register: cleanup_output
 
     - name: Cleanup logs

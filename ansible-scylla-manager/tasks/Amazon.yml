@@ -1,24 +1,10 @@
 ---
-- name: Add EPEL key
-  rpm_key:
-    state: present
-    key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}
-  become: true
-
-- name: Add EPEL repository
-  yum:
-    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
-    state: present
-    lock_timeout: 180
-  become: true
-
 - name: add scylla-manager repo
   get_url:
-    url: "{{ scylla_manager_rpm_repo_url }}"
-    dest: '/etc/yum.repos.d/{{ scylla_manager_rpm_repo_url.split("/")[-1] | lower }}'
+    url: "{{ scylla_manager_repo_url }}"
+    dest: '/etc/yum.repos.d/{{ scylla_manager_repo_url.split("/")[-1] | lower }}'
     mode: '0644'
     owner: root
-    timeout: 30
   become: true
 
 - name: install manager

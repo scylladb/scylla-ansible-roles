@@ -1,0 +1,6 @@
+#!/usr/sbin/ansible-playbook ./async_task_cmd.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+      - ansible.builtin.command:
+          cmd: sleep 10

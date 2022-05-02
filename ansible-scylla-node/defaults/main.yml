@@ -1,4 +1,80 @@
 ---
+# DON'T EDIT THIS FILE. JUST OVERRIDE THE VARIABLES.
+
+# ==============================
+# UPGRADE
+# ==============================
+
+# Upgrades Scylla version if a previous installation is detected
+# Values:
+#  [default] false: don't check for upgrades
+#  true: check for upgrades and apply them
+upgrade_version: false
+
+# Defines if the upgrade is 'major' or 'minor' (patch)
+# Values:
+#  [default] true: 'major' upgrade
+#  false: 'minor' upgrade
+upgrade_major: true
+
+# Defines if the upgrade process should rollback on failure
+# Values:
+#  [default] true: rollback on failure
+#  false: don't do anything
+upgrade_rollback_on_failure: true
+
+# Defines if the cross-edition upgrade is allowed
+# Values:
+#  [default] false: cross-edition upgrade not allowed
+#  true: cross-edition upgrade allowed
+upgrade_cross_edition: false
+
+# Defines if the user can manually run a downgrade
+# Values:
+#  [default] false: manual downgrade not allowed
+#  true: manual downgrade allowed (FOR EXPERIENCED USERS ONLY!)
+upgrade_allow_user_manual_downgrade: false
+
+# Defines if the version specified should be changed in case a straight upgrade is not possible
+# Values:
+#  [default] true: automatically change the upgrade version
+#  false: keep the specified version
+upgrade_autocorrect_version: true
+
+# Defines if snapshots should be generated before starting the upgrade
+# Values:
+#  [default] false: don't generate snapshots
+#  true: generate snapshots
+upgrade_generate_snapshots: false
+
+# Defines how many retries should be used for API usage before failing
+# Values:
+#  [default] 20
+#  Any value above 0
+upgrade_api_default_retries: 20
+
+# Defines how many seconds of delay should be applied between retries for API usage
+# Values:
+#  [default] 15
+#  Any value above 0
+upgrade_api_default_delay: 15
+
+# Defines how many seconds Ansible should wait before starting the verification process
+# Values:
+#  [default] 90
+#  Any value above 0
+upgrade_break_before_verification: 90
+
+# Defines backup folder path
+# Values:
+#  [default] /root/scylla-backup
+#  Any valid folder
+upgrade_backup_path: /root/scylla-backup
+
+# ==============================
+# INSTALL
+# ==============================
+
 scylla_cluster_name: 'testcluster123'
 
 # set to true if the role should enable the specified repos, install the binaries and stop
@@ -12,17 +88,27 @@ scylla_nic: "{{ ansible_default_ipv4.interface }}"
 install_type: online
 
 # Defines if the node firewall should be enabled or not
+# Values:
+#  [default] false: all front-end firewall services will be disabled and iptables rules flushed
+#  true: keep node configuration as is
 firewall_enabled: false
 
 # URL of an RPM .repo file or a DEB .list file
+# deprecated in favour of below, it will be dropped soon, below should be used
 scylla_repos:
   - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
 
+scylla_deb_repos:
+  - http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
 
-# Use a newer kernel from ELRepo (recommended for RHEL/CentOS)
+scylla_rpm_repos: "{{ scylla_repos }}"
+
+# Use a newer kernel from ELRepo (was recommended for RHEL/CentOS until 5.11)
 # Reboot after the elrepo kernel has been installed is recommended as well.
-elrepo_kernel: True
-reboot_after_kernel_upgrade: True
+# Note that kernel 5.16 has serious issues on GCP and on Azure, last known
+# working kernel was 5.11 that can now only be used from archives
+elrepo_kernel: False
+reboot_after_kernel_upgrade: False
 
 # set this to false when the role isn't being applied to a full inventory reflecting the whole cluster
 full_inventory: true
@@ -45,6 +131,7 @@ scylla_repo_keys:
   - 5e08fbd8b5d6ec9c
 
 scylla_manager_repo_keys:
+  - 5e08fbd8b5d6ec9c
   - 6B2BFD3660EF3F5B
   - 17723034C56D4B19
 
@@ -135,7 +222,12 @@ generate_monitoring_config: True
 
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.4.repo"
+# deprecated in favour of below, it will be dropped soon, below should be used
+scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
+
+scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
+scylla_manager_rpm_repo_url: "{{ scylla_manager_repo_url }}"
+
 scylla_manager_agent_upgrade: true
 
 # Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
@@ -161,8 +253,9 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n3
 
 skip_coredump: False
-skip_sysconfig: False
+#below can be dangerous, sysconfig also sets cpuset, so disable both to not do any cpuset.conf changes!
 skip_cpuset: False
+skip_sysconfig: False
 skip_selinux: False
 skip_ntp: False
 
@@ -221,5 +314,7 @@ sysctl:
     value: '1440000'
   - name: 'net.ipv4.tcp_tw_reuse'
     value: '1'
+  - name: 'fs.aio-max-nr'
+    value: '5048576'
   # - name: 'net.ipv4.tcp_tw_recycle'
   #   value: '1'

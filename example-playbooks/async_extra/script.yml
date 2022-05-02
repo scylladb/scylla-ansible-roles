@@ -1,0 +1,8 @@
+#!/usr/sbin/ansible-playbook ./script.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+      - ansible.builtin.script: ./sleep.sh 10
+      - ansible.builtin.script:
+          cmd: ./sleep.sh 10
+

@@ -25,10 +25,14 @@ from __future__ import (absolute_import, division, print_function)
 
 __metaclass__ = type
 
-from ansible.errors import AnsibleActionFail
+import os
+import shlex
+
+from ansible.errors import AnsibleError, AnsibleAction, _AnsibleActionDone, AnsibleActionFail, AnsibleActionSkip
 from ansible.plugins.action import ActionBase
 from ansible.executor.task_result import TaskResult
 from ansible.inventory.host import Host
+from ansible.module_utils.common.text.converters import to_bytes, to_native, to_text
 
 DOCUMENTATION = r'''
 ---
@@ -71,6 +75,35 @@ EXAMPLES = r'''
     async: 1000
     retries: 100
     delay: 5
+    
+---
+- name: Async recoverable job with cmd
+  async_task:
+    cmd: /usr/sbin/sleep 10
+    alias: blah
+    async: 1000
+    retries: 720
+    delay: 5
+
+---
+- name: Async recoverable job with argv
+  async_task:
+    argv:
+      - /usr/sbin/sleep
+      - 10
+    alias: blah
+    async: 1000
+    retries: 720
+    delay: 5
+        
+---
+- name: Async recoverable job with script
+  async_task:
+    script: sleep.sh 10
+    alias: blah
+    async: 1000
+    retries: 720
+    delay: 5
 '''
 
 RETURN = r'''
@@ -94,6 +127,20 @@ started:
 
 class ActionModule(ActionBase):
 
+    _VALID_ARGS = frozenset((
+        # required
+        'alias', 'async',
+        # optional
+        'retries', 'delay', 'poll',
+        'cleanup',
+        # ansible.legacy.command
+        'shell', 'cmd', 'argv',
+        'chdir', 'executable', 'creates', 'removes', 'warn', 'stdin',
+        'stdin_add_newline', 'strip_empty_ends',
+        # ansible.legacy.script
+        'script', 'chdir', 'executable', 'creates', 'removes'
+    ))
+
     def run(self, tmp=None, task_vars=None):
         result = super(ActionModule, self).run(tmp, task_vars)
         del tmp  # tmp no longer has any effect
@@ -108,6 +155,9 @@ class ActionModule(ActionBase):
         running = self.find_running_task(alias, task_vars)
         if is_failed(running):
             result.update(running)
+            if is_finished(running):
+                result['warning'] = 'The job is finished and was not cleaned up properly. Please, delete job alias ' \
+                                    'manually to restart.'
             return result
 
         if running['started'] != 1:
@@ -142,8 +192,18 @@ class ActionModule(ActionBase):
                 delay=delay,
                 vars=task_vars
             ))
+
+            if is_failed(result):
+                result['warning'] = 'The job has failed and was not cleaned up properly. Please, delete job alias ' \
+                                    'manually to restart.'
         elif poll:
             raise AnsibleActionFail("poll is not supported yet")
+
+        # plugin do not cleanup tmp dir with:
+        # if not wrap_async:
+        #     # remove a temporary path we created
+        #     self._remove_tmp_path(self._connection._shell.tmpdir)
+        # because async jobs lifetime is disconnected from the plugin lifetime.
 
         return result
 
@@ -175,15 +235,26 @@ class ActionModule(ActionBase):
         task.async_val = int(task.args['async'])
         task.args.pop('async')
 
+        # poll is only used by the Ansible TaskExecutor._execute -> _poll_async_result()
+        # we are just trying to pass everything related to async even if its not used.
         if 'poll' in task.args:
             task.poll = int(task.args['poll'])
             task.args.pop('poll')
 
+        # Shell module is implemented via command with a special arg
         if 'shell' in task.args:
             task.args['_raw_params'] = task.args['shell']
-            # Shell module is implemented via command with a special arg
             task.args['_uses_shell'] = True
             task.args.pop('shell')
+        elif 'cmd' in task.args:
+            task.args['_raw_params'] = task.args['cmd']
+            task.args['_uses_shell'] = False
+            task.args.pop('cmd')
+        elif 'argv' in task.args:
+            task.args['_uses_shell'] = False
+        elif 'script' in task.args:
+            task.args['_raw_params'] = self.prepare_script()
+            task.args['_uses_shell'] = False
 
         allowed = ('_raw_params', '_uses_shell', 'argv', 'chdir', 'executable', 'creates', 'removes', 'warn', 'stdin',
                    'stdin_add_newline', 'strip_empty_ends')
@@ -201,6 +272,56 @@ class ActionModule(ActionBase):
                                                             shared_loader_obj=self._shared_loader_obj)
         result = handler.run(task_vars=vars)
         return self.v2_on_result(Host(), task, result)
+
+    # derived from ansible.legacy.script action plugin.
+    # noinspection PyProtectedMember
+    def prepare_script(self):
+        # executable, creates, removes are all handled by the ansible.legacy.command module.
+        # become is handled by the self._execute_module() part of the "command" action plugin.
+        #
+        # Split out the script as the first item in command using
+        # shlex.split() in order to support paths and files with spaces in the name.
+        # Any arguments passed to the script will be added back later.
+        command = to_native(self._task.args.get('script', ''), errors='surrogate_or_strict')
+        parts = [to_text(s, errors='surrogate_or_strict') for s in shlex.split(command.strip())]
+        source = parts[0]
+
+        try:
+            source = self._loader.get_real_file(self._find_needle('files', source), decrypt=self._task.args.get('decrypt', True))
+        except AnsibleError as e:
+            raise AnsibleActionFail(to_native(e))
+
+        if self._play_context.check_mode:
+            raise _AnsibleActionDone()
+
+        # transfer the file to a remote tmp location
+        tmp_src = self._connection._shell.join_path(self._connection._shell.tmpdir,
+                                                    os.path.basename(source))
+
+        # Convert command to text for the purpose of replacing the script since
+        # parts and tmp_src are both unicode strings and command will be different
+        # depending on Python version.
+        #
+        # Once everything is encoded consistently, replace the script path on the remote
+        # system with the remainder of the command. This preserves quoting in parameters
+        # that would have been removed by shlex.split().
+        target_command = to_text(command).strip().replace(parts[0], tmp_src)
+
+        self._transfer_file(source, tmp_src)
+
+        # set file permissions, more permissive when the copy is done as a different user
+        self._fixup_perms2((self._connection._shell.tmpdir, tmp_src), execute=True)
+
+        # add preparation steps to one ssh roundtrip executing the script
+        env_dict = dict()
+        env_string = self._compute_environment_string(env_dict)
+
+        script_cmd = target_command
+        if env_string:
+            script_cmd = ' '.join([env_string, target_command])
+        script_cmd = self._connection._shell.wrap_for_exec(script_cmd)
+
+        return script_cmd
 
     def reg_async_task(self, jid, alias, vars):
         task = self._task.copy()
@@ -274,3 +395,6 @@ class ActionModule(ActionBase):
 def is_failed(result):
     return 'failed' in result and result['failed']
 
+
+def is_finished(x):
+    return 'finished' in x and x['finished']

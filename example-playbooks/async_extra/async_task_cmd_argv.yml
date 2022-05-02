@@ -1,0 +1,13 @@
+#!/usr/sbin/ansible-playbook ./async_task_cmd_argv.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Long running task
+      async_task:
+        argv:
+          - /usr/sbin/sleep
+          - 10
+        alias: blah
+        async: 1000
+        retries: 720
+        delay: 5
