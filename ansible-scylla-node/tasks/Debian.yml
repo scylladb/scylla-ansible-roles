@@ -73,90 +73,161 @@
 
   - name: Install specified OSS Scylla
     block:
-      - name: Get dependencies of scylla package
-        shell: apt depends scylla={{ scylla_version }}*
-        register: aptdependencies
-      - name: Set dependencies of scylla package as fact
-        set_fact:
-          scylladependencies: "{{ aptdependencies.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+      - name: Get versions of scylla package
+        shell: apt list -a scylla | grep {{ scylla_version }}
+        register: aptversions
 
-      - name: Get dependencies of scylla-tools package
-        shell: apt depends scylla-tools={{ scylla_version }}*
-        register: apttoolsdependencies
-      - name: Set dependencies of scylla package as fact
+      - name: Search for version of scylla package
         set_fact:
-          scyllatoolsdependencies: "{{ apttoolsdependencies.stdout | regex_findall(regexp) }}"
+          tempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
         vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+            regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
 
-      - name: Get dependencies of scylla-server package
-        shell: apt depends scylla-server={{ scylla_version }}*
-        register: aptserverdependencies
-      - name: Set dependencies of scylla package as fact
+      - name: Set scylla version if only one version found
         set_fact:
-          scyllaserverdependencies: "{{ aptserverdependencies.stdout | regex_findall(regexp) }}"
+          sversion: "{{ tempsversion }}"
+        when: tempsversion | length == 1
+
+      - name: Requery for scylla version if multiple versions found
+        block:
+          - name: query for version with - at the end of {{ scylla_version }}
+            shell: apt list -a scylla | grep {{ scylla_version }}-
+            register: aptversions
+
+          - name: Search for version of scylla package with - postfix
+            set_fact:
+              rtempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
+            vars:
+                regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
+
+          - name: Set scylla version if only one version with - found
+            set_fact:
+              sversion: "{{ rtempsversion }}"
+            when: rtempsversion | length == 1
+
+          - name: Error out, wrong Scylla version was passed, please fix it!
+            ansible.builtin.command: /bin/false
+            when: rtempsversion | length > 1
+        when: tempsversion | length > 1
+
+      - name: query for dependencies of Scylla {{ sversion }}
+        shell: |
+          apt depends scylla={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
+        register: packages
+        become: true
+
+      - name: Set list of packages as a fact
+        set_fact:
+          spackages: "{{ packages.stdout | regex_findall(regexp) }}"
         vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
+
+      - name: query for dependencies of scylla-server {{ sversion }}
+        shell: |
+          apt depends scylla-server={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
+        register: sspackages
+        become: true
+
+      - name: Set list of packages as a fact
+        set_fact:
+          sspackages: "{{ sspackages.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
+
+      - name: Create pkg list from packages and versions
+        set_fact:
+          pkg_list: "{{ pkg_list|default([]) + [ item[0] + '=' + item[1] ] }}"
+        with_list: "{{ spackages + sspackages }}"
 
       - name: Install specified OSS Scylla packages
         apt:
-          name: "{{ item }}={{ scylla_version }}*"
+          name: "{{ pkg_list }}"
           state: present
-        with_items: "{{ scyllaserverdependencies + scyllatoolsdependencies + scylladependencies }}"
 
-      - name: Install meta Scylla package
-        apt:
-          name: "scylla={{ scylla_version }}*"
-          state: present
+#      - name: Install meta Scylla package
+#        apt:
+#          name: "scylla={{ sversion[0][0] }}-{{ sversion[0][1] }}*"
+#          state: present
 
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
-#apt list -a scylla-enterprise | grep 2021.1.9
-#WARNING: apt does not have a stable CLI interface. Use with caution in scripts.
-#scylla-enterprise/stable 2021.1.9-0.20220208.86e3ea4df-1 amd64
-
-
   - name: Install specified Enterprise Scylla
     block:
-      - name: Get dependencies of scylla-enterprise package
-        shell: apt depends scylla-enterprise={{ scylla_version }}*
-        register: aptdependencies
-      - name: Set dependencies of scylla package as fact
-        set_fact:
-          scylladependencies: "{{ aptdependencies.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+      - name: Get versions of scylla-enterprise package
+        shell: apt list -a scylla-enterprise | grep {{ scylla_version }}
+        register: aptversions
 
-      - name: Get dependencies of scylla-enterprise-server package
-        shell: apt depends scylla-enterprise-server={{ scylla_version }}*
-        register: aptserverdependencies
-      - name: Set dependencies of scylla package as fact
+      - name: Search for version of scylla package
         set_fact:
-          scyllaserverdependencies: "{{ aptserverdependencies.stdout | regex_findall(regexp) }}"
+          tempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
         vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+            regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
 
-      - name: Get dependencies of scylla-enterprise-tools package
-        shell: apt depends scylla-enterprise-tools={{ scylla_version }}*
-        register: apttoolsdependencies
-      - name: Set dependencies of scylla package as fact
+      - name: Set scylla version if only one version found
         set_fact:
-          scyllatoolsdependencies: "{{ apttoolsdependencies.stdout | regex_findall(regexp) }}"
+          sversion: "{{ tempsversion }}"
+        when: tempsversion | length == 1
+
+      - name: Requery for scylla version if multiple versions found
+        block:
+          - name: query for version with - at the end of {{ scylla_version }}
+            shell: apt list -a scylla-enterprise | grep {{ scylla_version }}-
+            register: aptversions
+
+          - name: Search for version of scylla package with - postfix
+            set_fact:
+              rtempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
+            vars:
+                regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
+
+          - name: Set scylla version if only one version with - found
+            set_fact:
+              sversion: "{{ rtempsversion }}"
+            when: rtempsversion | length == 1
+
+          - name: Error out, wrong Scylla version was passed, please fix it!
+            ansible.builtin.command: /bin/false
+            when: rtempsversion | length > 1
+        when: tempsversion | length > 1
+
+      - name: query for dependencies of scylla-enterprise {{ sversion }}
+        shell: |
+          apt depends scylla-enterprise={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
+        register: packages
+        become: true
+
+      - name: Set list of packages as a fact
+        set_fact:
+          spackages: "{{ packages.stdout | regex_findall(regexp) }}"
         vars:
-            regexp: ': ([a-z0-9+-\.]+) \('
+            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
+
+      - name: query for dependencies of scylla-enterprise-server {{ sversion }}
+        shell: |
+          apt depends scylla-enterprise-server={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
+        register: sspackages
+        become: true
+
+      - name: Set list of packages as a fact
+        set_fact:
+          sspackages: "{{ sspackages.stdout | regex_findall(regexp) }}"
+        vars:
+            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
+
+      - name: Create pkg list from packages and versions
+        set_fact:
+          pkg_list: "{{ pkg_list|default([]) + [ item[0] + '=' + item[1] ] }}"
+        with_list: "{{ spackages + sspackages }}"
 
       - name: Install specified Enterprise Scylla packages
         apt:
-          name: "{{ item }}={{ scylla_version }}*"
+          name: "{{ pkg_list }}"
           state: present
-        with_items: "{{ scyllaserverdependencies + scyllatoolsdependencies + scylladependencies }}"
 
-      - name: Install meta Enterprise Scylla package
-        apt:
-          name: "scylla-enterprise={{ scylla_version }}*"
-          state: present
+#      - name: Install meta Enterprise Scylla package
+#        apt:
+#          name: "scylla-enterprise={{ sversion[0][0] }}-{{ sversion[0][1] }}*"
+#          state: present
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
