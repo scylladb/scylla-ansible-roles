@@ -11,11 +11,6 @@
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
       register: ca_crt_details
 
-    - name: Check CA crt exists
-      stat:
-        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
-      register: ca_crt_details
-
     - name: Generate an OpenSSL private key for the CA.
       openssl_privatekey:
         path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
@@ -60,24 +55,11 @@
       register: hostname_cert_details
       delegate_to: localhost
 
-    - name: Check private keys exist
-      stat:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
-      register: hostname_private_details
-      delegate_to: localhost
-
-    - name: Check certificates exist
-      stat:
-        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
-      register: hostname_cert_details
-      delegate_to: localhost
-
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
       delegate_to: localhost
       when: hostname_private_details.stat.exists == False
-      with_items: "{{ hostname_private_details.results }}"
 
     - name: Generate an OpenSSL Certificate Signing Request
       openssl_csr:
@@ -96,7 +78,6 @@
         provider: ownca
       delegate_to: localhost
       when: hostname_cert_details.stat.exists == False
-      with_items: "{{ hostname_cert_details.results }}"
 
     - name: Copy the certificates into their proper locations
       copy:
