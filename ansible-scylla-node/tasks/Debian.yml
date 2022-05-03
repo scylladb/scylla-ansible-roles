@@ -110,38 +110,20 @@
             when: rtempsversion | length > 1
         when: tempsversion | length > 1
 
-      - name: query for dependencies of Scylla {{ sversion }}
+      - name: upload get_deps_deb.py to /tmp
+        copy:
+          src: files/get_deps_deb.py
+          dest: /tmp/get_deps_deb.py
+          mode: '755'
+
+      - name: Get dependencies of scylla {{ sversion }}
         shell: |
-          apt depends scylla={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
-        register: packages
-        become: true
-
-      - name: Set list of packages as a fact
-        set_fact:
-          spackages: "{{ packages.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
-
-      - name: query for dependencies of scylla-server {{ sversion }}
-        shell: |
-          apt depends scylla-server={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
-        register: sspackages
-        become: true
-
-      - name: Set list of packages as a fact
-        set_fact:
-          sspackages: "{{ sspackages.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
-
-      - name: Create pkg list from packages and versions
-        set_fact:
-          pkg_list: "{{ pkg_list|default([]) + [ item[0] + '=' + item[1] ] }}"
-        with_list: "{{ spackages + sspackages }}"
+          /tmp/get_deps_deb.py scylla -v {{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }}
+        register: pkglistout
 
       - name: Install specified OSS Scylla packages
         apt:
-          name: "{{ pkg_list }}"
+          name: "{{ pkglistout.stdout.splitlines() }}"
           state: present
 
 #      - name: Install meta Scylla package
@@ -190,38 +172,20 @@
             when: rtempsversion | length > 1
         when: tempsversion | length > 1
 
-      - name: query for dependencies of scylla-enterprise {{ sversion }}
+      - name: upload get_deps_deb.py to /tmp
+        copy:
+          src: files/get_deps_deb.py
+          dest: /tmp/get_deps_deb.py
+          mode: '755'
+
+      - name: Get dependencies of scylla-enterprise {{ sversion }}
         shell: |
-          apt depends scylla-enterprise={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
-        register: packages
-        become: true
-
-      - name: Set list of packages as a fact
-        set_fact:
-          spackages: "{{ packages.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
-
-      - name: query for dependencies of scylla-enterprise-server {{ sversion }}
-        shell: |
-          apt depends scylla-enterprise-server={{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }} | grep "Depends: scylla"
-        register: sspackages
-        become: true
-
-      - name: Set list of packages as a fact
-        set_fact:
-          sspackages: "{{ sspackages.stdout | regex_findall(regexp) }}"
-        vars:
-            regexp: ': ([a-z0-9+-\.]+) \(= ([a-f0-9-\.]+)\)'
-
-      - name: Create pkg list from packages and versions
-        set_fact:
-          pkg_list: "{{ pkg_list|default([]) + [ item[0] + '=' + item[1] ] }}"
-        with_list: "{{ spackages + sspackages }}"
+          /tmp/get_deps_deb.py scylla-enterprise -v {{ sversion[0][0] }}-{{ sversion[0][1] }}-{{ sversion[0][2] }}
+        register: pkglistout
 
       - name: Install specified Enterprise Scylla packages
         apt:
-          name: "{{ pkg_list }}"
+          name: "{{ pkglistout.stdout.splitlines() }}"
           state: present
 
 #      - name: Install meta Enterprise Scylla package
