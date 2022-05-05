@@ -38,7 +38,7 @@
   hosts: seeds_group
   serial: 1
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
     - name: register scylla listen address
       shell: |
@@ -63,11 +63,19 @@
         name: scylla-server
         state: stopped
 
-    - name: Upgrading to latest minor version of scylla
+    - name: Upgrading to latest minor version of scylla RedHat
       shell: |
         yum update scylla\* -y
       args:
         warn: false
+      when: ansible_os_family == 'RedHat'
+
+    - name: Upgrading to latest minor version of scylla Debian
+      shell: |
+        apt dist-upgrade -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' scylla\* -y
+      args:
+        warn: false
+      when: ansible_os_family == 'Debian'
 
     - name: Start Scylla service
       service:
@@ -86,7 +94,7 @@
   hosts: non_seeds
   serial: 1
   become: true
-  gather_facts: false
+  gather_facts: true
   tasks:
     - name: register scylla listen address
       shell: |
@@ -110,12 +118,20 @@
       service:
         name: scylla-server
         state: stopped
-    
-    - name: Upgrading to latest minor version of scylla
+
+    - name: Upgrading to latest minor version of scylla RedHat
       shell: |
         yum update scylla\* -y
       args:
         warn: false
+      when: ansible_os_family == 'RedHat'
+
+    - name: Upgrading to latest minor version of scylla Debian
+      shell: |
+        apt dist-upgrade -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' scylla\* -y
+      args:
+        warn: false
+      when: ansible_os_family == 'Debian'
 
     - name: Start Scylla service
       service:
