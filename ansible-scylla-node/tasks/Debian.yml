@@ -36,11 +36,8 @@
 
 - name: Install Scylla
   block:
-  - name: Upgrade all packages to the latest version
+  - name: Run "apt-get update"
     apt:
-      name: "*"
-      state: latest
-      force_apt_get: yes
       update_cache: yes
 
   - name: Install additional dependencies
@@ -112,11 +109,8 @@
         owner: root
       when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
 
-    - name: refresh apt cache
+    - name: Run "apt-get update"
       apt:
-        name: "*"
-        state: latest
-        force_apt_get: yes
         update_cache: yes
 
     - name: install the manager agent
