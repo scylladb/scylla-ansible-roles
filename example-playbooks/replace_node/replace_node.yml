@@ -44,7 +44,7 @@
 
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
+        nodetool -h ::FFFF:127.0.0.1 status|grep -E '^UN|^UJ|^DN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
       register: node_count
       until: node_count.stdout|int == 1
       retries: 300
@@ -60,6 +60,3 @@
     - name: run nodetool repair -pr
       shell: |
         nodetool repair -pr
-
-
-
