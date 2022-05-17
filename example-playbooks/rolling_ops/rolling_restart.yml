@@ -70,7 +70,7 @@
 
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+        nodetool -h ::FFFF:127.0.0.1 status|grep "{{ listen_address.stdout }}" | grep '^UN'
       register: node_status
       until: node_status.rc == 0
       retries: 300
@@ -112,7 +112,7 @@
 
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
+        nodetool -h ::FFFF:127.0.0.1 status|grep "{{ listen_address.stdout }}" | grep '^UN'
       register: node_status
       until: node_status.rc == 0
       retries: 300
