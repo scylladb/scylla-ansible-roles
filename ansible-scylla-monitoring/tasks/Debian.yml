@@ -1,9 +1,6 @@
 ---
-- name: Upgrade all packages to the latest version
+- name: Update apt cache
   apt:
-    name: "*"
-    state: latest
-    force_apt_get: yes
     update_cache: yes
   become: true
 
@@ -45,11 +42,8 @@
     shell: |
       sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
 
-  - name: Upgrade all packages to the latest version (again)
+  - name: Update apt cache
     apt:
-      name: "*"
-      state: latest
-      force_apt_get: yes
       update_cache: yes
 
   - name: install docker
