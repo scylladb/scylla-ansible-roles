@@ -1,0 +1,14 @@
+---
+
+- hosts: scylla
+  gather_facts: no
+  tasks:
+    - name: Get scylla version from the first node
+      shell: |
+        scylla --version
+      run_once: true
+      register: _scylla_version
+
+    - name: Show the version
+      debug:
+        var: _scylla_version.stdout

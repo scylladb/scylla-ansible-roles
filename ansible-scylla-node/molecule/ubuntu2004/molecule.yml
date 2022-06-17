@@ -42,6 +42,7 @@ provisioner:
         scylla_deb_repos:
           - "http://downloads.scylladb.com/deb/ubuntu/scylla-4.4-focal.list"
         scylla_edition: "oss"
+        scylla_version: "latest"
         scylla_io_probe: false
         io_properties:
           disks:
