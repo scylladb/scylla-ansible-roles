@@ -83,41 +83,24 @@
   - name: Figure out exact Scylla version
     block:
     - name: Get versions of {{ scylla_package_prefix }} package
-      shell: apt list -a {{ scylla_package_prefix }} | grep {{ scylla_version }}
+      shell: apt list -a {{ scylla_package_prefix }} | egrep "{{ scylla_version }}[\-]?"
       register: aptversions
 
     - name: Search for version of {{ scylla_package_prefix }} package
       set_fact:
         tempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
       vars:
-          regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
+        regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
 
     - name: Set {{ scylla_package_prefix }} version if only one version found
       set_fact:
         sversion: "{{ tempsversion }}"
       when: tempsversion | length == 1
 
-    - name: Requery for {{ scylla_package_prefix }} version if multiple versions found
-      block:
-        - name: query for version with - at the end of {{ scylla_version }}
-          shell: apt list -a {{ scylla_package_prefix }} | grep {{ scylla_version }}-
-          register: aptversions
+    - name: Error out, wrong Scylla version was passed(more than a single or none version matches), please fix it!"
+      ansible.builtin.command: /bin/false
+      when: tempsversion | length != 1
 
-        - name: Search for version of {{ scylla_package_prefix }} package with - postfix
-          set_fact:
-            rtempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
-          vars:
-              regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
-
-        - name: Set scylla version if only one version with - found
-          set_fact:
-            sversion: "{{ rtempsversion }}"
-          when: rtempsversion | length == 1
-
-        - name: Error out, wrong Scylla version was passed, please fix it!
-          ansible.builtin.command: /bin/false
-          when: rtempsversion | length > 1
-      when: tempsversion | length > 1
     - name: Set Scylla Full version
       set_fact:
         scylla_full_version: "{{ sversion }}"
@@ -136,8 +119,7 @@
       apt:
         name: "{{ scylla_package_prefix }}={{ scylla_version }}*" # use {{ scylla_full_version[0][0] }}-{{ scylla_full_version[0][1] }}-{{ scylla_full_version[0][2] }} here ?
         state: present
-        allow_downgrade: yes # this is questionable, do we want to allow the way back?
-# remove pin?
+        allow_downgrade: yes
     when: scylla_version != 'latest'
 
   become: true
