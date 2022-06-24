@@ -70,17 +70,58 @@
       state: latest
     when: scylla_version == 'latest' and scylla_edition == 'enterprise'
 
-  - name: Install specified OSS Scylla
-    apt:
-      name: "scylla={{ scylla_version }}*"
-      state: present
+  - name: Set Scylla {{ scylla_edition }} prefix
+    set_fact:
+      scylla_package_prefix: "scylla"
     when: scylla_version != 'latest' and scylla_edition == 'oss'
 
-  - name: Install specified Enterprise Scylla
-    apt:
-      name: "scylla-enterprise={{ scylla_version }}*"
-      state: present
+  - name: Set Scylla {{ scylla_edition }} prefix
+    set_fact:
+      scylla_package_prefix: "scylla-enterprise"
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
+
+  - name: Figure out exact Scylla version
+    block:
+    - name: Get versions of {{ scylla_package_prefix }} package
+      shell: apt list -a {{ scylla_package_prefix }} | egrep "{{ scylla_version }}[\-]?"
+      register: aptversions
+
+    - name: Search for version of {{ scylla_package_prefix }} package
+      set_fact:
+        tempsversion: "{{ aptversions.stdout | regex_findall(regexp) }}"
+      vars:
+        regexp: ' ([0-9\.]+)-([a-f0-9\.]+)-([0-9]) '
+
+    - name: Set {{ scylla_package_prefix }} version if only one version found
+      set_fact:
+        sversion: "{{ tempsversion }}"
+      when: tempsversion | length == 1
+
+    - name: Error out, wrong Scylla version was passed(more than a single or none version matches), please fix it!"
+      ansible.builtin.command: /bin/false
+      when: tempsversion | length != 1
+
+    - name: Set Scylla Full version
+      set_fact:
+        scylla_full_version: "{{ sversion }}"
+    when: scylla_version != 'latest'
+
+  - name: Install specified {{ scylla_package_prefix }} Scylla
+    block:
+    - name: Create package version pin file
+      template:
+        src: templates/apt-pin-file.j2
+        dest: "/etc/apt/preferences.d/99{{ scylla_package_prefix }}"
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Install Scylla
+      apt:
+        name: "{{ scylla_package_prefix }}={{ scylla_version }}*" # use {{ scylla_full_version[0][0] }}-{{ scylla_full_version[0][1] }}-{{ scylla_full_version[0][2] }} here ?
+        state: present
+        allow_downgrade: yes
+    when: scylla_version != 'latest'
+
   become: true
 
 # TODO: Implement this for the debian based distros
@@ -88,7 +129,6 @@
 #   shell: |
 #     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
 #   become: true
-
 
 - name: install and configure Scylla Manager Agent
   block:
