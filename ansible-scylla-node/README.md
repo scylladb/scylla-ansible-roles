@@ -86,6 +86,22 @@ Example Playbook
     - ../ansible-scylla-node
 ```
 
+### `scylla_version` format
+`scylla-version` can be either a string 'latest' or an explicit version that needs to be installed.
+If 'latest' is requested a corresponding (OSS or Enterprise) most recent official version is going to be
+installed.
+
+An explicit version string can be either a full version string, like `2021.1.1-0.20210530.ddf65ffc2-1`
+or any prefix of it that ends with a non-digit character, e.g. `2021.1.1`, `2021.1.1-0.20210530.ddf65ffc2`,
+`2021.1.1-0.20210530`, etc.
+
+If a give string matches zero or more than an exactly one existing version it is going to trigger
+a play failure with a corresponding error message:
+
+```commandline
+TASK [Error out, wrong Scylla version was passed (more than a single or none version matches), please fix it!] *************************************************************************************************************************
+fatal: [localhost]: FAILED! => {"changed": false, "msg": "Too many/few choices for a requested version '2021.1': ['2021.1.0-0.20210511.9e8e7d58b-1', '2021.1.1-0.20210530.ddf65ffc2-1', '2021.1.10-0.20220410.e8e681dee-1', '2021.1.11-0.20220516.8e6c9917c-1', '2021.1.12-0.20220620.e23889f17-1', '2021.1.2-0.20210620.7bb9428ae-1', '2021.1.3-0.20210708.aec1c25d7-1', '2021.1.4-0.20210721.6cb3fc153-1', '2021.1.5-0.20210818.fc817c0cd-1', '2021.1.6-0.20211006.5eee352bf-1', '2021.1.7-0.20211108.3c0706646-1', '2021.1.8-0.20220106.fcdf103fd-1', '2021.1.9-0.20220208.86e3ea4df-1', '2021.1~rc2-0.20210502.f3e5e1f12-1']. Bailing out!"}
+```
 
 License
 -------

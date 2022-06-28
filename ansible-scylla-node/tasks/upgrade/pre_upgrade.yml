@@ -144,12 +144,12 @@
   become: true
 
 
-# Determine the folder name for 'sysconfig/defaults' files
+# Determine the folder name for 'sysconfig/default' files
 - name: Determine the folder name for distribution-specific files
   vars:
     is_etc_defaults: "{{ true if ansible_facts['distribution'] |lower == 'debian' or ansible_facts['distribution'] |lower == 'ubuntu' else false }}"
   ansible.builtin.set_fact:
-    system_config_folder: "{{ 'defaults' if is_etc_defaults else 'sysconfig' }}"
+    system_config_folder: "{{ 'default' if is_etc_defaults else 'sysconfig' }}"
 
 
 # Prepare and create backup
