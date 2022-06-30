@@ -59,6 +59,7 @@
 - name: add Scylla clusters
   include_tasks: add-clusters.yml
   loop: "{{ scylla_clusters }}"
+  no_log: true
 
 
 
