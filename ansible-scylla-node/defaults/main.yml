@@ -5,6 +5,12 @@
 # UPGRADE
 # ==============================
 
+# Skips role upgrade check. Useful if the role failed in the middle of an installation.
+# Values:
+# [default] false: Fail when Scylla is installed and the upgrade_version == False
+# true: When upgrade_version == False, re-run the install process 
+skip_upgrade_check: false
+
 # Upgrades Scylla version if a previous installation is detected
 # Values:
 #  [default] false: don't check for upgrades
