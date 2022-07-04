@@ -49,14 +49,14 @@
 
   - name: Install Java
     apt:
-      name: openjdk-8-jre-headless
+      name: openjdk-11-jre-headless
       state: present
       force_apt_get: yes
 
   - name: Correct java version selected
     alternatives:
       name: java
-      path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
+      path: /usr/lib/jvm/java-11-openjdk-amd64/bin/java
 
   - name: "Going to install {{ scylla_version }}"
     set_fact:
