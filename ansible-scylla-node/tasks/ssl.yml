@@ -38,6 +38,7 @@
     - name: Generate an OpenSSL private key.
       openssl_privatekey:
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+        mode: 0644
       delegate_to: localhost
 
     - name: Generate an OpenSSL Certificate Signing Request
@@ -45,6 +46,7 @@
         path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
         privatekey_path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
         common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
+        mode: 0644
       delegate_to: localhost
 
     - name: Generate an OpenSSL certificate signed with our CA certificate
@@ -54,20 +56,37 @@
         ownca_path: "./ssl/ca/{{scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
+        mode: 0644
       delegate_to: localhost
 
     - name: Copy the certificates into their proper locations
       copy:
         src: "{{ item }}"
         dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
-        owner: root
-        group: root
+        owner: scylla
+        group: scylla
         mode: '0644'
       become: true
       loop:
         - "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+
+    - name: Securely copy private key into its proper location
+      copy:
+        src: "{{ item }}"
+        dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
+        owner: scylla
+        group: scylla
+        mode: '0600'
+      become: true
+      loop:
         - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+
+    - name: Delete local OpenSSL private key
+      file:
+        path: "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+        state: absent
+      delegate_to: localhost
 
 - name: Generate cqlshrc
   template:
