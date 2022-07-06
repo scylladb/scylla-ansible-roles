@@ -13,9 +13,9 @@ upgrade_version: false
 
 # Defines if the upgrade is 'major' or 'minor' (patch)
 # Values:
-#  [default] true: 'major' upgrade
-#  false: 'minor' upgrade
-upgrade_major: true
+#  [default] false: 'minor' upgrade
+#  true: 'major' upgrade
+upgrade_major: false
 
 # Defines if the upgrade process should rollback on failure
 # Values:
