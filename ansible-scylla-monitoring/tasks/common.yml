@@ -26,6 +26,15 @@
     owner: "{{ ansible_user_id }}"
   become: true
 
+- name: create the alert data directory
+  file:
+    path: "{{ scylla_monitoring_alertdata_path }}"
+    state: directory
+    mode: '1777'
+    recurse: yes
+    owner: "{{ ansible_user_id }}"
+  become: true
+
 - name: download the monitoring archive
   get_url:
     url: "{{ scylla_monitoring_archive_url }}"
