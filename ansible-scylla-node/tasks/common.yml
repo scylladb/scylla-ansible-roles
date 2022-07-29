@@ -302,7 +302,7 @@
 
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool -h ::FFFF:127.0.0.1 status|grep -E '^UN|^UJ|^DN'|wc -l
+        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
       register: node_count
       until: node_count.stdout|int == ansible_play_batch|length
       retries: 300
