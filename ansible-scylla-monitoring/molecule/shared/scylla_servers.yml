@@ -1,0 +1,8 @@
+- labels:
+    cluster: testcluster123
+    dc: test_dc
+  targets:
+  - 172.17.0.4
+  - 172.17.0.3
+  - 172.17.0.2
+

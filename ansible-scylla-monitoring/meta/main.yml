@@ -1,4 +1,6 @@
 galaxy_info:
+  role_name: scylla_node
+  namespace: scylladb
   author: Dan Yasny
   description: Scylla-Monitoring Ansible role
   company: ScyllaDB
@@ -18,6 +20,7 @@ galaxy_info:
 
   galaxy_tags: 
     - scylla
+    - scylladb
     - scylla-monitoring
     - prometheus
     - grafana

@@ -25,11 +25,8 @@
     when: scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0)
   become: true
 
-- name: Upgrade all packages to the latest version
+- name: Update apt cache
   apt:
-    name: "*"
-    state: latest
-    force_apt_get: yes
     update_cache: yes
   become: true
 

@@ -1,0 +1,84 @@
+---
+# Requires a 'scylla_version_to_install' fact to be set to a version string we want to install
+- name: Install Scylla
+  block:
+  - name: Install 'latest' Scylla
+    block:
+      - block:
+        - name: Nuke an OSS pin file if exists
+          file:
+            state: absent
+            path: /etc/apt/preferences.d/99-scylla
+
+        - name: Install latest OSS Scylla
+          apt:
+            name: scylla
+            state: latest
+        when: scylla_edition == 'oss'
+
+      - block:
+        - name: Nuke an Enterprise pin file if exists
+          file:
+            state: absent
+            path: /etc/apt/preferences.d/99-scylla-enterprise
+
+        - name: Install latest Enterprise Scylla
+          apt:
+            name: scylla-enterprise
+            state: latest
+        when: scylla_edition == 'enterprise'
+    when: scylla_version_to_install == 'latest'
+
+### Handle non-latest version installation
+  - name: Install explicitly specified Scylla version
+    block:
+      - name: Set Scylla package prefix as OSS
+        set_fact:
+          scylla_package_prefix: "scylla"
+        when: scylla_edition == 'oss'
+
+      - name: Set Scylla package prefix as Enterprise
+        set_fact:
+          scylla_package_prefix: "scylla-enterprise"
+        when: scylla_edition == 'enterprise'
+
+      - name: Get versions of {{ scylla_edition }} package
+        # 'apt list -a' output has a package version as a second column and an arch as a third one.
+        # Let's filter by the arch first and then cut the version column.
+        # Then we will filter out all rows that start with a requested version string followed by a digit to filter out version like 2021.1.11 when 2021.1.1 was requested.
+        # And finally, we are going to get rid of duplications.
+        shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
+        register: aptversions
+        vars:
+          scylla_version_escaped: "{{ scylla_version_to_install | regex_escape }}"
+
+        #  - debug:
+        #      msg: "{{ aptversions.stdout_line }}"
+
+      - name: "Validate scylla version correctness"
+        ansible.builtin.fail:
+          msg: "Too many/few choices for a requested version '{{ scylla_version_to_install }}': {{ aptversions.stdout_lines }}. Bailing out!"
+        when: aptversions.stdout_lines | length != 1
+
+      - name: Fetch version parts of Scylla package
+        set_fact:
+          scylla_version_split: "{{ aptversions.stdout | regex_findall(regexp, ignorecase=True) }}"
+        vars:
+          # All we know that the version is a string comprised of 3 parts separated by '-'
+          regexp: '^([^\-]+)-([^\-]+)-([^\-]+)$'
+
+      - name: Create package version pin file
+        template:
+          src: templates/apt-pin-file.j2
+          dest: "/etc/apt/preferences.d/99-{{ scylla_package_prefix }}"
+          owner: root
+          group: root
+          mode: '0644'
+
+      - name: "Install {{ aptversions.stdout }}"
+        apt:
+          name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
+          state: present
+          allow_downgrade: yes
+    when: scylla_version_to_install != 'latest'
+  become: true

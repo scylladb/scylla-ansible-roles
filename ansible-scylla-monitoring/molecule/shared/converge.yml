@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Include ansible-scylla-monitoring
+      include_role:
+        name: ansible-scylla-monitoring

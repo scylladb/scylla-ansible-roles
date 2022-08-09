@@ -41,12 +41,9 @@
 
 
 # Upgrade Scylla
-- name: Upgrade Scylla to {{ scylla_upgrade['version'] }}
-  ansible.builtin.apt:
-    name: "{{ scylla_detected['package_name'] }}*={{ scylla_upgrade['version'] }}*"
-    state: present
-    update_cache: yes
-  become: true
-  register: apt_action
-  retries: 300
-  until: apt_action is success or ('Failed to lock apt for exclusive operation' not in apt_action.msg and '/var/lib/dpkg/lock' not in apt_action.msg)
+- name: "Upgrade Scylla to {{ scylla_upgrade['version'] }}"
+  set_fact:
+    scylla_version_to_install: "{{ scylla_upgrade['version'] }}"
+
+- name: Install Scylla packages
+  include_tasks: ../Debian_install.yml

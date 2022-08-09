@@ -58,29 +58,12 @@
       name: java
       path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 
-  - name: Install latest OSS Scylla
-    apt:
-      name: scylla
-      state: latest
-    when: scylla_version == 'latest' and scylla_edition == 'oss'
+  - name: "Going to install {{ scylla_version }}"
+    set_fact:
+      scylla_version_to_install: "{{ scylla_version }}"
 
-  - name: Install latest Enterprise Scylla
-    apt:
-      name: scylla-enterprise
-      state: latest
-    when: scylla_version == 'latest' and scylla_edition == 'enterprise'
-
-  - name: Install specified OSS Scylla
-    apt:
-      name: "scylla={{ scylla_version }}*"
-      state: present
-    when: scylla_version != 'latest' and scylla_edition == 'oss'
-
-  - name: Install specified Enterprise Scylla
-    apt:
-      name: "scylla-enterprise={{ scylla_version }}*"
-      state: present
-    when: scylla_version != 'latest' and scylla_edition == 'enterprise'
+  - name: Install Scylla packages
+    include_tasks: Debian_install.yml
   become: true
 
 # TODO: Implement this for the debian based distros

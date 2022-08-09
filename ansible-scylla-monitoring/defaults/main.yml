@@ -22,6 +22,7 @@ scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/ar
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
 scylla_monitoring_config_path:  "{{ scylla_monitoring_deploy_path }}/config"
+scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata"
 
 # List of monitoring dashboards to enable
 scylla_monitoring_dashboards_versions:

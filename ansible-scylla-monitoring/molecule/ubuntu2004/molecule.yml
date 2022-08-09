@@ -1,0 +1,40 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: monitoring
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+    groups:
+      - scylla
+provisioner:
+  name: ansible
+  log: True
+  options:
+    vvv: True
+  inventory:
+    group_vars:
+      scylla:
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+verifier:
+  name: ansible

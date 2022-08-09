@@ -152,7 +152,8 @@ scylla_dependencies:
 
 # Specify a Scylla version here (should be available in repo)
 # ex: scylla_version: 2019.1.9 or 3.2.1
-scylla_version: latest
+# Default is intentionally invalid version - it MUST be overridden
+scylla_version: '0.0.0'
 
 # Options are oss|enterprise
 #scylla_edition: oss
