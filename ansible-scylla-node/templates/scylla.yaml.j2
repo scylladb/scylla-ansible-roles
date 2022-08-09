@@ -61,3 +61,7 @@ server_encryption_options:
     keyfile: {{ scylla_ssl.cert_path }}/{{ inventory_hostname }}.pem
     truststore: {{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.crt
 {% endif %}
+
+{% if replace_address_first_boot is defined %}
+replace_address_first_boot: {{ replace_address_first_boot }}
+{% endif %}
