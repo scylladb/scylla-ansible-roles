@@ -5,13 +5,11 @@ password = cassandra
 [connection]
 hostname = {{ groups['scylla'][0] }}
 port = 9142
+factory = cqlshlib.ssl.ssl_transport_factory
 
 [ssl]
-certfile = ./ssl/{{ groups['scylla'][0] }}/{{ groups['scylla'][0] }}.crt
-validate = false ;; Optional, true by default. See the paragraph below.
+version=TLSv1_2
+certfile = {{ scylla_ssl.cert_path }}/{{ scylla_cluster_name }}-ca.crt
+validate = true ;; Optional, true by default. See the paragraph below.
 
 [certfiles] ;; Optional section, overrides the default certfile in the [ssl] section.
-{% for host in groups['scylla'] %}
-{{ host }} = ./ssl/{{ host }}/{{ host }}.crt
-{% endfor %}
-
