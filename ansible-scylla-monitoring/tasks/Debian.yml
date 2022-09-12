@@ -40,7 +40,7 @@
 
   - name: add repo
     shell: |
-      sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+      sudo add-apt-repository -y "deb [arch=amd64] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
 
   - name: Update apt cache
     apt:
