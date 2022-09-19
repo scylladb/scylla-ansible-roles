@@ -3,7 +3,7 @@
 - name: Run cleanup
   hosts: scylla
   gather_facts: false
-  serial: 1
+  serial: "{{ cleanup_batch_size |default(1) }}"
   tasks:
     - name: checking limit arg
       fail:
