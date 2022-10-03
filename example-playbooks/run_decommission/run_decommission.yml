@@ -1,0 +1,25 @@
+---
+
+- name: Run decommission
+  hosts: scylla
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: checking limit arg
+      fail:
+        msg: "You must use -l or --limit to specify exactly which nodes should be decommissioned."
+      when: ansible_limit is not defined
+
+    # 2592000 a month of seconds, retry every 1 minute
+    - name: Run decommission
+      async_task:
+        script:  files/decommission.sh
+        alias: scylla_decommission
+        async: 2592000
+        retries: 43200
+        delay: 60
+      register: decommission_output
+
+    - name: Decommission logs
+      debug: var=decommission_output
+
