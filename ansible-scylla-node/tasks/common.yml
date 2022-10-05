@@ -230,6 +230,11 @@
       set_fact:
         broadcast_address: "{{ scylla_broadcast_address }}"
 
+    - name: Generate tokens for the new nodes
+      run_once: true
+      include_tasks: generate_tokens.yml
+      when: token_distributor is defined
+
     # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
     - name: start scylla on seeders
       service:
@@ -276,6 +281,14 @@
       until: _result.status == 200
       retries: 90
       delay: 1
+
+    - name: Delete initial_token in scylla.yaml
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^initial_token:'
+        line: ""
+      become: true
+      when: token_distributor is defined
   when: start_scylla_service is defined and start_scylla_service|bool
 
 - name: generate monitoring configuration

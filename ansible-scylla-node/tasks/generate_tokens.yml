@@ -1,0 +1,64 @@
+---
+- name: Find the first node which is already bootstrapped, if any
+  wait_for:
+    port: 9042
+    host: "{{ hostvars[item]['listen_address'] }}"
+    timeout: 5
+  register: wait_for_cql_port_output
+  ignore_errors: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['scylla'] }}"
+  when: wait_for_cql_port_output is not defined or wait_for_cql_port_output.failed == True
+
+- name: Set the already bootstrapped node as a fact, if any
+  set_fact:
+    bootstrapped_node: "{{ item.item }}"
+  loop: "{{ wait_for_cql_port_output.results }}"
+  when: bootstrapped_node is not defined and item.failed == False
+
+- name: Validate that all nodes are in UN state and save token lists
+  block:
+    - shell: |
+        nodetool ring | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+      register: _nodetool_ring_output
+    - set_fact:
+        token_list: "{{ token_list | default({}) | combine( {item.split()[0]: (token_list | default({}))[item.split()[0]] | default([]) + [item.split()[7]]} ) }}"
+      failed_when: item.split()[2] != 'Up' or item.split()[3] != 'Normal'
+      loop: "{{ _nodetool_ring_output.stdout_lines }}"
+  delegate_to: "{{ bootstrapped_node }}"
+  when: bootstrapped_node is defined
+
+- name: Prepare script arguments
+  set_fact:
+    node_list: "{{ node_list | default([]) + [hostvars[item]['broadcast_address']] }}"
+    rack_list: "{{ rack_list | default([]) + [hostvars[item]['rack']] }}"
+    dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc']] }}"
+  loop: "{{ groups['scylla'] }}"
+
+- name: Prepare old tokens list
+  set_fact:
+    token_list_str: "{{ token_list.keys() | zip(token_list.values()) | map('join', '=') | join('\n') | replace('[','') | replace(']','') | replace(\"'\", '') | replace(' ', '') }}"
+  when: token_list is defined
+
+- name: Generate and save tokens for the new nodes
+  delegate_to: localhost
+  become: false
+  environment:
+    PYTHONPATH: "{{ token_distributor.path }}"
+  shell: "{{ token_distributor.path }}/token_distributor.py --node={{ node_list | join(',') }} --rack={{ rack_list | join(',') }} --dc={{ dc_list | join(',') }} --rf={{ token_distributor.rf }}"
+  args:
+    stdin: "{% if token_list_str is defined %}{{ token_list_str }}{% endif %}"
+  register: _new_tokens
+
+- name: Set initial tokens in scylla.yaml
+  lineinfile:
+    path: /etc/scylla/scylla.yaml
+    regexp: '^(#\s*)?initial_token:'
+    line: "initial_token: {{ item[0].split('=')[1] }}"
+    create: yes
+  become: true
+  delegate_to: "{{ item[1] }}"
+  when: item[0].split('=')[0] == hostvars[item[1]]['broadcast_address']
+  with_nested:
+    - "{{ _new_tokens.stdout_lines }}"
+    - "{{ groups['scylla'] }}"

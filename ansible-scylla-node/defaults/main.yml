@@ -260,6 +260,20 @@ skip_sysconfig: False
 skip_selinux: False
 skip_ntp: False
 
+# If defined, this enables the usage of a separate token_distributor instead of scylla's default random token distributor
+# The token distributor in the provided path must be named token_distributor.py and must have the following list of arguments:
+# --node, --rack, --dc, --rf and --get-current-tokens.
+# --node must be followed by a comma-separated list with the all the nodes in the cluster.
+# --rack must be followed by a comma-separated list indicating the racks of each one of the nodes in the node list,
+#        in the same order as the nodes were provided.
+# --dc must be followed by a comma-separated list indicating the datacenters of each one of the nodes in the node list,
+#      in the same order as the nodes were provided.
+# --rf must be followed by a comma-separated list indicating the replication-factors for which the token ring should
+#      be optimized. Example: "dc1=3,dc2=2".
+# token_distributor:
+#   path: /path/too/token_distributor
+#   rf: us-east1=3,us-east2=2
+
 # sysctl tuning defaults, please leave in place if unsure
 update_sysctl: True
 sysctl:
