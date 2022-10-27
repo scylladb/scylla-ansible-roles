@@ -4,22 +4,61 @@
   hosts: scylla
   gather_facts: false
   serial: 1
+  vars:
+    - async_timeout: 2592000
+    - async_task_retries: 43200
+    - async_task_delay: 60
+    - async_lock_directory: "/root/.ansible_async/"
+    - scylla_api_address: 127.0.0.1
+    - scylla_api_port: 10000
+    - api_retries: 360
+    - api_delay: 10
+    - show_logs: false
+    - instace_poweroff: false
+    - remove_async_lock_directory: false
   tasks:
-    - name: checking limit arg
-      fail:
+    - name: Check if 'limit' was used
+      ansible.builtin.fail :
         msg: "You must use -l or --limit to specify exactly which nodes should be decommissioned."
       when: ansible_limit is not defined
 
-    # 2592000 a month of seconds, retry every 1 minute
-    - name: Run decommission
-      async_task:
-        script:  files/decommission.sh
-        alias: scylla_decommission
-        async: 2592000
-        retries: 43200
-        delay: 60
-      register: decommission_output
+    - name: Decommission
+      block:
+      - name: Remove lock directory
+        ansible.builtin.file:
+          state: absent
+          path: async_lock_directory
+        when: remove_async_lock_directory
+      - name: Run decommission
+        async_task:
+          script:  files/decommission.sh
+          alias: scylla_decommission
+          async: async_timeout
+          retries: async_task_retries
+          delay: async_task_delay
+        register: decommission_output
+      - name: Decommission logs
+        ansible.builtin.debug: var=decommission_output
+        when: show_logs or decommission_output.rc != 0
+      - name: Check node operation mode
+        ansible.builtin.uri:
+          url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/operation_mode"
+          method: GET
+        retries: "{{ api_retries }}"
+        delay: "{{ api_delay }}"
+        register: node_decommission_status
+        failed_when: "'DECOMMISSIONED' not in node_decommission_status.json"
+      any_errors_fatal: true
 
-    - name: Decommission logs
-      debug: var=decommission_output
+    - name: Post-decomission actions
+      block:
+      - name: Stop and disable scylla-server service
+        ansible.builtin.service:
+          name: scylla-server
+          state: stopped
+          enabled: no
+      - name: Shutdown the instance
+        ansible.builtin.shell: shutdown -h now
+        when: instace_poweroff
+      become: true
 
