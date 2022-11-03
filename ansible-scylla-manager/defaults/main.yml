@@ -8,7 +8,7 @@ scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-mana
 scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
 scylla_manager_rpm_repo_url: "{{ scylla_manager_repo_url }}"
 
-scylla_db_vars:
+scylla_manager_db_vars:
   # Repo URLs for the ScyllaDB datastore installation
   # More information on the variables can be found in the documentation for the scylla-node role and it's heavily
   # commented `defaults/main.yml` file
@@ -34,20 +34,21 @@ enable_upgrade: false
 
 # If there are Scylla clusters to connect to, specify them below:
 # The cluster parameters are as follows:
-# - cluster_name: my_cluster_name
-#   host: IP of a Scylla node from the clustr, a single IP is enough
-#   auth_token_file: A plain text file containing the auth token. If ansible-scylla-node role was used it
-#                    will be generated in the same dir as the playbook
-#   without_repair: true|false - when cluster is added, Manager schedules repair to repeat every 7 days.
-#                   To create a cluster without a scheduled repair, use this flag
-#   username: user
-#   password: password
-#             optionally you can provide CQL credentials to the cluster. For security reasons the user
-#             should NOT have access to your data. This enables CQL query based  health check compared to
-#             credentials agnostic health check if you do not specify the credentials. This also enables
-#             CQL schema backup, which is not performed if credentials are not provided.
-# - cluster_name: my_other_cluster
-#   auth_token_file: /path/to/filewithtoken
-#   without_repair: false
-#   host: 1.2.3.4
+# scylla_clusters:
+#   - cluster_name: my_cluster_name
+#     host: IP of a Scylla node from the clustr, a single IP is enough
+#     auth_token_file: A plain text file containing the auth token. If ansible-scylla-node role was used it
+#                     will be generated in the same dir as the playbook
+#     without_repair: true|false - when cluster is added, Manager schedules repair to repeat every 7 days.
+#                     To create a cluster without a scheduled repair, use this flag
+#     username: user
+#     password: password
+#               optionally you can provide CQL credentials to the cluster. For security reasons the user
+#               should NOT have access to your data. This enables CQL query based  health check compared to
+#               credentials agnostic health check if you do not specify the credentials. This also enables
+#               CQL schema backup, which is not performed if credentials are not provided.
+#   - cluster_name: my_other_cluster
+#     auth_token_file: /path/to/filewithtoken
+#     without_repair: false
+#     host: 1.2.3.4
 
