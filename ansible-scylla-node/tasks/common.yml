@@ -97,7 +97,15 @@
   notify:
     - node_exporter start
   ignore_errors: true
-  #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions
+  #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
+
+- name: node exporter setup from 5.0/2022
+  service:
+        name: scylla-node-exporter
+        state: started
+  become: true
+  ignore_errors: true
+  #TODO: stop ignoring errors when a version check is added
 
 - name: configure Scylla
   shell: |
