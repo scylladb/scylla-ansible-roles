@@ -187,7 +187,8 @@ scylla_seeds:
 scylla_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_rpc_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
-scylla_broadcast_rpc_address: "{{ scylla_rpc_address }}"
+scylla_broadcast_rpc_address: "{{ scylla_listen_address if scylla_rpc_address == '0.0.0.0' else scylla_rpc_address }}"
+scylla_prometheus_address: "{{ scylla_listen_address }}"
 
 scylla_api_address: '127.0.0.1'
 scylla_api_port: '10000'
