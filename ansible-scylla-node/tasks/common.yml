@@ -236,7 +236,6 @@
 
 - name: start_scylla_service dependent tasks
   block:
-    - name: start scylla seeds
     # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
     # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
     # have an actual value resolved.
@@ -250,8 +249,6 @@
       set_fact:
         broadcast_address: "{{ scylla_broadcast_address }}"
 
-    # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
-    - name: start scylla on seeders
     # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
     # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
     # have an actual value resolved.
@@ -285,7 +282,6 @@
         state: started
       become: true
       when:
-        - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
         - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
         - inventory_hostname not in scylla_seeds
