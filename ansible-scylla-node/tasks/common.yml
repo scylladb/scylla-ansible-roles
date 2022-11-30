@@ -98,7 +98,6 @@
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
 
-<<<<<<< HEAD
 - name: node exporter setup from 5.0/2022
   service:
         name: scylla-node-exporter
@@ -107,7 +106,6 @@
   ignore_errors: true
   #TODO: stop ignoring errors when a version check is added
 
-||||||| parent of 93afbe3 (Updates from master)
 - name: Populate service facts
   service_facts:
   # example output:
@@ -120,8 +118,6 @@
   #     }
   #  }
 
-=======
->>>>>>> 93afbe3 (Updates from master)
 - name: configure Scylla
   shell: |
     scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup
