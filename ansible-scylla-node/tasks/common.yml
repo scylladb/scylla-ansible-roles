@@ -1,4 +1,5 @@
 ---
+
 - name: Deactivate firewall
   block:
     - name: Deactivate front-end firewall services
@@ -10,7 +11,7 @@
         - firewalld.service
         - iptables_services.service
         - ufw.service
-      when: ansible_facts.services[item] is defined and ansible_facts.services[item]['status'] != 'not-found'
+      when: ansible_facts.services[item] is defined
     - name: Flush all iptables rules
       iptables:
         flush: yes
@@ -105,18 +106,6 @@
   become: true
   ignore_errors: true
   #TODO: stop ignoring errors when a version check is added
-
-- name: Populate service facts
-  service_facts:
-  # example output:
-  #   "ansible_facts.services": {
-  #     "scylla-server.service": {
-  #         "name": "scylla-server.service",
-  #         "source": "systemd",
-  #         "state": "running",
-  #         "status": "enabled"
-  #     }
-  #  }
 
 - name: configure Scylla
   shell: |
@@ -249,42 +238,27 @@
       set_fact:
         broadcast_address: "{{ scylla_broadcast_address }}"
 
-    # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
-    # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
-    # have an actual value resolved.
-    # One way to do that is to resolve it and store as an Ansible fact.
-    - name: Resolve a scylla_listen_address as a fact
-      set_fact:
-        listen_address: "{{ scylla_listen_address }}"
-    - name: start scylla seeds
-      service:
-        name: scylla-server
-        state: started
-      become: true
-      when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
-
-    # The same relates to the below
-    - name: Resolve scylla_broadcast_address
-      set_fact:
-        broadcast_address: "{{ scylla_broadcast_address }}"
-
     # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
     - name: start scylla on seeders
       service:
         name: scylla-server
         state: started
       become: true
-      when: vars['ansible_'~scylla_nic].ipv4.address in scylla_seeds or inventory_hostname in scylla_seeds
+      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
 
-    - name: start scylla non-seeds
-      service:
-        name: scylla-server
-        state: started
-      become: true
+    - name: Wait for CQL port on seeders
+      wait_for:
+        port: 9042
+        host: "{{ listen_address }}"
+      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
+
+    - name: Start scylla non-seeds nodes serially
+      run_once: true
+      include_tasks: start_one_node.yml
+      loop: "{{ groups['scylla'] }}"
       when:
+        - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
-        - vars['ansible_'~scylla_nic].ipv4.address not in scylla_seeds
-        - inventory_hostname not in scylla_seeds
 
     - name: wait for the API port to come up on all nodes
       wait_for:
@@ -308,18 +282,18 @@
         method: GET
       register: _result
       until: _result.status == 200
-      retries: 3000
-      delay: 10
+      retries: 90
+      delay: 1
+  when: start_scylla_service is defined and start_scylla_service|bool
 
-    - name: generate monitoring configuration
-      include_tasks: monitoring_config.yml
-      when: generate_monitoring_config|bool
-      run_once: true
+- name: generate monitoring configuration
+  include_tasks: monitoring_config.yml
+  when: generate_monitoring_config|bool
+  run_once: true
 
-    - name: configure the Manager agents
-      include_tasks: manager_agents.yml
-      when: scylla_manager_enabled|bool
-  when:  start_scylla_service is defined and start_scylla_service|bool
+- name: configure the Manager agents
+  include_tasks: manager_agents.yml
+  when: scylla_manager_enabled|bool
 
 - name: Update sysctl
   ansible.posix.sysctl:
@@ -329,3 +303,4 @@
   loop: "{{ sysctl }}"
   ignore_errors: true
   when: update_sysctl|bool is defined and update_sysctl|bool
+
