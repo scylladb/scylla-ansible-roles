@@ -26,13 +26,28 @@
         name: "https://www.elrepo.org/elrepo-release-{{ ansible_facts['distribution_major_version'] }}.el{{ ansible_facts['distribution_major_version'] }}.elrepo.noarch.rpm"
         state: present
 
+    - name: enable epel kernels
+      shell: |
+        yum-config-manager --enable elrepo-kernel
+
     - name: Install ELRepo mainline kernel
       yum:
         name: kernel-lt
         state: present
-        enablerepo: elrepo-kernel
         lock_timeout: 60
       register: kernel_installed
+
+    - name:
+      package:
+        name:
+          - kernel
+          - kernel-ml
+        state: absent
+
+    - name: Needs restarting?
+      command: needs-restarting -r
+      register: restart_required
+      ignore_errors: yes
 
     - name: Configure grub2 to boot first entry
       lineinfile:
@@ -62,7 +77,7 @@
         pre_reboot_delay: 0
         post_reboot_delay: 30
         test_command: whoami
-      when: reboot_after_kernel_upgrade|bool and kernel_installed.changed
+      when: (reboot_after_kernel_upgrade|bool and kernel_installed.changed) r restart_required.rc == 1
   when: elrepo_kernel|bool and install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
