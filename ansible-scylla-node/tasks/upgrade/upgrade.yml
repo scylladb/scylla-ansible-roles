@@ -1,0 +1,383 @@
+---
+
+# Check cluster schema
+- name: Get cluster schema
+  ansible.builtin.uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_proxy/schema_versions"
+    method: GET
+  register: cluster_schemas
+  until: cluster_schemas.status == 200 and cluster_schemas.json |length == 1
+  retries: "{{ upgrade_api_default_retries |int }}"
+  delay: "{{ upgrade_api_default_delay |int }}"
+  delegate_to: "{{ delegate_host }}"
+
+- name: Check if schema is in agreement
+  ansible.builtin.fail:
+    msg: "Schema disagreement detected. "
+  when: cluster_schemas.json |length > 1
+  delegate_to: "{{ delegate_host }}"
+
+# Drain the node 
+- name: Drain the node
+  ansible.builtin.uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/drain"
+    method: POST
+  register: node_drain_enable
+  until: node_drain_enable.status == 200
+  retries: "{{ upgrade_api_default_retries |int }}"
+  delay: "{{ upgrade_api_default_delay |int }}"
+  delegate_to: "{{ delegate_host }}"
+
+- name: Ensure the node is fully drained
+  ansible.builtin.uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/drain"
+    method: GET
+  register: node_drain_status
+  until: node_drain_status.json.find("Drained") != -1
+  retries: "{{ upgrade_api_default_retries |int * 3 }}"
+  delay: "{{ upgrade_api_default_delay |int }}"
+  delegate_to: "{{ delegate_host }}"
+
+# Prepare and create snapshot
+- name: Create snapshot
+  ansible.builtin.uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/snapshots?tag={{ scylla_upgrade['id'] }}"
+    method: POST
+  register: node_snapshot_create
+  until: node_snapshot_create.status == 200
+  retries: "{{ upgrade_api_default_retries |int }}"
+  delay: "{{ upgrade_api_default_delay |int }}"
+  delegate_to: "{{ delegate_host }}"
+     
+- name: Print snapshot identifier used
+  ansible.builtin.debug:
+    msg: "Snapshot identifier: {{ scylla_upgrade['id'] }}"
+  when: upgrade_generate_snapshots or scylla_process_kill is defined
+  delegate_to: "{{ delegate_host }}"
+
+# Stop Scylla service
+- name: Stop Scylla service
+  ansible.builtin.service:
+    name: scylla-server
+    state: stopped
+  become: true
+  delegate_to: "{{ delegate_host }}"
+
+# Determine the folder name for 'sysconfig/default' files
+- name: Determine the folder name for distribution-specific files
+  vars:
+    is_etc_defaults: "{{ true if hostvars[delegate_host]['ansible_os_family'] |lower == 'debian' else false }}"
+  ansible.builtin.set_fact:
+    system_config_folder: "{{ 'default' if is_etc_defaults else 'sysconfig' }}"
+
+# Prepare and create backup
+- name: Create backup folders structure
+  ansible.builtin.file:
+    path : "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  loop:
+    - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}"
+    - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc"
+    - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/scylla.d"
+    - "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/{{ system_config_folder }}"
+
+- name: Dump Scylla version
+  ansible.builtin.copy:
+    content: "{{ scylla_detected['version'] }}"
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/scylla_version.txt"
+  become: true
+  delegate_to: "{{ delegate_host }}"
+
+- name: Backup Scylla configuration file
+  ansible.builtin.copy:
+    src: /etc/scylla/scylla.yaml
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/scylla.yaml"
+    mode: preserve
+    remote_src: yes
+  become: true
+  delegate_to: "{{ delegate_host }}"
+
+- name: Backup Scylla extra configuration files
+  ansible.builtin.copy:
+    src: /etc/scylla.d/
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/scylla.d/"
+    directory_mode: yes
+    mode: preserve
+    remote_src: yes
+  become: true
+  delegate_to: "{{ delegate_host }}"
+
+- name: Backup Scylla system-wide configuration files
+  ansible.builtin.copy:
+    src: "/etc/{{ system_config_folder }}/{{ item }}"
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/{{ system_config_folder }}/{{ item }}"
+    directory_mode: yes
+    mode: preserve
+    remote_src: yes
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  loop:
+    - "scylla-server"
+    - "scylla-jmx"
+
+# RHEL variants
+- name: Find existing Scylla repositories
+  find:
+    paths: /etc/yum.repos.d
+    patterns: 'scylla*.repo'
+    file_type: 'file'
+  register: existing_repos
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'RedHat'
+
+- name: Remove existing Scylla repositories
+  file:
+    path: "{{ item['path'] }}"
+    state: absent
+  with_items: "{{ hostvars[delegate_host]['existing_repos']['files'] }}"
+  notify: Clean yum metadata
+  become: true
+  when: upgrade_major and hostvars[delegate_host]['ansible_os_family'] == 'RedHat'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Recreate Scylla repositories file
+- name: Recreate Scylla repositories file
+  get_url:
+    url: "{{ item }}"
+    dest: '/etc/yum.repos.d/{{ item.split("/")[-1] | lower }}'
+    mode: '0644'
+    owner: root
+  with_items: "{{ scylla_rpm_repos }}"
+  when: item.split(".")[-1] == "repo" and upgrade_major and hostvars[delegate_host]['ansible_os_family'] == 'RedHat'
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Ensure 'ABRT' is not installed
+- name: Ensure 'ABRT' is not installed
+  ansible.builtin.yum:
+    name: 'abrt'
+    state: absent
+    lock_timeout: 60
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'RedHat'
+
+# Check if Scylla packages are excluded and remove them from the list
+- name: Check if Scylla packages are excluded and remove them from the list        
+  ansible.builtin.replace:
+    path: /etc/yum.conf
+    regexp: 'scylla([*]|[\s.*]|[-]\w+)'
+    replace: ''
+  become: true
+  when: upgrade_major and hostvars[delegate_host]['ansible_os_family'] == 'RedHat'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Upgrade Scylla 
+- name: Upgrade Scylla to {{ scylla_upgrade['version'] }}
+  yum:
+    name: "{{ scylla_detected['package_name'] }}-{{ scylla_upgrade['version'] }}*"
+    state: present
+    update_cache: yes
+    lock_timeout: 60
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'RedHat' and scylla_version != 'latest' and hostvars[delegate_host]['scylla_upgrade']['upgrade']
+
+- name: Upgrade Scylla to latest
+  yum:
+    name: "{{ scylla_detected['package_name'] }}"
+    state: latest
+    update_cache: yes
+    lock_timeout: 60
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'RedHat' and scylla_version == 'latest' and hostvars[delegate_host]['scylla_upgrade']['upgrade']
+
+- name: UNSAFE - Downgrade Scylla
+  yum:
+    name: "{{ hostvars[delegate_host]['pkg_list'] }}"
+    state: present
+    allow_downgrade: True
+    update_cache: yes
+    lock_timeout: 60
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'RedHat' and scylla_version != 'latest' and not hostvars[delegate_host]['scylla_upgrade']['upgrade']
+
+
+# Debian variants
+# Ensure apt-transport-https is installed
+- name: Ensure apt-transport-https is installed
+  apt:
+    name: apt-transport-https
+    state: present
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+
+# Find and delete existing repos
+- name: Find Scylla repositories
+  find:
+    paths: /etc/apt/sources.list.d
+    patterns: 'scylla*.list'
+    file_type: 'file'
+  register: existing_repos
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+
+- name: Remove existing Scylla repositories
+  file:
+    path: "{{ item['path'] }}"
+    state: absent
+  with_items: "{{ hostvars[delegate_host]['existing_repos']['files'] }}"
+  become: true
+  when: upgrade_major and hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Add Scylla apt key
+- name: Add an apt key by id from a keyserver
+  apt_key:
+    keyserver: "{{ scylla_repo_keyserver }}"
+    id: "{{ item }}"
+    state: present
+  with_items: "{{ scylla_repo_keys }}"
+  when: upgrade_major and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0) and hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  become: True
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: Add an Apt signing key for Debian
+  apt_key:
+    url: "{{ item }}"
+    state: present
+  with_items: "{{ scylla_repo_keyfile_urls }}"
+  when: upgrade_major and scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0) and hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  become: True
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: Install Scylla repo
+  get_url:
+    url: "{{ item }}"
+    dest: '/etc/apt/sources.list.d/{{ item.split("/")[-1] | lower }}'
+    mode: '0644'
+    owner: root
+  with_items: "{{ scylla_deb_repos }}"
+  when: upgrade_major and install_type == 'online' and item.split(".")[-1] == "list" and hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Unhold Scylla package in case it's marked as 'hold'
+- name: Unhold Scylla package
+  ansible.builtin.dpkg_selections:
+    name: "{{ scylla_detected['package_name'] }}*"
+    selection: install
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+
+# Upgrade Scylla
+- name: Nuke an OSS pin file if exists
+  file:
+    state: absent
+    path: /etc/apt/preferences.d/99-scylla
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: Nuke an Enterprise pin file if exists
+  file:
+    state: absent
+    path: /etc/apt/preferences.d/99-scylla-enterprise
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian'
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: Install latest OSS Scylla
+  apt:
+    name: scylla
+    state: latest
+    update_cache: True
+  when: scylla_edition == 'oss' and scylla_version_to_install == 'latest' and hostvars[delegate_host]['ansible_os_family'] == 'Debian' and hostvars[delegate_host]['scylla_upgrade']['upgrade']
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: Install latest Enterprise Scylla
+  apt:
+    name: scylla-enterprise
+    state: latest
+    update_cache: True
+  when: scylla_edition == 'enterprise' and scylla_version_to_install == 'latest' and hostvars[delegate_host]['ansible_os_family'] == 'Debian' and hostvars[delegate_host]['scylla_upgrade']['upgrade']
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Debian
+# In a block to prevent https://github.com/ansible/ansible/issues/58835
+# As upgrading Ansible can (and often do) break other aspects, leave it as is for now.
+
+- name: Check if package version pin file is required
+  block:
+    - name: Create package version pin file
+      template:
+        src: templates/apt-pin-file.j2
+        dest: "/etc/apt/preferences.d/99-{{ scylla_package_prefix }}"
+        owner: root
+        group: root
+        mode: '0644'
+      delegate_to: "{{ delegate_host }}"
+      delegate_facts: false
+      when: hostvars[delegate_host]['ansible_os_family'] == 'Debian' and scylla_version_to_install != 'latest'
+  when: hostvars[delegate_host]['ansible_os_family'] == 'Debian' and scylla_version_to_install != 'latest'
+
+- name: "Install {{ aptversions.stdout }}"
+  apt:
+    name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
+    state: present
+    allow_downgrade: no
+  when: scylla_version_to_install != 'latest' and hostvars[delegate_host]['ansible_os_family'] == 'Debian' and hostvars[delegate_host]['scylla_upgrade']['upgrade']
+  become: true
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+- name: UNSAFE - Downgrade Scylla
+  apt:
+    name: "{{ hostvars[delegate_host]['pkg_list'] }}"
+    state: present
+    allow_downgrade: yes
+  when: scylla_version_to_install != 'latest' and hostvars[delegate_host]['ansible_os_family'] == 'Debian' and not hostvars[delegate_host]['scylla_upgrade']['upgrade']
+  become: True
+  delegate_to: "{{ delegate_host }}"
+  delegate_facts: false
+
+# Post upgrade
+# Start Scylla service
+- name: Start Scylla service
+  ansible.builtin.service:
+    name: scylla-server
+    state: started
+  become: true
+  delegate_to: "{{ delegate_host }}"
+
+# Wait for at most 2 hours for a node to re-start - reshaping (for instance) can take quite long
+- name: "Wait for CQL port"
+  wait_for:
+    port: 9042
+    host: "{{ hostvars[delegate_host]['listen_address'] }}"
+    timeout: 7200
+  delegate_to: "{{ delegate_host }}"
+

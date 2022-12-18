@@ -78,6 +78,11 @@
       }        
     }
 
+# Networking
+- name: Resolve a scylla_listen_address as a fact
+  set_fact:
+    listen_address: "{{ scylla_listen_address }}"
+
 
 # Scylla information
 - name: Gather information about Scylla installation
@@ -92,7 +97,9 @@
       edition: "{{ edition_installed }}",
       edition_friendly_name: "{{ 'Open Source' if is_oss_installed else 'Enterprise' }}",
       package_name: "{{ package_installed }}",
-      version: "{{ ansible_facts.packages[package_installed][0].version }}",
+      # Debian variants will return version == <release>-n.<date>.<commit>-n
+      # RHEL/CentOS will return version == <release>
+      version: "{{ (ansible_facts.packages[package_installed][0].version).split('-')[0] }}",
       major_version: "{{ (ansible_facts.packages[package_installed][0].version).split('.')[0] }}.{{ (ansible_facts.packages[package_installed][0].version).split('.')[1] }}"
     }
   when: is_scylla_installed
@@ -101,12 +108,13 @@
   ansible.builtin.fail:
     msg: "Scylla was not detected."
   when: scylla_detected is not defined
-
+  any_errors_fatal: True
 
 # Scylla installation validation
 - name: Check existing Scylla installation operating system incompatibility
   ansible.builtin.fail:
     msg: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} is not supported."  
+  any_errors_fatal: True
   when: >
       ansible_facts['distribution'] |lower not in scylla_support or
       scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']] is not defined or
@@ -116,10 +124,10 @@
   ansible.builtin.fail:
     msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ scylla_detected['version'] }} is not supported."
   when: scylla_detected['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_detected['edition']]
+  any_errors_fatal: True
 
 
 # Scylla upgrade information
-# ----- TODO: CHANGE THIS TASK TO ALLOW 'latest' FOR MINOR UPGRADES -----
 - name: Gather information about Scylla upgrade
   vars:
     is_oss_selected: "{{ true if scylla_edition == 'oss' else false }}"
@@ -135,13 +143,13 @@
       upgrade: true
     }
 
-
 # Scylla version validation
 - name: Check if Scylla version was specified incorrectly
   vars:
     version_format: "{{ 'X.Y.Z' if scylla_upgrade['edition'] else 'UVWX.Y.Z' }}"
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} is incomplete and can't be used for a minor upgrade. Version format is: '{{ version_format }}'."
+  any_errors_fatal: True
   when:
     - scylla_version != 'latest'
     - scylla_upgrade['version'] == scylla_upgrade['major_version']
@@ -150,19 +158,20 @@
 - name: Check if specified Scylla version can not be used as major upgrade
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a major upgrade since version detected is {{ scylla_detected['version'] }}."
+  any_errors_fatal: True
   when: >
-      upgrade_major and
+      scylla_version != 'latest' and upgrade_major and
       (scylla_detected['version'] == scylla_upgrade['version'] or
-      scylla_detected['major_version'] == scylla_upgrade['major_version'])
+      scylla_detected['major_version'] == scylla_upgrade['major_version']) 
 
 - name: Check if specified Scylla version can not be used as minor upgrade
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a minor upgrade since version detected is {{ scylla_detected['version'] }}."
+  any_errors_fatal: True
   when: >
       not upgrade_major and
       (scylla_detected['version'] == scylla_upgrade['version'] or
       scylla_detected['major_version'] != scylla_upgrade['major_version'])
-
 
 # Scylla upgrade validation and downgrade protection
 - name: Check Scylla upgrade validation and downgrade protection
@@ -170,6 +179,7 @@
     - name: Check Scylla upgrade edition and version compatibility
       ansible.builtin.fail:
         msg: "Scylla {{ scylla_upgrade['edition_friendly_name'] }} {{ scylla_upgrade['major_version'] }} is not supported, thus it can't be used as upgrade."
+      any_errors_fatal: True
       when:
         - scylla_upgrade['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_upgrade['edition']]
 
@@ -186,120 +196,160 @@
           id: "{{ scylla_upgrade['id'] }}",
           upgrade: false
         }
-      when: upgraded_version is version(detected_version,'<')
+      when: upgraded_version is version(detected_version,'<') and scylla_version != 'latest'
 
     - name: Check if downgrading is not allowed
       ansible.builtin.fail:
-        msg: "Downgrade feature it not implemented yet."
-      # vars:
-      #   detected_version: "{{ scylla_detected['major_version'] if upgrade_major else scylla_detected['version'] }}"
-      #   upgraded_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
-      # ansible.builtin.fail:
-      #   msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ detected_version }} is installed and you are trying to downgrade to {{ upgraded_version }}, but downgrading is not allowed."
+        msg: >
+         "{{ scylla_upgrade['version'] }} is lower or equal than currently installed {{ scylla_detected['version'] }}.
+          If you know what you are doing, specify `upgrade_allow_user_manual_downgrade: True' variable in your main playbook"
+      any_errors_fatal: True
       when:
         - not scylla_upgrade['upgrade']
         - not upgrade_allow_user_manual_downgrade
-
-    - name: Set baseline about versions
-      ansible.builtin.set_fact:
-        scylla_upgrade_version_fix: false
-    
-    - name: Verify relation between versions
-      vars:
-        distro_name: "{{ ansible_facts['distribution'] |lower }}"
-        distro_version: "{{ ansible_facts['distribution_major_version'] }}"
-        detected_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_detected['edition']], 'eq', scylla_detected['major_version']) }}"
-        upgrade_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_upgrade['edition']], 'eq', scylla_upgrade['major_version']) }}"
-      ansible.builtin.set_fact:
-        scylla_upgrade_version_fix: true
-      when: (upgrade_version_index |int - detected_version_index|int) |abs > 1
-
-    - name: Check if the upgrade can not be straightly applied
-      ansible.builtin.fail:
-        msg: "Version {{ scylla_detected['major_version'] }} can't be upgraded straightly to {{ scylla_upgrade['major_version'] }}."
-      when:
-        - scylla_upgrade_version_fix
-        - not upgrade_autocorrect_version
-
-    - name: Check the next available upgrade for existing Scylla installation
-      vars:
-        distro_name: "{{ ansible_facts['distribution'] |lower }}"
-        distro_version: "{{ ansible_facts['distribution_major_version'] }}"
-        index_delta: "{{ -1 if scylla_upgrade['upgrade'] else 1 }}"
-        detected_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_detected['edition']], 'eq', scylla_detected['major_version']) }}"
-        next_available_upgrade_version_index: "{{ detected_version_index |int + index_delta |int }}"
-        next_available_upgrade_version: "{{ scylla_support[distro_name][distro_version][scylla_upgrade['edition']][next_available_upgrade_version_index |int:] |first }}"
-      ansible.builtin.set_fact:
-        scylla_upgrade: {
-          edition: "{{ scylla_upgrade['edition'] }}",
-          edition_friendly_name: "{{ scylla_upgrade['edition_friendly_name'] }}",
-          version: "{{ next_available_upgrade_version }}",
-          major_version: "{{ next_available_upgrade_version.split('.')[0] }}.{{ next_available_upgrade_version.split('.')[1] }}",
-          id: "{{ scylla_upgrade['id'] }}",
-          upgrade: "{{ scylla_upgrade['upgrade'] }}"
-        }
-      when:
-        - scylla_upgrade_version_fix
-        - upgrade_autocorrect_version
-        - next_available_upgrade_version_index |int >= 0
-        - next_available_upgrade_version_index |int < (scylla_support[distro_name][distro_version][scylla_upgrade['edition']] | length)
-
-    - name: Check if the upgrade version was automatically modified
-      ansible.builtin.debug:
-        msg: "Scylla upgrade version was modified to {{ scylla_upgrade['version'] }}"
-      when: scylla_upgrade_version_fix
-  when: scylla_upgrade['edition'] == scylla_detected['edition']
-
 
 # ----- TODO: Scylla cross-edition upgrade validation and downgrade protection -----
 - name: Check Scylla cross-edition upgrade validation and downgrade protection
   ansible.builtin.fail:
     msg: "Cross-edition downgrade/upgrade is not implemented yet."
+  any_errors_fatal: True
   when:
     - scylla_upgrade['edition'] != scylla_detected['edition']
     - upgrade_major
     - upgrade_cross_edition
 
+# Determine whether an upgrade actually exists to its target release
+- name: Determine available Enterprise updates for RedHat variants
+  shell: 
+    cmd: yum list available scylla-enterprise | egrep ^scylla-enterprise | awk '{ print $2 }'
+  register: latest_release
+  when: "'scylla-enterprise' in ansible_facts.packages and ansible_os_family == 'RedHat'"
+
+- set_fact: latest_detected_release={{ latest_release.stdout }}
+  when: latest_release.changed
+
+- name: Determine available OSS updates for RedHat variants
+  shell:
+    cmd: yum list available scylla | egrep ^scylla | awk '{ print $2 }'
+  register: latest_release
+  when: "'scylla' in ansible_facts.packages and ansible_os_family == 'RedHat'"
+
+- set_fact: latest_detected_release={{ latest_release.stdout }}
+  when: latest_release.changed
+
+# This check is necessary because when we are on latest under RHEL variants, `yum list available' will return an empty string
+# therefore we pin the fact to its detected_version early on
+- set_fact: latest_detected_release={{ scylla_detected['version'] }}
+  when: ansible_os_family == 'RedHat' and latest_detected_release | length == 0 
+
+- name: Determine available Enterprise updates for Debian variants
+  shell:
+    cmd: apt-cache madison scylla-enterprise | egrep ^scylla-enterprise | awk -F'|' '{ print $2 }' | head -1 | awk '{ print $1 }'
+  register: latest_release
+  when: "'scylla-enterprise' in ansible_facts.packages and ansible_os_family == 'Debian'"
+
+- set_fact: latest_detected_release={{ latest_release.stdout }}
+  when: latest_release.changed
+
+- name: Determine available OSS updates for Debian variants
+  shell:
+    cmd: apt-cache madison scylla | egrep ^scylla | awk -F'|' '{ print $2 }' | head -1 | awk '{ print $1 }'
+  register: latest_release
+  when: "'scylla' in ansible_facts.packages and ansible_os_family == 'Debian'"
+
+- set_fact: latest_detected_release={{ latest_release.stdout }}
+  when: latest_release.changed
+
+- name: Fail when requested version is not within the last release available
+  fail:
+    msg: "Requested upgrade to {{ scylla_upgrade['version'] }} but latest found in repository is {{ latest_detected_release }}"
+  any_errors_fatal: True
+  when: not upgrade_major and scylla_upgrade['version'] is version(latest_detected_release,'>=') and scylla_version != 'latest'
+
+- name: Fail when latest is specified and we are already on latest
+  fail:
+    msg: "'latest' was specified, but currently installed version {{ scylla_detected['version'] }} is the same as last available {{ latest_detected_release }}"
+  any_errors_fatal: True
+  when: not upgrade_major and scylla_detected['version'] is version(latest_detected_release,'>=') and scylla_version == 'latest'
+
+# If we are downgrading, build list of packages to downgrade
+# RHEL Specific
+- name: Create list of packages to downgrade
+  set_fact:
+    installed_pkgs: "{{ packages | dict2items | selectattr('key', 'match', '^' + scylla_detected['package_name']) | list | items2dict }}"
+    pkg_list: []
+  when: not scylla_upgrade['upgrade']
+
+- name: Append results to list of packages
+  set_fact:
+    pkg_list: "{{ pkg_list + [ item.key + '-' + scylla_upgrade['version'] ] }}"
+  loop: "{{ installed_pkgs | dict2items }}"
+  when: not scylla_upgrade['upgrade'] and ansible_os_family == 'RedHat'
+
+# Debian specific
+- name: Set Scylla package prefix as OSS
+  set_fact:
+    scylla_package_prefix: "scylla"
+  when: scylla_edition == 'oss' and ansible_os_family == 'Debian'
+
+- name: Set Scylla package prefix as Enterprise
+  set_fact:
+    scylla_package_prefix: "scylla-enterprise"
+  when: scylla_edition == 'enterprise' and ansible_os_family == 'Debian'
+
+- name: "Upgrade Scylla to {{ scylla_upgrade['version'] }}"
+  set_fact:
+    scylla_version_to_install: "{{ scylla_upgrade['version'] }}"
+  when:
+    - scylla_version != 'latest'
+    - ansible_os_family == 'Debian'
+
+- name: "Upgrade Scylla to latest"
+  set_fact:
+    scylla_version_to_install: "latest"
+  when:
+    - scylla_version == 'latest'
+    - ansible_os_family == 'Debian'
+
+- name: Get versions of {{ scylla_edition }} package
+  shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
+  register: aptversions
+  vars:
+    scylla_version_escaped: "{{ scylla_version_to_install | regex_escape }}"
+  when: ansible_os_family == 'Debian'
+
+- name: "Validate scylla version correctness"
+  ansible.builtin.fail:
+    msg: "Too many/few choices for a requested version '{{ scylla_version_to_install }}': {{ aptversions.stdout_lines }}. Bailing out!"
+  when: ansible_os_family == 'Debian' and aptversions.stdout_lines | length != 1 and scylla_version_to_install != 'latest'
+  any_errors_fatal: True
+
+- name: Fetch version parts of Scylla package
+  set_fact:
+    scylla_version_split: "{{ aptversions.stdout | regex_findall(regexp, ignorecase=True) }}"
+  vars:
+    # All we know that the version is a string comprised of 3 parts separated by '-'
+    regexp: '^([^\-]+)-([^\-]+)-([^\-]+)$'
+  when: ansible_os_family == 'Debian'
+
+- name: Append results to list of packages
+  set_fact:
+    pkg_list: "{{ pkg_list + [ item.key + '=' + aptversions.stdout ] }}"
+  loop: "{{ installed_pkgs | dict2items }}"
+  when: not scylla_upgrade['upgrade'] and ansible_os_family == 'Debian'
 
 # Upgrade
 - name: Trigger pre-upgrade tasks
-  include_tasks: pre_upgrade.yml
-
-- name: Trigger operating system specific upgrade tasks
-  include_tasks: "upgrade_{{ scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']]['template'] }}.yml"
-
-- name: Trigger post-upgrade tasks
-  include_tasks: post_upgrade.yml
-
+  run_once: True
+  include_tasks: upgrade.yml
+  loop: "{{ groups['scylla'] }}"
+  loop_control:
+    loop_var: delegate_host
 
 # Upgrade verification
-- name: Upgrade verification
-  block:
-    - name: "Wait {{ upgrade_break_before_verification }} seconds before verifying the upgrade"
-      ansible.builtin.wait_for:
-        timeout: "{{ upgrade_break_before_verification |int }}"
+- name: "Wait {{ upgrade_break_before_verification }} seconds before verifying the upgrade"
+  ansible.builtin.wait_for:
+    timeout: "{{ upgrade_break_before_verification |int }}"
 
-    - name: Verify if the upgrade was done sucessfully
-      include_tasks: node_verification.yml
-  rescue:
-    # Rollback
-    - name: Trigger pre-rollback tasks
-      include_tasks: pre_rollback.yml
-
-    #- name: Trigger operating system specific rollback tasks
-    #  include_tasks: "rollback_{{ scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']]['template'] }}.yml"
-
-    #- name: Trigger post-rollback tasks
-    #  include_tasks: post_rollback.yml
-    
-    # Rollback verification
-    - name: Wait {{ upgrade_break_before_verification }} seconds before verifying the rollback
-      ansible.builtin.wait_for:
-        timeout: "{{ upgrade_break_before_verification |int }}"
-
-    - name: Verify if the upgrade was done sucessfully
-      include_tasks: node_verification.yml
-  
-
-  # ----- TODO: If the upgrade version is the latest one and if 'latest' was used to specify the version
-  # replace upgrade version with latest
+- name: Verify if the upgrade was done sucessfully
+  include_tasks: node_verification.yml
