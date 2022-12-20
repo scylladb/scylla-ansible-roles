@@ -29,6 +29,11 @@ PATHS=$(du -m --max-depth=2 .|sort -k1h|awk -F"/" 'NF==3'|awk '{ print $NF}'|gre
 for i in $PATHS; do
     TB=$(echo "$i"|awk -F'/' '{ print $NF }'|awk -F'-' '{ print $1 }')
     KS=$(echo "$i"|awk -F'/' '{ print $(NF - 1) }')
-    echo "cleanup of $KS $TB"
-    nodetool cleanup "$KS" "$TB"
+    echo "evaluating $DIR/$i/"
+    if compgen -G "$DIR/$i/*.db" > /dev/null; then
+        echo "cleanup of $KS $TB"
+        nodetool cleanup "$KS" "$TB"
+    else
+        echo "skipping $KS $TB since it has no sstables and likely is dropped"
+    fi
 done
