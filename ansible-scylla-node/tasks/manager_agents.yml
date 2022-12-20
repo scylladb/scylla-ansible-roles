@@ -60,7 +60,7 @@
     state: restarted
     enabled: yes
   become: true
-  when: manager_agent_config_change.changed
+  when: manager_agent_config_change.changed and start_scylla_service is defined and start_scylla_service|bool
   ignore_errors: true
   #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
 
