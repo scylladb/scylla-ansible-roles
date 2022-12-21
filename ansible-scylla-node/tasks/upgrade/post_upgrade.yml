@@ -5,4 +5,6 @@
   ansible.builtin.service:
     name: scylla-server
     state: started
+  notify: scylla-manager-agent restart
   become: true
+
