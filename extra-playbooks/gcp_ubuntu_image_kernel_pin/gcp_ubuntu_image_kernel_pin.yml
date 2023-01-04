@@ -1,0 +1,112 @@
+---
+
+- name: Pin Ubuntu image version for GCP
+  hosts: scylla
+  gather_facts: true
+  vars:
+    - image_package_prefix: linux-image
+    - image_version: 5.15.0-1016-gcp
+    - grub_config_file: /boot/grub/grub.cfg
+    - purge_older_images: false
+    - api_address: 127.0.0.1
+    - api_port: 10000
+    - api_retries: 360
+    - api_delay: 10
+    - api_timeout: 300
+    - pid_kill_retries: 5
+    - pid_kill_delay: 12
+  serial: 1
+  tasks:
+    - name: Fail if the operating system is not Debian-based
+      ansible.builtin.fail:
+        msg: "Current operating system is not Debian-based"
+      when: ansible_os_family != "Debian"
+
+    - name: Get current kernel image version
+      ansible.builtin.command: uname --kernel-release
+      register: uname_pre_output
+
+    - name: Save kernel image version
+      ansible.builtin.set_fact:
+        detected_image_version="{{ uname_pre_output.stdout_lines | first }}"
+
+    - name: Define if the kernel image should be installed
+      ansible.builtin.set_fact:
+        kernel_image_required="{{ image_version is version(detected_image_version, 'ne') }}"
+
+    - name: Get /opt/scylladb metadata
+      ansible.builtin.stat:
+        path: /opt/scylladb
+      register: scylla_installation
+
+    - name: Ensure kernel image '{{ image_package_prefix }}-{{ image_version }}' is installed
+      ansible.builtin.apt:
+        name: "{{ image_package_prefix }}-{{ image_version }}"
+        state: present
+      become: true
+      when: kernel_image_required
+
+    - name: Get all vmlinuz files available
+      ansible.builtin.shell: ls /boot/vmlinuz-* | sed 's/\/boot\/vmlinuz-*//'
+      register: vmlinuz_versions
+
+    - name: Define if reconfiguration is required due to the presence of serveral vmlinuz files
+      ansible.builtin.set_fact:
+        reconfiguration_required="{{ vmlinuz_versions.stdout_lines | length > 1 }}"
+
+    - name: Mark to unhold kernel-related packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: install
+      loop:
+        - linux-gcp
+        - linux-image-gcp
+        - linux-headers-gcp
+      become: true
+      when: reconfiguration_required
+
+    - name: Prepare GRUB modifications
+      ansible.builtin.include_tasks:
+        file: tasks/grub.yml
+      when:
+        - kernel_image_required
+        - reconfiguration_required
+
+    - name: Stop Scylla
+      ansible.builtin.include_tasks:
+        file: tasks/stop_scylla.yml
+      when:
+        - kernel_image_required
+        - reconfiguration_required
+        - scylla_installation.stat.exists
+
+    - name: Reboot the operating system and check if the desired kernel image is running
+      ansible.builtin.include_tasks:
+        file: tasks/kernel_reboot_check.yml
+      when:
+        - kernel_image_required
+        - reconfiguration_required
+
+    - name: Start Scylla
+      ansible.builtin.include_tasks:
+        file: tasks/start_scylla.yml
+      when:
+        - kernel_image_required
+        - reconfiguration_required
+        - scylla_installation.stat.exists
+
+    - name: Enforce kernel version '{{ image_version }}' usage
+      ansible.builtin.include_tasks:
+        file: tasks/kernel_enforce_cleanup.yml
+      when: reconfiguration_required
+
+    - name: Mark to hold kernel-related packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - linux-gcp
+        - linux-image-gcp
+        - linux-headers-gcp
+      become: true
+      when: reconfiguration_required

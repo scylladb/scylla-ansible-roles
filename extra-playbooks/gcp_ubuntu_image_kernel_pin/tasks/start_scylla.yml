@@ -1,0 +1,19 @@
+---
+
+- name: Start Scylla
+  block:
+    - name: Start scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        state: started
+      become: true
+
+    - name: Check if the node if fully operational
+      ansible.builtin.uri:
+        url: "http://{{ api_address }}:{{ api_port }}/storage_service/operation_mode"
+        method: GET
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+      timeout: "{{ api_timeout }}"
+      register: node_operation_status
+      until: "'NORMAL' in node_operation_status.json"
