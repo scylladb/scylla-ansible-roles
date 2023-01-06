@@ -255,6 +255,7 @@
       wait_for:
         port: 9042
         host: "{{ listen_address }}"
+        timeout: "{{ scylla_bootstrap_wait_time_sec }}"
       when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially

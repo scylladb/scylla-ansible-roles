@@ -6,10 +6,10 @@
   become: true
   delegate_to: "{{ item }}"
 
-# Wait for at most 2 hours for a node to start - bootstrapping and the corresponding streaming can take quite long
+# By default waits at most 7 hours for a node to start - bootstrapping and the corresponding streaming can take quite long
 - name: Wait for CQL port on {{ hostvars[item]['listen_address'] }}
   wait_for:
     port: 9042
     host: "{{ hostvars[item]['listen_address'] }}"
-    timeout: 25200
+    timeout: "{{ scylla_bootstrap_wait_time_sec }}"
   delegate_to: "{{ item }}"

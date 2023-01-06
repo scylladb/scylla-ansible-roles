@@ -275,6 +275,9 @@ skip_ntp: False
 #   path: /path/too/token_distributor
 #   rf: us-east1=3,us-east2=2
 
+# Default bootstrap timeout
+scylla_bootstrap_wait_time_sec: 25200
+
 # sysctl tuning defaults, please leave in place if unsure
 update_sysctl: True
 sysctl:
