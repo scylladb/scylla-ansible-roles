@@ -126,7 +126,19 @@ full_inventory: true
 # !!! also make sure you override scylla_yaml_params and remove authorization from there !!!
 scylla_authentication: True
 
+# Set this to false to disable automatic adjustment of system_auth keyspace replication
+adjust_system_auth_replication: False
+
+# Replication variables and cql credentials are intended to be used to adjust system_auh keyspace when necessary.
+# Remember to update cql credentials here in case you're making updates to an already existing cluster which
+# doesn't have the default username/password(cassandra/cassandra)
+system_auth_rf: 3
+system_auth_replication_strategy: NetworkTopologyStrategy
+cql_username: cassandra
+cql_password: cassandra
+
 repair_timeout_seconds: 36000
+cleanup_timeout_seconds: 36000
 
 # set to enabled when the scylla-server service should be started by applying the role.
 # if, for example, we add a node, but prefer to wait before we start the service and add it to the cluster,
