@@ -126,6 +126,8 @@ full_inventory: true
 # !!! also make sure you override scylla_yaml_params and remove authorization from there !!!
 scylla_authentication: True
 
+repair_timeout_seconds: 36000
+
 # set to enabled when the scylla-server service should be started by applying the role.
 # if, for example, we add a node, but prefer to wait before we start the service and add it to the cluster,
 # this should be set to false
