@@ -42,6 +42,12 @@
         name: scylla-server
         state: started
 
+    - name: Wait for CQL port on {{ listen_address.stdout }}
+      wait_for:
+        port: 9042
+        host: "{{ listen_address.stdout }}"
+        timeout: 300
+
     - name: wait for the cluster to become healthy
       shell: |
         nodetool status|grep "{{ listen_address.stdout }}" | grep '^UN'
