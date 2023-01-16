@@ -31,7 +31,6 @@ This playbook will run the replace dead node procedure.
 scylla_yaml_params:
   authorizer: CassandraAuthorizer
   authenticator: PasswordAuthenticator
-  enable_sstables_mc_format: true
   internode_compression: all
   #Add this line:
   replace_address_first_boot: "{{ replaced_node }}"
