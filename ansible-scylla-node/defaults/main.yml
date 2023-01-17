@@ -197,7 +197,6 @@ scylla_api_port: '10000'
 scylla_yaml_params:
   authorizer: CassandraAuthorizer
   authenticator: PasswordAuthenticator
-  enable_sstables_mc_format: true
   internode_compression: all
 
 # SSL configuration for Scylla nodes:
