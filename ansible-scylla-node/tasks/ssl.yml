@@ -1,5 +1,49 @@
 ---
-- name: generate a self-signed CA and use it for node certs
+- name: For every node, check if crt file exists
+  stat:
+    path: "./ssl/{{ hostvars[item]['inventory_hostname'] }}/{{ hostvars[item]['inventory_hostname'] }}.crt"
+  register: _node_crt
+  loop: "{{ groups['scylla'] }}"
+  delegate_to: localhost
+  when: _node_crt is not defined or _node_crt.stat.exists == True
+  run_once: true
+
+- name: For every node, check if key file exists
+  stat:
+    path: "./ssl/{{ hostvars[item]['inventory_hostname'] }}/{{ hostvars[item]['inventory_hostname'] }}.pem"
+  register: _node_key
+  loop: "{{ groups['scylla'] }}"
+  delegate_to: localhost
+  when: _node_key is not defined or _node_key.stat.exists == True
+  run_once: true
+
+- name: Set existence of crt and key as a single fact
+  set_fact:
+    _crt_and_key_exist: "{{ item.stat.exists }}"
+  loop: "{{ _node_crt.results + _node_key.results }}"
+  when: _crt_and_key_exist is not defined or _crt_and_key_exist == True
+  run_once: true
+
+- name: Check if CA exists
+  block:
+    - name: Check if CA crt file exists
+      stat:
+        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+      register: _ca_crt
+    - name: Check if CA key file exists
+      stat:
+        path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+      register: _ca_key
+    - set_fact:
+        _ca_crt_and_key_exist: "{{ _ca_crt.stat.exists|bool and _ca_key.stat.exists|bool }}"
+  delegate_to: localhost
+  run_once: true
+
+- fail:
+    msg: "If you want to use your own node certificates you also have to provide a CA"
+  when: _crt_and_key_exist and not _ca_crt_and_key_exist
+
+- name: If crt and keys were not provided for all nodes and no CA was provided, generate a self-signed CA
   block:
     - name: Create dir for the CA
       file:
@@ -29,10 +73,11 @@
         privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         csr_content: "{{ ca_csr.csr }}"
         provider: selfsigned
+  when: _crt_and_key_exist == False and _ca_crt_and_key_exist == False
   delegate_to: localhost
   run_once: true
 
-- name: Generate keys signed by the local CA and push them to the nodes
+- name: Generate keys signed by the local CA
   block:
     - name: Create a directory for the key
       file:
@@ -60,19 +105,20 @@
         ownca_privatekey_path: "./ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
       delegate_to: localhost
+  when: _crt_and_key_exist == False
 
-    - name: Copy the certificates into their proper locations
-      copy:
-        src: "{{ item }}"
-        dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
-        owner: root
-        group: root
-        mode: '0644'
-      become: true
-      loop:
-        - "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
-        - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
-        - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
+- name: Copy the certificates into their proper locations
+  copy:
+    src: "{{ item }}"
+    dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
+    owner: root
+    group: root
+    mode: '0644'
+  become: true
+  loop:
+    - "./ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+    - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
+    - "./ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
 
 - name: Generate cqlshrc
   template:

@@ -208,15 +208,15 @@ scylla_yaml_params:
   internode_compression: all
 
 # SSL configuration for Scylla nodes:
-# If no certificates are present will generate a selfsigned CA and node certificates locally and push them out to all the nodes.
-# WARNING: if a local ./ssl/ directory is not present and populated by existing certificates, it will be generated
-# and certificates on the nodes can ge overwritten with new certificates.
+# If no certificates are present, this playbook will generate a selfsigned CA and node certificates locally and push them out to all the nodes.
+# WARNING: if a local ./ssl/ directory is not present and populated by existing certificates for all nodes, it will be generated
+# and certificates on the nodes can get overwritten with new certificates.
 # To use existing certificates:
-# 1. To use your own CA, place it in ./ssl/ca/{{ scylla_cluster_name }}-ca.pem and derived per-node certificates wll
-# be generated from it, if they are not present
+# 1. To use your own CA, place it in ./ssl/ca/{{ scylla_cluster_name }}-ca.crt and its respective key in ./ssl/ca/{{ scylla_cluster_name }}-ca.pem
+# and derived per-node certificates will be generated from it, if they are not present.
 # 2. To use your own node certificates, create a directory per hostname (same as in the inventory) in ./ssl/{{ hostname }}
-# and place the .pem file as {{ hostname }}.pem
-# The playbook will use the CA certificate to generate a signed host certificate for the .pem file and push them into the nodes
+# and place the .pem and .crt files as {{ hostname }}.pem and {{ hostname }}.crt respectively and then place the CA you used to sign the certificates in
+# ./ssl/ca/{{ scylla_cluster_name }}-ca.crt and its respective key in ./ssl/ca/{{ scylla_cluster_name }}-ca.pem.
 # To skip this configuration entirely, set enabled: false for both options or comment out the scylla_ssl variable.
 scylla_ssl:
   cert_path: /etc/scylla
