@@ -24,7 +24,6 @@
       when: replaced_node in scylla_seeds
 
   roles:
-    - geerlingguy.swap
     - ansible-scylla-node
 
 

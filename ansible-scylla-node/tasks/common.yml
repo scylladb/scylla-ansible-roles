@@ -109,7 +109,7 @@
 
 - name: configure Scylla
   shell: |
-    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup
+    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup --no-swap-setup
   become: true
   when: ansible_facts.services["scylla-server.service"] is defined and ansible_facts.services["scylla-server.service"]["state"] != "running"
 
@@ -142,6 +142,10 @@
     shell: |
       scylla_coredump_setup --dump-to-raiddir
     when: skip_coredump is defined and skip_coredump|bool == false
+  - name: set up swap
+    shell: |
+      scylla_swap_setup{% if swap_size_gb is defined and swap_size_gb != 0 %} --swap-size {{ swap_size_gb }} {% endif %}
+    when: skip_swap is defined and skip_swap|bool == false
 
   - name: configure cpu scaling
     shell: |
