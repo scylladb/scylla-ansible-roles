@@ -32,7 +32,7 @@
 # Create Scylla repositories file
 - name: Create Scylla repositories file
   ansible.builtin.get_url:
-    url: "http://downloads.scylladb.com/deb/debian/scylla-{{ scylla_upgrade['major_version'] }}-{{ ansible_facts['distribution_release'] }}.list"
+    url: "http://downloads.scylladb.com/deb/debian/scylla-{{ scylla_upgrade['major_version'] }}.list"
     dest: /etc/apt/sources.list.d/scylla.list
     mode: '0644'
   become: true
