@@ -15,6 +15,11 @@
     id: 5e08fbd8b5d6ec9c
   become: true
 
+- name: Add Scylla apt key
+  ansible.builtin.apt_key:
+    keyserver: hkp://keyserver.ubuntu.com:80
+    id: D0A112E067426AB2
+  become: true
 
 # Remove existing Scylla repositories
 - name: Remove existing Scylla repositories
@@ -27,7 +32,7 @@
 # Create Scylla repositories file
 - name: Create Scylla repositories file
   ansible.builtin.get_url:
-    url: "http://downloads.scylladb.com/deb/ubuntu/scylla-{{ scylla_upgrade['major_version'] }}-{{ ansible_facts['distribution_release'] }}.list"
+    url: "http://downloads.scylladb.com/deb/ubuntu/scylla-{{ scylla_upgrade['major_version'] }}.list"
     dest: /etc/apt/sources.list.d/scylla.list
     mode: '0644'
   become: true
