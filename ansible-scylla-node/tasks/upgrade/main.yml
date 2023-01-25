@@ -46,19 +46,19 @@
           minimum_version: '20.04',
           template: 'ubuntu',
           oss: ['4.4','4.3'],
-          enterprise: ['2022.2','2022.1','2021.1']
+          enterprise: ['2022.2','2021.1']
         },
         '18': {
           minimum_version: '18.04',
           template: 'ubuntu',
           oss: ['4.4','4.3','4.2','4.1','4.0'],
-          enterprise: ['2022.2','2022.1','2021.1','2020.1']
+          enterprise: ['2022.2','2021.1','2020.1']
         },
         '16': {
           minimum_version: '16.04',
           template: 'ubuntu',
           oss: ['4.4','4.3','4.2','4.1','4.0'],
-          enterprise: ['2022.2','2022.1','2021.1','2020.1']
+          enterprise: ['2022.2','2021.1','2020.1']
         }
       },
       # Red Hat
