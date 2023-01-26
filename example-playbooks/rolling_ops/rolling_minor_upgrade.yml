@@ -1,0 +1,16 @@
+---
+
+- hosts: scylla
+#  remote_user: scylla
+  gather_facts: yes
+  serial: 1
+
+  vars:
+    - upgrade_version: true
+    - upgrade_major: false
+#    - scylla_edition: enterprise
+#    - scylla_version: latest
+
+  roles:
+    - ansible-scylla-node
+
