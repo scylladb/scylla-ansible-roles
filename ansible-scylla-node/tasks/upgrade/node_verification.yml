@@ -57,8 +57,8 @@
 - name: Verify that selected and installed versions are not different
   vars:
     version_specified: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
-    version_full_installed: "{{ node_scylla_release_version.json.split('-')[0] }}"
-    version_major_installed: "{{ version_full_installed.split('.')[0] }}.{{ version_full_installed.split('.')[1] }}"
+    version_full_installed: "{{ node_scylla_release_version.json }}"
+    version_major_installed: "{{ version_full_installed.split('-')[0].split('.')[0] }}.{{ version_full_installed.split('-')[0].split('.')[1] }}"
     version_installed: "{{ version_major_installed if upgrade_major else version_full_installed }}"
   ansible.builtin.fail:
     msg: "Version set ({{ version_specified }}) and version installed ({{ version_installed }}) are different, thus the upgrade failed."
