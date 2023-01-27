@@ -4,9 +4,6 @@
   become: true
   vars:
 
-    #variables for the swap role
-    swap_file_size_mb: '1024'
-
     # variables for the Scylla node role (can be set here or in the role's vars/main.yml)
     scylla_repos:
       - 'http://repositories.scylladb.com/scylla/repo/****/centos/scylladb-4.1.repo'
@@ -34,7 +31,6 @@
     scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
 
   roles:
-    - geerlingguy.swap
     - ansible-scylla-node
 
 

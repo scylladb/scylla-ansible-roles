@@ -14,7 +14,6 @@
     # Please use the same parameters as were used for the rest of the existing cluster
 
   roles:
-    - geerlingguy.swap
     - ansible-scylla-node
 
 - name: Run cleanup on the old nodes

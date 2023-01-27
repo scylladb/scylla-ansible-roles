@@ -18,7 +18,6 @@ Please check under `defaults/main.yml` and `vars/main.yml`, the variables are he
 Dependencies
 ------------
     Recommended in order to enable extra swap and configure a RAID array
-    - geerlingguy.swap
     - mrlesmithjr.mdadm
 
 
@@ -43,9 +42,6 @@ Example Playbook
       mountpoint: '/var/lib/scylla'
       state: 'present'
       opts: 'noatime,nofail'
-
-    #variables for the swap role
-    swap_file_size_mb: '1024'
 
     # variables for the Scylla node role (can be set here or in the role's vars/main.yml)
     scylla_repos:
@@ -81,7 +77,6 @@ Example Playbook
         state: present
       become: true
   roles:
-    - geerlingguy.swap
     - mrlesmithjr.mdadm
     - ../ansible-scylla-node
 ```
