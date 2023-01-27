@@ -151,7 +151,7 @@
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a major upgrade since version detected is {{ scylla_detected['version'] }}."
   when: >
-      upgrade_major and
+      upgrade_major and not upgrade_force and
       (scylla_detected['version'] == scylla_upgrade['version'] or
       scylla_detected['major_version'] == scylla_upgrade['major_version'])
 
@@ -159,7 +159,7 @@
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a minor upgrade since version detected is {{ scylla_detected['version'] }}."
   when: >
-      not upgrade_major and
+      not upgrade_major and not upgrade_force and
       (scylla_detected['version'] == scylla_upgrade['version'] or
       scylla_detected['major_version'] != scylla_upgrade['major_version'])
 
