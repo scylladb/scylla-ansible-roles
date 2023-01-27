@@ -5,3 +5,5 @@ flake8
 pycodestyle
 pylint
 tox
+ansible-lint
+yamllint
