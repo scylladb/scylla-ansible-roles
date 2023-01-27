@@ -17,6 +17,12 @@ upgrade_version: false
 #  true: 'major' upgrade
 upgrade_major: false
 
+# Defines if the upgrade process must be forced
+# Values:
+#  [default] true: always upgrade even if the same version is installed
+#  false: don't do anything
+upgrade_force: true
+
 # Defines if the upgrade process should rollback on failure
 # Values:
 #  [default] true: rollback on failure
