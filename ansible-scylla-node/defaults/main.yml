@@ -260,6 +260,7 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n3
 
 skip_coredump: False
+devmode: False
 #below can be dangerous, sysconfig also sets cpuset, so disable both to not do any cpuset.conf changes!
 skip_cpuset: False
 skip_sysconfig: False
