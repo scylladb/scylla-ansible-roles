@@ -142,9 +142,14 @@
     shell: |
       scylla_coredump_setup --dump-to-raiddir
     when: skip_coredump is defined and skip_coredump|bool == false
+
   - name: set up swap
     shell: |
       scylla_swap_setup{% if swap_size_gb is defined and swap_size_gb != 0 %} --swap-size {{ swap_size_gb }} {% endif %}
+    register: swap_setup
+    failed_when:
+    - swap_setup.rc > 0
+    - '"swap already configured, exiting setup" not in swap_setup.stdout'
     when: skip_swap is defined and skip_swap|bool == false
 
   - name: configure cpu scaling
