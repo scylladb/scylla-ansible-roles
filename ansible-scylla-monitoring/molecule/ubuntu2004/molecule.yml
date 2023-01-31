@@ -12,7 +12,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
       - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
     groups:
       - scylla

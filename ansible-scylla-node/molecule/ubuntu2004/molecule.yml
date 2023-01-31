@@ -12,7 +12,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
   - name: node2
@@ -20,7 +20,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
   - name: node3
@@ -28,7 +28,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
 provisioner:
@@ -58,6 +58,7 @@ provisioner:
         skip_coredump: True
         skip_sysconfig: True
         skip_cpuset: True
+        devmode: True
 #        skip_ntp: True
         scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6-bionic.list"
   playbooks:
