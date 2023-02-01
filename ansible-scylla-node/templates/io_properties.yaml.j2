@@ -1,1 +1,5 @@
+{% if scylla_io_probe|bool and scylla_io_probe_dc_aware|bool %}
+{{ hostvars[dc_to_node_list[dc][0]]['io_properties'] }}
+{% else %}
 {{ io_properties }}
+{% endif %}
