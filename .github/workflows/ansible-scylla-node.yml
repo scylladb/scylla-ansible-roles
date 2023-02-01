@@ -46,4 +46,4 @@ jobs:
           molecule --version
       - name: Test with molecule
         run: |
-          molecule test --scenario-name ${{ matrix.molecule_distro }}
+          molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}
