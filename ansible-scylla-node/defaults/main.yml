@@ -177,6 +177,12 @@ gpfs_prefer_local: "true"
 # probe for IO figures on one node and reuse the figures on all nodes (recommended: True)
 scylla_io_probe: True
 
+# If set to True, scylla_io_probe must be True and dc variable must be defined in the inventory
+# for each one of the nodes.
+# This will make sure that scylla_io_setup will be executed in one node from each datacenter
+# and then the configuration files will be propagated for the other nodes of each datacenter.
+scylla_io_probe_dc_aware: False
+
 # These can be arbitrarily set if scylla_io_probe is set to False
 # io_properties:
 #   disks:

@@ -34,7 +34,15 @@
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
       ignore_errors: true
 
-- name: IO settings probe
+# Resulting map -> {'dc1': [node1, node2, node3], 'dc2': [node4, node5, node6]}
+- name: Create a map from dc to its list of nodes
+  set_fact:
+    dc_to_node_list: "{{ dc_to_node_list | default({}) | combine( {hostvars[item]['dc']: (dc_to_node_list | default({}))[hostvars[item]['dc']] | default([]) + [item]} ) }}"
+  loop: "{{ groups['scylla'] }}"
+  run_once: true
+  when: scylla_io_probe_dc_aware|bool
+
+- name: Collect IO settings for the first node of every DC
   block:
     - name: check for existing io_properties
       stat:
@@ -61,15 +69,15 @@
 
     - set_fact:
         io_conf: "{{ _io_conf.stdout_lines[0] }}"
-  when: scylla_io_probe|bool == True
-  run_once: true
+  when: scylla_io_probe|bool == True and (scylla_io_probe_dc_aware|bool == False or dc_to_node_list[dc][0] == inventory_hostname)
+  run_once: "{{ not scylla_io_probe_dc_aware|bool }}"
   become: true
 
 - name: Set io.conf
   lineinfile:
     path: /etc/scylla.d/io.conf
     regexp: '^SEASTAR_IO='
-    line: "{{ io_conf }}"
+    line: "{% if scylla_io_probe|bool and scylla_io_probe_dc_aware|bool %}{{ hostvars[dc_to_node_list[dc][0]]['io_conf'] }}{% else %}{{ io_conf }}{% endif %}"
     create: yes
   become: true
   when: io_conf is defined
