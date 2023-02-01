@@ -268,7 +268,7 @@ skip_ntp: False
 skip_swap: False
 
 # Set it to 0 to let scylla choose the swap size
-swap_size_gb: 0
+swap_file_size_mb: 0
 
 # If defined, this enables the usage of a separate token_distributor instead of scylla's default random token distributor
 # The token distributor in the provided path must be named token_distributor.py and must have the following list of arguments:
