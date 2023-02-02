@@ -144,7 +144,7 @@
 
   - name: set up swap
     shell: |
-      scylla_swap_setup{% if swap_file_size_mb is defined and swap_file_size_mb|int != 0 %} --swap-size-bytes {{ swap_file_size_mb|int * 1024 * 1024 }} {% endif %}
+      scylla_swap_setup{% if swap_file_size_mb is defined and swap_file_size_mb|int > 0 %} --swap-size {{ [swap_file_size_mb|int, 1024]|max // 1024 }} {% endif %}
     register: swap_setup
     failed_when:
     - swap_setup.rc > 0
