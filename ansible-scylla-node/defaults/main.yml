@@ -267,7 +267,8 @@ skip_selinux: False
 skip_ntp: False
 skip_swap: False
 
-# Set it to 0 to let scylla choose the swap size
+# Set it to 0 to let scylla choose the swap size.
+# Note that the minimum supported value is 1024mb, so any non-zero value smaller than 1024 will be changed to 1024
 swap_file_size_mb: 0
 
 # If defined, this enables the usage of a separate token_distributor instead of scylla's default random token distributor
