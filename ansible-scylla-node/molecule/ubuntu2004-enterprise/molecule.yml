@@ -47,10 +47,10 @@ provisioner:
         io_properties:
           disks:
             - mountpoint: "/var/lib/scylla/data"
-              read_iops: 100
-              read_bandwidth: 1000
-              write_iops: 100
-              write_bandwidth: 1000
+              read_iops: 2000
+              read_bandwidth: 10000000
+              write_iops: 1000
+              write_bandwidth: 1000000
         scylla_seeds:
           - "172.17.0.2"
         dc: "test_dc"
