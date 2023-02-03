@@ -209,11 +209,26 @@
     set_fact:
       cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
 
+  - name: set cpuset command
+    set_fact:
+      cpuset: "{{ cpuset_command }}"
+      when: cpuset_command is defined
+
   - name: run cpuset
     shell: |
       {{ cpuset }}
     become: true
     when: skip_cpuset is defined and skip_cpuset|bool == false
+
+  - name: set devmode command
+    set_fact:
+      devmode_command: "scylla_dev_mode_setup --developer-mode 1"
+
+  - name: run devmode
+    shell: |
+      {{ devmode_command }}
+    become: true
+    when: (devmode is defined) and (devmode|bool)
 
 - name: configure custom scylla.yaml paramaters
   lineinfile:

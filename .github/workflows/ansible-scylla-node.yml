@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'ansible-scylla-node/**'
+      - '.github/workflows/*'
   pull_request:
     paths:
       - 'ansible-scylla-node/**'
@@ -11,7 +12,7 @@ on:
       - master
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -34,7 +35,7 @@ jobs:
         with:
           submodules: recursive
       - name: Set up Python 3
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: "3.x"
       - name: Install dependencies
@@ -45,4 +46,4 @@ jobs:
           molecule --version
       - name: Test with molecule
         run: |
-          molecule test --destroy=never --scenario-name ${{ matrix.molecule_distro }}
+          molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}

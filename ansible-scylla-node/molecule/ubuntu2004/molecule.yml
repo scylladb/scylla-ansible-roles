@@ -12,7 +12,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
   - name: node2
@@ -20,7 +20,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
   - name: node3
@@ -28,7 +28,7 @@ platforms:
     privileged: true
     command: /lib/systemd/systemd
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
 provisioner:
@@ -40,25 +40,28 @@ provisioner:
     group_vars:
       scylla:
         scylla_deb_repos:
-          - "http://downloads.scylladb.com/deb/ubuntu/scylla-4.4-focal.list"
+          - "http://downloads.scylladb.com/deb/ubuntu/scylla-5.1.list"
         scylla_edition: "oss"
         scylla_version: "latest"
         scylla_io_probe: false
         io_properties:
           disks:
             - mountpoint: "/var/lib/scylla/data"
-              read_iops: 100
-              read_bandwidth: 1000
-              write_iops: 100
-              write_bandwidth: 1000
+              read_iops: 2000
+              read_bandwidth: 10000000
+              write_iops: 1000
+              write_bandwidth: 1000000
         scylla_seeds:
           - "172.17.0.2"
         dc: "test_dc"
         rack: "test_rack"
         skip_coredump: True
         skip_sysconfig: True
-        skip_cpuset: True
+        cpuset_command: "scylla_cpuset_setup --smp 1"
+        # skip_cpuset: True
+        # devmode: True
 #        skip_ntp: True
+        skip_swap: True
         scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6-bionic.list"
   playbooks:
     converge: ../shared/converge.yml
