@@ -207,12 +207,13 @@
 
   - name: set cpuset command
     set_fact:
-      cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
+      cpuset: "{{ cpuset_command }}"
+    when: cpuset_command is defined
 
   - name: set cpuset command
     set_fact:
-      cpuset: "{{ cpuset_command }}"
-      when: cpuset_command is defined
+      cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
+
 
   - name: run cpuset
     shell: |
