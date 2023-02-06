@@ -81,7 +81,7 @@
         id: "{{ item }}"
         state: present
       with_items: "{{ scylla_manager_repo_keys }}"
-      when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
+      when: (install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
       become: true
 
     - name: add Scylla Manager repo
