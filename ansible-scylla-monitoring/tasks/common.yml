@@ -17,9 +17,28 @@
     owner: "{{ ansible_user_id }}"
   become: true
 
+- name: change permissions for the data directory to nobody
+  file:
+    path: "{{ scylla_monitoring_data_path }}"
+    state: directory
+    mode: '1777'
+    recurse: yes
+    owner: "nobody"
+  become: true
+  when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
+
 - name: create the config directory
   file:
     path: "{{ scylla_monitoring_config_path }}"
+    state: directory
+    mode: '1775'
+    recurse: yes
+    owner: "{{ ansible_user_id }}"
+  become: true
+
+- name: create the prom_rules directory
+  file:
+    path: "{{ scylla_monitoring_prom_rules_path }}"
     state: directory
     mode: '1775'
     recurse: yes
@@ -71,7 +90,7 @@
 - name: set prometheus rules file from preset file
   copy:
     src: "{{ prometheus_rules_file }}"
-    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml"
+    dest: "{{ scylla_monitoring_prom_rules_path }}/userdefined.rules.yml"
     mode: '0644'
   when: prometheus_rules_file is defined and prometheus_rules_file != 'default'
 
@@ -84,7 +103,7 @@
   copy:
     src: "{{ base_dir }}/prometheus/prometheus.rules.yml"
     remote_src: true
-    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml"
+    dest: "{{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
     mode: '0644'
   when: prometheus_rules_file is defined and prometheus_rules_file == 'default' and prom_rules_file.stat.exists
 
@@ -93,13 +112,13 @@
     path: "{{ base_dir }}/prometheus/prom_rules/prometheus.rules.yml"
   register: prom_rules_sub_file
 
-- name: set prometheus rules file from the default prom_rules file
+- name: copy ALL rules files from the default prom_rules file location
   copy:
-    src: "{{ base_dir }}/prometheus/prom_rules/prometheus.rules.yml"
+    src: "{{ base_dir }}/prometheus/prom_rules"
     remote_src: true
-    dest: "{{ scylla_monitoring_config_path }}/prometheus.rules.yml"
-    mode: '0644'
-  when: prometheus_rules_file is defined and prometheus_rules_file == 'default' and prom_rules_sub_file.stat.exists
+    dest: "{{ scylla_monitoring_prom_rules_path }}/"
+    mode: '0755'
+  when: prom_rules_sub_file.stat.exists
 
 - name: set prometheus template file from preset file
   copy:

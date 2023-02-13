@@ -56,6 +56,7 @@
 - name: copy yml and template files into prometheus
   shell: |
     cp {{ base_dir }}/prometheus/*.yml {{ prometheus_dir }}
+    cp -r {{ base_dir }}/prom_rules {{ prometheus_dir }}
     cp {{ base_dir }}/prometheus/*.template {{ prometheus_dir }}
 
 - name: copy prometheus.yml.template to prometheus.yml
@@ -76,6 +77,18 @@
       replace:
         regexp: '^  - /etc/prometheus/prometheus.rules.yml'
         replace: '  - prometheus.rules.yml'
+        path: "{{ prometheus_dir }}/prometheus.yml"
+
+    - name: update prometheus_rules
+      replace:
+        regexp: '^  - /etc/prometheus/prom_rules/*.yml'
+        replace: '  - prom_rules/*.yml'
+        path: "{{ prometheus_dir }}/prometheus.yml"
+
+    - name: update prometheus_rules
+      replace:
+        regexp: '^  - /etc/prometheus/prom_rules/*.yaml'
+        replace: '  - prom_rules/*.yaml'
         path: "{{ prometheus_dir }}/prometheus.yml"
 
     - name: update scylla_servers.yml lines
