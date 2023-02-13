@@ -32,11 +32,12 @@
       cd {{ base_dir }}
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
+        -f {{ scylla_monitoring_alertdata_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
         -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
         -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
+        -R {{ scylla_monitoring_prom_rules_path }}/ \
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
@@ -59,11 +60,12 @@
       cd {{ base_dir }}
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
+        -f {{ scylla_monitoring_alertdata_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
         -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
         -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
+        -R {{ scylla_monitoring_prom_rules_path }}/ \
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
   when:
@@ -83,11 +85,12 @@
       cd {{ base_dir }}
       ./start-all.sh \
         -d {{ scylla_monitoring_data_path }} \
+        -f {{ scylla_monitoring_alertdata_path }} \
         -v {{ scylla_monitoring_dashboards_versions|join(',') }} \
         -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
         -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
+        -R {{ scylla_monitoring_prom_rules_path }}/ \
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     ignore_errors: true
@@ -116,7 +119,7 @@
         -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
         -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
         -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_config_path }}/prometheus.rules.yml \
+        -R {{ scylla_monitoring_prom_rules_path }}/ \
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     become: true

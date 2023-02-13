@@ -22,6 +22,7 @@ scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/ar
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
 scylla_monitoring_config_path:  "{{ scylla_monitoring_deploy_path }}/config"
+scylla_monitoring_prom_rules_path:  "{{ scylla_monitoring_config_path }}/prom_rules"
 scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata"
 
 # List of monitoring dashboards to enable
@@ -33,7 +34,8 @@ scylla_monitoring_dashboards_versions:
 # If a path is provided, the file(s) will be taken from a local path and pushed to the config directory for the monitoring installation.
 # If "default" is set, the default file will be taken from the prometheus directory in the unpacked monitoring stack distribution.
 #
-# See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prom_rules/prometheus.rules.yml
+# Sample default file was prometheus.rules.yml at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prom_rules/
+# below file if other than default will be added to files from above prom_rules folder as "userdefined.rules.yml"
 prometheus_rules_file: default
 # See the original default file at https://github.com/scylladb/scylla-monitoring/blob/master/prometheus/prometheus.yml.template
 prometheus_yml_template_file: default
