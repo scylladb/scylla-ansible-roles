@@ -206,15 +206,13 @@
       perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /tmp/hex2list.py"
     when: is_reloc.stdout == 'non-reloc'
 
-  - name: set cpuset command
+  - name: set default cpuset command
     set_fact:
-      cpuset: "{{ cpuset_command }}"
-    when: cpuset_command is defined
+      cpuset_default: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
 
-  - name: set cpuset command
+  - name: determine cpuset command (custom or default)
     set_fact:
-      cpuset: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
-
+      cpuset: "{{ (cpuset_command is defined) | ternary(cpuset_command, cpuset_default) }}"
 
   - name: run cpuset
     shell: |
