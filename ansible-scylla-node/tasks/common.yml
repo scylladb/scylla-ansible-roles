@@ -252,21 +252,21 @@
     - (scylla_ssl.internode.enabled|bool) or
       (scylla_ssl.client.enabled|bool)
 
+# scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
+# Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
+# have an actual value resolved.
+# One way to do that is to resolve it and store as an Ansible fact.
+- name: Resolve a scylla_listen_address as a fact
+  set_fact:
+    listen_address: "{{ scylla_listen_address }}"
+
+# The same relates to the below
+- name: Resolve scylla_broadcast_address
+  set_fact:
+    broadcast_address: "{{ scylla_broadcast_address }}"
+
 - name: start_scylla_service dependent tasks
   block:
-    # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
-    # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
-    # have an actual value resolved.
-    # One way to do that is to resolve it and store as an Ansible fact.
-    - name: Resolve a scylla_listen_address as a fact
-      set_fact:
-        listen_address: "{{ scylla_listen_address }}"
-
-    # The same relates to the below
-    - name: Resolve scylla_broadcast_address
-      set_fact:
-        broadcast_address: "{{ scylla_broadcast_address }}"
-
     - name: Generate tokens for the new nodes
       run_once: true
       include_tasks: generate_tokens.yml
