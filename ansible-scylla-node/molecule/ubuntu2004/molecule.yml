@@ -15,6 +15,14 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
+    docker_networks:
+      - name: scylla
+        ipam_config:
+          - subnet: "10.11.0.0/16"
+            gateway: "10.11.0.254"
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.2"
   - name: node2
     image: jrei/systemd-ubuntu:20.04
     privileged: true
@@ -23,6 +31,9 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.3"
   - name: node3
     image: jrei/systemd-ubuntu:20.04
     privileged: true
@@ -31,6 +42,9 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.4"
 provisioner:
   name: ansible
   log: True
@@ -52,7 +66,7 @@ provisioner:
               write_iops: 1000
               write_bandwidth: 1000000
         scylla_seeds:
-          - "172.17.0.2"
+          - "10.11.0.2"
         dc: "test_dc"
         rack: "test_rack"
         skip_coredump: True
