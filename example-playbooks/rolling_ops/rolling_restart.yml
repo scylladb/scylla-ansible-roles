@@ -2,6 +2,10 @@
 # This playbook follows the Scylla rolling restart procedure described at https://docs.scylladb.com/operating-scylla/procedures/config-change/rolling_restart/
 # This playbook expects at least Scylla version 2021, which has seedless feature
 # The play must be run with the --limit argument, specifying either "all" or a list of node IPs
+#
+# In order to perform a rolling reboot set a 'reboot_hosts' boolean. By default, hosts are not rebooted.
+# For example
+#    ansible-playbook -i inventory.ini --limit x.y.z.k --extra-vars "reboot_hosts=true" <path to a playbook>/rolling_restart.yml
 
 - name: Rolling restart across a Scylla cluster - restart all inventory nodes
   hosts: scylla
@@ -36,6 +40,16 @@
       service:
         name: scylla-server
         state: stopped
+
+    - name: Reboot host and wait for it to restart
+      reboot:
+        msg: "Reboot initiated by Ansible"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: whoami
+      when: reboot_hosts is defined and reboot_hosts|bool
 
     - name: Start Scylla service
       service:
