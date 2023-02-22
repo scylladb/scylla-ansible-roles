@@ -23,16 +23,14 @@
   block:
     - name: check for current raid
       shell: |
-        C=$(cat /proc/mdstat |grep md0| wc -w)
-        echo $((0 + C - 4))
-      register: present_raid_disks
+        lsblk | grep -w "/var/lib/scylla" | wc -l
+      register: present_scylla_disks
 
-    - name: run raid setup
+    - name: run raid setup if there is no scylla mount yet
       shell: |
         scylla_raid_setup --disks "{{ scylla_raid_setup | join(',') }}" --update-fstab
       become: true
-      when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and scylla_raid_setup|length != present_raid_disks.stdout|int
-      ignore_errors: true
+      when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and present_scylla_disks.stdout|int == 0
 
 # Resulting map -> {'dc1': [node1, node2, node3], 'dc2': [node4, node5, node6]}
 - name: Create a map from dc to its list of nodes
