@@ -47,6 +47,9 @@ platforms:
         ipv4_address: "10.11.0.4"
 provisioner:
   name: ansible
+  env:
+    ANSIBLE_LIBRARY: $PWD/../example-playbooks/async_extra/library
+    ANSIBLE_ACTION_PLUGINS: $PWD/../example-playbooks/async_extra/action_plugins
   log: True
   options:
     vvv: True
