@@ -29,6 +29,9 @@ scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata
 scylla_monitoring_dashboards_versions:
   - '2021.1'
 
+# Username which will be used for the cql plugin if auth is enabled on scylla-server side
+# scylla_monitoring_cql_default_user: 'scylla_cql_monitor'
+
 # Prometheus configuration, alerting and monitoring settings files:
 # ---
 # If a path is provided, the file(s) will be taken from a local path and pushed to the config directory for the monitoring installation.

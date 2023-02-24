@@ -19,6 +19,12 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
+- set_fact:
+    monitoring_cql_username: "{{ item.split('=')[0] }}"
+    monitoring_cql_password: "{{ item.split('=')[1] }}"
+  when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
+  loop: "{{ groups['cql_credentials'] }}"
+
 - name: Start monitoring
   block:
   - name: ensure monitoring is stopped
@@ -68,6 +74,9 @@
         -R {{ scylla_monitoring_prom_rules_path }}/ \
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
+  environment:
+    SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
+    SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
   when:
     - run_docker_with_sudo is defined and run_docker_with_sudo|bool == False or
       run_docker_with_sudo is not defined
@@ -123,4 +132,7 @@
         -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
         {{ scylla_monitoring_params | default('') }}
     become: true
+  environment:
+    SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
+    SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
   when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
