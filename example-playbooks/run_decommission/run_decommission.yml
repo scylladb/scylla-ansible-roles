@@ -34,9 +34,9 @@
         async_task:
           script:  files/decommission.sh
           alias: scylla_decommission
-          async: async_timeout
-          retries: async_task_retries
-          delay: async_task_delay
+          async: "{{ async_timeout | int }}"
+          retries: "{{ async_task_retries | int }}"
+          delay: "{{ async_task_delay | int }}"
         register: decommission_output
       - name: Decommission logs
         ansible.builtin.debug: var=decommission_output
