@@ -29,6 +29,7 @@
           state: absent
           path: async_lock_directory
         when: remove_async_lock_directory
+        become: true
       - name: Run decommission
         async_task:
           script:  files/decommission.sh
