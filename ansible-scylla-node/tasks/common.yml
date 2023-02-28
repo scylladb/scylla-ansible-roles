@@ -329,7 +329,7 @@
       when: token_distributor is defined
   when: start_scylla_service is defined and start_scylla_service|bool
 
-- name: Check if authentication is enabled
+- name: Check if authentication and audit are enabled
   block:
     - command: cat /etc/scylla/scylla.yaml
       ignore_errors: true
@@ -342,6 +342,8 @@
         _authentication_enabled: |
           {% if (_scylla_yaml_map.authenticator is defined and (_scylla_yaml_map.authenticator == 'TransitionalAuthenticator' or _scylla_yaml_map.authenticator == 'PasswordAuthenticator')) or
           (_scylla_yaml_map.authorizer is defined and (_scylla_yaml_map.authorizer == 'TransitionalAuthorizer' or _scylla_yaml_map.authorizer == 'CassandraAuthorizer')) %}True{% else %}False{% endif %}
+        _audit_enabled: |
+          {% if (_scylla_yaml_map.audit is defined and _scylla_yaml_map.audit == 'table') %}True{% else %}False{% endif %}
   run_once: true
 
 - name: Adjust replication for system_auth keyspace
@@ -354,6 +356,17 @@
     - adjust_system_auth_replication is defined and adjust_system_auth_replication|bool
     - _authentication_enabled is defined and _authentication_enabled|bool
     - system_auth_rf is defined and system_auth_replication_strategy is defined
+
+- name: Adjust replication for audit keyspace
+  include_tasks: adjust_keyspace_replication.yml
+  vars:
+    _keyspace: "audit"
+    _keyspace_replication_strategy: "{{ audit_replication_strategy }}"
+    _keyspace_rf: "{{ audit_rf }}"
+  when:
+    - adjust_audit_replication is defined and adjust_audit_replication|bool
+    - _audit_enabled is defined and _audit_enabled|bool
+    - audit_rf is defined and audit_replication_strategy is defined
 
 - name: generate monitoring configuration
   include_tasks: monitoring_config.yml
