@@ -1,0 +1,48 @@
+---
+- name: Validate that all nodes are up before adjusting the replication
+  uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
+    follow_redirects: none
+    method: GET
+  register: _result
+  until: _result.status == 200
+  retries: 10
+  delay: 1
+
+- name: Get datacenter name
+  uri:
+    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/snitch/datacenter"
+    method: GET
+  register: _datacenter_out
+  until: _datacenter_out.status == 200
+  retries: 5
+  delay: 1
+
+- name: Prepare per DC replication_factor list
+  set_fact:
+    dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + hostvars[item]['_datacenter_out'].json + \"':\" + _keyspace_rf|string] }}"
+  loop: "{{ groups['scylla'] }}"
+  run_once: true
+
+- name: Adjust replication for {{ _keyspace }} keyspace
+  shell: |
+    cqlsh {{ broadcast_address }} -u {{ cql_username }} -p {{ cql_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+  run_once: true
+
+- name: Run cleanup
+  async_task:
+    shell: |
+      nodetool cleanup {{ _keyspace }}
+    alias: scylla_cleanup
+    async: "{{ cleanup_timeout_seconds }}"
+    retries: "{{ cleanup_timeout_seconds // 30 }}" # retries = cleanup_timeout_seconds / delay
+    delay: 30
+  register: _cleanup_output
+
+- name: Cleanup logs
+  debug: var=_cleanup_output
+
+- name: Run repair
+  include_tasks: repair.yml
+  vars:
+    keyspace: '{{ _keyspace }}'

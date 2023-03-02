@@ -129,11 +129,16 @@ scylla_authentication: True
 # Set this to false to disable automatic adjustment of system_auth keyspace replication
 adjust_system_auth_replication: False
 
-# Replication variables and cql credentials are intended to be used to adjust system_auh keyspace when necessary.
+# Set this to false to disable automatic adjustment of audit keyspace replication
+adjust_audit_replication: False
+
+# Replication variables and cql credentials are intended to be used to adjust system_auth and audit keyspaces when necessary.
 # Remember to update cql credentials here in case you're making updates to an already existing cluster which
 # doesn't have the default username/password(cassandra/cassandra)
 system_auth_rf: 3
 system_auth_replication_strategy: NetworkTopologyStrategy
+audit_rf: 3
+audit_replication_strategy: NetworkTopologyStrategy
 cql_username: cassandra
 cql_password: cassandra
 

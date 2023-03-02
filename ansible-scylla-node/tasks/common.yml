@@ -329,7 +329,7 @@
       when: token_distributor is defined
   when: start_scylla_service is defined and start_scylla_service|bool
 
-- name: Check if authentication is enabled
+- name: Check if authentication and audit are enabled
   block:
     - command: cat /etc/scylla/scylla.yaml
       ignore_errors: true
@@ -342,61 +342,31 @@
         _authentication_enabled: |
           {% if (_scylla_yaml_map.authenticator is defined and (_scylla_yaml_map.authenticator == 'TransitionalAuthenticator' or _scylla_yaml_map.authenticator == 'PasswordAuthenticator')) or
           (_scylla_yaml_map.authorizer is defined and (_scylla_yaml_map.authorizer == 'TransitionalAuthorizer' or _scylla_yaml_map.authorizer == 'CassandraAuthorizer')) %}True{% else %}False{% endif %}
+        _audit_enabled: |
+          {% if (_scylla_yaml_map.audit is defined and _scylla_yaml_map.audit == 'table') %}True{% else %}False{% endif %}
   run_once: true
 
-- name: If authentication is enabled, adjust replication for system_auth keyspace
-  block:
-    - name: Validate that all nodes are up before adjusting the replication
-      uri:
-        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
-        follow_redirects: none
-        method: GET
-      register: _result
-      until: _result.status == 200
-      retries: 10
-      delay: 1
-
-    - name: Get datacenter name
-      uri:
-        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/snitch/datacenter"
-        method: GET
-      register: _datacenter_out
-      until: _datacenter_out.status == 200
-      retries: 5
-      delay: 1
-
-    - name: Prepare per DC replication_factor list
-      set_fact:
-        dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + hostvars[item]['_datacenter_out'].json + \"':\" + system_auth_rf|string] }}"
-      loop: "{{ groups['scylla'] }}"
-      run_once: true
-
-    - name: Adjust replication for system_auth keyspace
-      shell: |
-        cqlsh {{ broadcast_address }} -u {{ cql_username }} -p {{ cql_password }} -e "ALTER KEYSPACE system_auth WITH replication = {'class': '{{ system_auth_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
-      run_once: true
-
-    - name: Cleanup system_auth
-      async_task:
-        shell: |
-          nodetool cleanup system_auth
-        alias: scylla_cleanup_system_auth
-        async: "{{ cleanup_timeout_seconds }}"
-        retries: "{{ cleanup_timeout_seconds // 30 }}" # retries = cleanup_timeout_seconds / delay
-        delay: 30
-      register: _cleanup_output
-
-    - name: Cleanup logs
-      debug: var=_cleanup_output
-
-    - name: Repair system_auth
-      include_tasks: repair.yml
-      vars:
-        keyspace: 'system_auth'
+- name: Adjust replication for system_auth keyspace
+  include_tasks: adjust_keyspace_replication.yml
+  vars:
+    _keyspace: "system_auth"
+    _keyspace_replication_strategy: "{{ system_auth_replication_strategy }}"
+    _keyspace_rf: "{{ system_auth_rf }}"
   when:
     - adjust_system_auth_replication is defined and adjust_system_auth_replication|bool
     - _authentication_enabled is defined and _authentication_enabled|bool
     - system_auth_rf is defined and system_auth_replication_strategy is defined
+
+- name: Adjust replication for audit keyspace
+  include_tasks: adjust_keyspace_replication.yml
+  vars:
+    _keyspace: "audit"
+    _keyspace_replication_strategy: "{{ audit_replication_strategy }}"
+    _keyspace_rf: "{{ audit_rf }}"
+  when:
+    - adjust_audit_replication is defined and adjust_audit_replication|bool
+    - _audit_enabled is defined and _audit_enabled|bool
+    - audit_rf is defined and audit_replication_strategy is defined
 
 - name: generate monitoring configuration
   include_tasks: monitoring_config.yml
