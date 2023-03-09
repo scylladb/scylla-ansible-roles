@@ -114,7 +114,7 @@
 
 - name: copy ALL rules files from the default prom_rules file location
   copy:
-    src: "{{ base_dir }}/prometheus/prom_rules"
+    src: "{{ base_dir }}/prometheus/prom_rules/"
     remote_src: true
     dest: "{{ scylla_monitoring_prom_rules_path }}/"
     mode: '0755'
