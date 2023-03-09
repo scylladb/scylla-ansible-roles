@@ -120,6 +120,11 @@
     mode: '0755'
   when: prom_rules_sub_file.stat.exists
 
+- name: Delete backfill directory
+  file:
+    state: absent
+    path: "{{ scylla_monitoring_prom_rules_path }}/back_fill/"
+
 - name: set prometheus template file from preset file
   copy:
     src: "{{ prometheus_yml_template_file }}"
