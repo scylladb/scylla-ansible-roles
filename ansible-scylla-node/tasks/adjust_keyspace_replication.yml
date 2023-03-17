@@ -24,9 +24,23 @@
   loop: "{{ groups['scylla'] }}"
   run_once: true
 
+- set_fact:
+    scylla_admin_username: "{{ scylla_admin_default_user }}"
+    scylla_admin_password: "{{ lookup('ini', scylla_admin_default_user, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+  when: scylla_admin_default_user is defined and 'cql_credentials' in groups
+
+- fail:
+    msg: "Make sure that {{ scylla_admin_default_user }} is defined in the 'cql_credentials' section"
+  when: scylla_admin_default_user is defined and scylla_admin_password is not defined
+
+- set_fact:
+    scylla_admin_username: "cassandra"
+    scylla_admin_password: "cassandra"
+  when: scylla_admin_default_user is not defined
+
 - name: Adjust replication for {{ _keyspace }} keyspace
   shell: |
-    cqlsh {{ broadcast_address }} -u {{ cql_username }} -p {{ cql_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+    cqlsh {{ broadcast_address }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
   run_once: true
 
 - name: Run cleanup
