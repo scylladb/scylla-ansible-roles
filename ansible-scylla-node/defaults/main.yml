@@ -201,6 +201,14 @@ scylla_io_probe: True
 # and then the configuration files will be propagated for the other nodes of each datacenter.
 scylla_io_probe_dc_aware: False
 
+# If set to True the content of io.conf is going to be aligned with the first node or the
+# first node in each DC (depending on the value of scylla_io_probe_dc_aware)
+always_replace_io_conf: False
+
+# If set to True the content of io_properties.yaml is going to be aligned with the first node or the
+# first node in each DC (depending on the value of scylla_io_probe_dc_aware)
+always_replace_io_properties: False
+
 # These can be arbitrarily set if scylla_io_probe is set to False
 # io_properties:
 #   disks:
