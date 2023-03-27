@@ -88,6 +88,7 @@
     group: root
     mode: '0644'
   become: true
+  when: skip_io_properties is defined and skip_io_properties|bool == false
 
 - name: configure NTP
   shell: |

@@ -295,6 +295,7 @@ devmode: False
 skip_cpuset: False
 skip_sysconfig: False
 skip_selinux: False
+skip_io_properties: False
 skip_ntp: False
 skip_swap: False
 
