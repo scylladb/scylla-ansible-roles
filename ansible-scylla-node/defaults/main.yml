@@ -210,7 +210,7 @@ always_replace_io_conf: False
 always_replace_io_properties: False
 
 # These can be arbitrarily set if scylla_io_probe is set to False
-# io_properties:
+# io_properties: |
 #   disks:
 #     - mountpoint: /var/lib/scylla/data
 #       read_iops: 10962999
