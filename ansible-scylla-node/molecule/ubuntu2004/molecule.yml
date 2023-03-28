@@ -61,7 +61,7 @@ provisioner:
         scylla_edition: "oss"
         scylla_version: "latest"
         scylla_io_probe: false
-        io_properties:
+        io_properties: |
           disks:
             - mountpoint: "/var/lib/scylla/data"
               read_iops: 2000
