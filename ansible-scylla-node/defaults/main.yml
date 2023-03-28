@@ -201,14 +201,6 @@ scylla_io_probe: True
 # and then the configuration files will be propagated for the other nodes of each datacenter.
 scylla_io_probe_dc_aware: False
 
-# If set to True, the role will always replace the io.conf file and you will
-# lose any manual values you might have configured on the nodes.
-always_replace_io_conf: False
-
-# If set to True, the role will always replace the io_properties.yaml file and you will
-# lose any manual values you might have configured on the nodes.
-always_replace_io_properties: False
-
 # These can be arbitrarily set if scylla_io_probe is set to False
 # io_properties:
 #   disks:

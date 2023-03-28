@@ -71,11 +71,6 @@
   run_once: "{{ not scylla_io_probe_dc_aware|bool }}"
   become: true
 
-- name: For every node, check if io.conf already exists
-  stat:
-    path: /etc/scylla.d/io.conf
-  register: _io_conf_file
-
 - name: Set io.conf
   lineinfile:
     path: /etc/scylla.d/io.conf
@@ -83,12 +78,7 @@
     line: "{% if scylla_io_probe|bool and scylla_io_probe_dc_aware|bool %}{{ hostvars[dc_to_node_list[dc][0]]['io_conf'] }}{% else %}{{ io_conf }}{% endif %}"
     create: yes
   become: true
-  when: io_conf is defined and (_io_conf_file.stat.exists|bool == false or always_replace_io_conf|bool)
-
-- name: For every node, check if io_properties.yaml already exists
-  stat:
-    path: /etc/scylla.d/io_properties.yaml
-  register: _io_properties_file
+  when: io_conf is defined
 
 - name: Set io_properties
   template:
@@ -98,7 +88,6 @@
     group: root
     mode: '0644'
   become: true
-  when: _io_properties_file.stat.exists|bool == false or always_replace_io_properties|bool
 
 - name: configure NTP
   shell: |
