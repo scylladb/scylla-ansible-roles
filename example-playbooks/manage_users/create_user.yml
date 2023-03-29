@@ -1,0 +1,19 @@
+---
+- name: Create user {{ username }}
+  block:
+  - set_fact:
+      superuser_str: "{% if superuser|bool %}SUPERUSER{% else %}NOSUPERUSER{% endif %}"
+
+  - shell: |
+      cqlsh {{ cql_address }} {{ cql_port }} -u {{ admin_username }} -p {{ admin_password }} -e "CREATE USER IF NOT EXISTS {{ username }} WITH PASSWORD '{{ password }}' {{ superuser_str }};"
+
+  - shell: |
+      cqlsh {{ cql_address }} {{ cql_port }} -u {{ admin_username }} -p {{ admin_password }} -e "ALTER ROLE {{ username }} WITH PASSWORD = '{{ password }}'"
+
+- name: Grant permissions
+  shell: |
+    cqlsh {{ cql_address }} {{ cql_port }} -u {{ admin_username }} -p {{ admin_password }} -e "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to {{ username }};"
+  loop: "{{ permissions | list }}"
+  loop_control:
+    loop_var: outer_item
+  when: permissions is defined
