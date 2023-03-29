@@ -1,0 +1,90 @@
+---
+
+#     This playbook allows the creation of cql users and deletes the default cassandra user as recommended in scylla's
+#     documentation -> {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
+#     By default this playbook will add the users scylla_admin (superuser), scylla_cql_monitor and customer_admin,
+#     but you can change the list of users and permissions by overriding the variable users.
+#     Every user defined in this playbook must be also defined in the inventory file under the section [cql_credentials] followed
+#     by its password.
+#     E.g.:
+#     [cql_credentials]
+#     scylla_admin=password1
+#     scylla_cql_monitor=password2
+#     customer_admin=password3
+#
+#     Operations allowed:
+#       * Addition of users
+#       * Addition of permissions for any user (Removing permissions isn't supported)
+#       * Changing password for any user except scylla_admin
+#
+#     Usage:
+#       ansible-playbook -i inventory.ini manage_users.yaml [-e "@users.yml"]
+
+- name: Add users from inventory and delete cassandra user
+  hosts: scylla
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Get cql address and check if authentication is enabled
+      block:
+        - command: cat /etc/scylla/scylla.yaml
+          register: _scylla_yaml_out
+
+        - set_fact:
+            _scylla_yaml_map: "{{ _scylla_yaml_out.stdout | from_yaml }}"
+
+        # rpc_address is the listen address for client connections. If not set
+        # the localhost address is used and if set to 0.0.0.0 the broadcast_rpc_address
+        # must be set and used.
+        - set_fact:
+            cql_address: "{{ _scylla_yaml_map.rpc_address|default(scylla_nic_ipv4_addr) }}"
+
+        - set_fact:
+            cql_address: "{{ _scylla_yaml_map.broadcast_rpc_address }}"
+          when: cql_address == "0.0.0.0"
+
+        - set_fact:
+            cql_port: "{{ _scylla_yaml_map.native_transport_port|default(9042)|int }}"
+
+        - set_fact:
+            _authentication_enabled: |
+              {% if (_scylla_yaml_map.authenticator is defined and (_scylla_yaml_map.authenticator == 'TransitionalAuthenticator' or _scylla_yaml_map.authenticator == 'PasswordAuthenticator')) or
+              (_scylla_yaml_map.authorizer is defined and (_scylla_yaml_map.authorizer == 'TransitionalAuthorizer' or _scylla_yaml_map.authorizer == 'CassandraAuthorizer')) %}True{% else %}False{% endif %}
+
+    - fail:
+        msg: "Authentication is not enabled!"
+      when: _authentication_enabled|bool == false
+      run_once: true
+
+    - name: Set password for scylla_admin
+      set_fact:
+        scylla_admin_password: "{{ lookup('ini', scylla_admin_username, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+
+    - name: Create scylla_admin user
+      include_tasks: create_user.yml
+      vars:
+        superuser: true
+        admin_username: "cassandra"
+        admin_password: "cassandra"
+        username: "{{ scylla_admin_username }}"
+        password: "{{ scylla_admin_password }}"
+      ignore_errors: true
+      run_once: true
+
+    - name: Create other users
+      include_tasks: create_user.yml
+      vars:
+        superuser: "{{ item.value.superuser }}"
+        admin_username: "{{ scylla_admin_username }}"
+        admin_password: "{{ scylla_admin_password }}"
+        username: "{{ item.key }}"
+        password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+        permissions: "{{ item.value.permissions }}"
+      loop: "{{ users | dict2items }}"
+      run_once: true
+
+    - name: Delete cassandra user
+      shell: |
+        cqlsh {{ cql_address }} {{ cql_port }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "DROP ROLE IF EXISTS 'cassandra';"
+      run_once: true
+      when: delete_cassandra_user|bool

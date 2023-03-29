@@ -1,0 +1,24 @@
+scylla_nic: "{{ ansible_default_ipv4.interface }}"
+scylla_nic_ipv4_addr: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+
+delete_cassandra_user: true
+
+scylla_admin_username: scylla_admin
+
+users:
+  scylla_cql_monitor:
+    superuser: false
+    permissions:
+      - ['SELECT', 'KEYSPACE SYSTEM']
+  customer_admin:
+    superuser: false
+    permissions:
+      - ['CREATE', 'ALL ROLES']
+      - ['AUTHORIZE', 'ALL ROLES']
+      - ['DESCRIBE', 'ALL ROLES']
+      - ['AUTHORIZE', 'ALL KEYSPACES']
+      - ['CREATE', 'ALL KEYSPACES']
+      - ['ALTER', 'ALL KEYSPACES']
+      - ['SELECT', 'ALL KEYSPACES']
+      - ['MODIFY', 'ALL KEYSPACES']
+      - ['AUTHORIZE', 'ALL KEYSPACES']
