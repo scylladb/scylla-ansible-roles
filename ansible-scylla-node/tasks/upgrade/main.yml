@@ -16,13 +16,13 @@
           minimum_version: '8.0',
           template: 'redhat',
           oss: ['4.4','4.3','4.2','4.1'],
-          enterprise: ['2022.2','2022.1','2021.1','2020.1']
+          enterprise: ['2022.2','2021.1','2020.1']
         },
         '7': {
           minimum_version: '7.3',
           template: 'redhat',
           oss: ['4.4','4.3','4.2','4.1','4.0'],
-          enterprise: ['2022.2','2022.1','2021.1','2020.1']
+          enterprise: ['2022.2','2021.1','2020.1']
         }
       },
       # Debian
