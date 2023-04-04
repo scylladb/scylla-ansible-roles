@@ -65,7 +65,6 @@ Example Playbook
       - "{{ groups['scylla'][1] }}"
     scylla_api_address: '127.0.0.1'
     scylla_api_port: '10000'
-    generate_monitoring_config: True
     scylla_manager_enabled: true
     scylla_manager_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.1-bionic.list"
 

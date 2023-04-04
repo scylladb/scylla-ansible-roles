@@ -5,10 +5,11 @@
   args:
     executable: "/usr/bin/env python3"
   register: genconfig
+  delegate_to: "{{ groups['scylla'][0] }}"
 
 - name: store output in a file
   copy:
     content: "{{ genconfig.stdout }}"
-    dest: ./scylla_servers.yml
+    dest: "{{ scylla_servers_yml_path }}"
   delegate_to: localhost
 
