@@ -79,16 +79,24 @@
   delegate_to: localhost
   run_once: true
 
-- name: generate scylla_servers.yml
-  include_tasks: generate_scylla_servers.yml
-  when: scylla_servers_stat.stat.exists|bool == false
-  run_once: true
-
-- name: insert scylla_servers.yml
+- name: insert scylla_servers.yml if provided by the user
   copy:
     src: "{{ scylla_servers_yml_path }}"
     dest: "{{ scylla_monitoring_config_path }}/scylla_servers.yml"
     mode: '0644'
+  when: scylla_servers_stat.stat.exists|bool
+
+- name: generate scylla_servers.yml for monitoring
+  block:
+    - command: nodetool status
+      register: nodetool_status_out
+      delegate_to: "{{ groups['scylla'][0] }}"
+
+    - shell: "{{ base_dir }}/genconfig.py -c {{ scylla_cluster_name }} -NS -o {{ scylla_monitoring_config_path }}/scylla_servers.yml"
+      args:
+        stdin: "{{ nodetool_status_out.stdout }}"
+  when: scylla_servers_stat.stat.exists|bool == false
+  run_once: true
 
 - name: set up scylla_manager_servers.yml
   copy:
