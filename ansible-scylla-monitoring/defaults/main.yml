@@ -1,4 +1,5 @@
 ---
+# scylla_cluster_name: 'testcluster123'
 
 # Set this to "nondocker" for a flat installation or "docker" for the dockerized install (recommended)
 # Default and recommended install is via docker

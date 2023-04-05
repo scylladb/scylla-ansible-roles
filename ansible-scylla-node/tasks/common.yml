@@ -387,11 +387,6 @@
     - _audit_enabled is defined and _audit_enabled|bool
     - audit_rf is defined and audit_replication_strategy is defined
 
-- name: generate monitoring configuration
-  include_tasks: monitoring_config.yml
-  when: generate_monitoring_config|bool
-  run_once: true
-
 - name: configure the Manager agents
   include_tasks: manager_agents.yml
   when: scylla_manager_enabled|bool

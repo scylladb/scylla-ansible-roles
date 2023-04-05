@@ -262,9 +262,6 @@ scylla_ssl:
   client:
     enabled: true
 
-# create scylla_servers.yml for later use with monitoring
-generate_monitoring_config: True
-
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 # deprecated in favour of below, it will be dropped soon, below should be used
