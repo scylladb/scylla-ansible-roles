@@ -61,7 +61,7 @@
         scylla_admin_password: "{{ lookup('ini', scylla_admin_username, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
 
     - name: Create scylla_admin user
-      include_tasks: create_user.yml
+      import_tasks: create_user.yml
       vars:
         superuser: true
         admin_username: "cassandra"
