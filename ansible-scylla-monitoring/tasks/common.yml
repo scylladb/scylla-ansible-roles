@@ -86,7 +86,7 @@
     mode: '0644'
   when: scylla_servers_stat.stat.exists|bool
 
-- name: generate scylla_servers.yml for monitoring
+- name: generate scylla_servers.yml for monitoring using nodetool status
   block:
     - command: nodetool status
       register: nodetool_status_out
@@ -95,7 +95,24 @@
     - shell: "{{ base_dir }}/genconfig.py -c {{ scylla_cluster_name }} -NS -o {{ scylla_monitoring_config_path }}/scylla_servers.yml"
       args:
         stdin: "{{ nodetool_status_out.stdout }}"
-  when: scylla_servers_stat.stat.exists|bool == false
+  when: use_nodetool_status_with_genconfig|bool and scylla_servers_stat.stat.exists|bool == false
+  run_once: true
+
+- name: generate scylla_servers.yml for monitoring using the inventory
+  block:
+    # Resulting map -> {'-dc dc1': [node1, node2, node3], '-dc dc2': [node4, node5, node6]}
+    - name: Create a map from dc to its list of nodes
+      set_fact:
+        dc_to_node_list: "{{ dc_to_node_list | default({}) | combine( {'-dc ' + hostvars[item]['dc']: (dc_to_node_list | default({}))['-dc ' + hostvars[item]['dc']] | default([]) + [item]} ) }}"
+      loop: "{{ groups['scylla'] }}"
+
+    # Resulting str -> "-dc dc1:node1,node2,node3 -dc dc2:node4,node5,node6"
+    - name: Convert dc_to_node_list to a string to be used as argument for genconfig.py
+      set_fact:
+        dc_to_node_list_str: "{{ dc_to_node_list.keys() | zip(dc_to_node_list.values()) | map('join', ':') | join(' ') | replace('[','') | replace(']','') | replace(\"'\", '') | replace (', ', ',') }}"
+
+    - shell: "{{ base_dir }}/genconfig.py -c {{ scylla_cluster_name }} -o {{ scylla_monitoring_config_path }}/scylla_servers.yml {{ dc_to_node_list_str }}"
+  when: use_nodetool_status_with_genconfig|bool == false and scylla_servers_stat.stat.exists|bool == false
   run_once: true
 
 - name: set up scylla_manager_servers.yml
