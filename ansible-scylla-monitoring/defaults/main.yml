@@ -26,6 +26,11 @@ scylla_monitoring_config_path:  "{{ scylla_monitoring_deploy_path }}/config"
 scylla_monitoring_prom_rules_path:  "{{ scylla_monitoring_config_path }}/prom_rules"
 scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata"
 
+# If set to True, the role will generate scylla_servers.yml based on the output of nodetool status
+# If set to False, the dc variable must be defined in the inventory for each one of the nodes and the role
+# will use the information from the inventory to generate scylla_servers.yml.
+use_nodetool_status_with_genconfig: false
+
 # List of monitoring dashboards to enable
 scylla_monitoring_dashboards_versions:
   - '2021.1'
