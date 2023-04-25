@@ -49,6 +49,8 @@
         # And finally, we are going to get rid of duplications.
         shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
         register: aptversions
+        check_mode: no
+        changed_when: false
         vars:
           scylla_version_escaped: "{{ scylla_version_to_install | regex_escape }}"
 

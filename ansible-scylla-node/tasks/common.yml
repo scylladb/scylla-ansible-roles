@@ -214,6 +214,8 @@
       if [ -f /usr/lib/scylla/perftune.py ]; then echo non-reloc; fi
       if [ -f /opt/scylladb/scripts/perftune.py ]; then echo reloc; fi
     register: is_reloc
+    check_mode: no
+    changed_when: false
 
   - name: upload hex2list.py to /tmp
     copy:
@@ -283,6 +285,7 @@
 - name: Resolve scylla_broadcast_address
   set_fact:
     broadcast_address: "{{ scylla_broadcast_address }}"
+  check_mode: no
 
 - name: start_scylla_service dependent tasks
   block:
@@ -328,6 +331,8 @@
       retries: 300
       delay: 1
       when: full_inventory|bool
+      check_mode: no
+      changed_when: false
 
     - name: check API access
       uri:
@@ -338,6 +343,7 @@
       until: _result.status == 200
       retries: 90
       delay: 1
+      check_mode: no
 
     - name: Delete initial_token in scylla.yaml
       lineinfile:

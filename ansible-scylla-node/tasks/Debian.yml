@@ -39,6 +39,7 @@
   - name: Run "apt-get update"
     apt:
       update_cache: yes
+    changed_when: false
 
   - name: Install additional dependencies
     apt:
@@ -95,6 +96,7 @@
     - name: Run "apt-get update"
       apt:
         update_cache: yes
+      changed_when: false
 
     - name: install the manager agent
       apt:
