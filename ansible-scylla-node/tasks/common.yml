@@ -387,6 +387,26 @@
     - _audit_enabled is defined and _audit_enabled|bool
     - audit_rf is defined and audit_replication_strategy is defined
 
+- name: Adjust replication for system_distributed keyspace
+  include_tasks: adjust_keyspace_replication.yml
+  vars:
+    _keyspace: "system_distributed"
+    _keyspace_replication_strategy: "{{ system_distributed_replication_strategy }}"
+    _keyspace_rf: "{{ system_distributed_rf }}"
+  when:
+    - adjust_system_distributed_replication is defined and adjust_system_distributed_replication|bool
+    - system_distributed_rf is defined and system_distributed_replication_strategy is defined
+
+- name: Adjust replication for system_traces keyspace
+  include_tasks: adjust_keyspace_replication.yml
+  vars:
+    _keyspace: "system_traces"
+    _keyspace_replication_strategy: "{{ system_traces_replication_strategy }}"
+    _keyspace_rf: "{{ system_traces_rf }}"
+  when:
+    - adjust_system_traces_replication is defined and adjust_system_traces_replication|bool
+    - system_traces_rf is defined and system_traces_replication_strategy is defined
+
 - name: configure the Manager agents
   include_tasks: manager_agents.yml
   when: scylla_manager_enabled|bool

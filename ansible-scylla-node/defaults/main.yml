@@ -132,11 +132,21 @@ adjust_system_auth_replication: False
 # Set this to false to disable automatic adjustment of audit keyspace replication
 adjust_audit_replication: False
 
+# Set this to false to disable automatic adjustment of system_distributed keyspace replication
+adjust_system_distributed_replication: False
+
+# Set this to false to disable automatic adjustment of system_traces keyspace replication
+adjust_system_traces_replication: False
+
 # Replication variables and cql credentials are intended to be used to adjust system_auth and audit keyspaces when necessary.
 system_auth_rf: 3
 system_auth_replication_strategy: NetworkTopologyStrategy
 audit_rf: 3
 audit_replication_strategy: NetworkTopologyStrategy
+system_distributed_rf: 3
+system_distributed_replication_strategy: NetworkTopologyStrategy
+system_traces_rf: 3
+system_traces_replication_strategy: NetworkTopologyStrategy
 
 # scylla_admin_default_user must be a valid user defined in the inventory.ini under the cql_credentials section.
 # scylla_admin_default_user: scylla_admin
