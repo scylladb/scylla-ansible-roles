@@ -31,6 +31,13 @@
     state: started
     enabled: yes
 
+- name: Enable and start 'scylla-fstrim.timer' service
+  ansible.builtin.service:
+    name: scylla-fstrim.timer
+    state: started
+    enabled: yes
+  become: true
+
 - name: scylla-manager-agent start
   become: true
   service:
