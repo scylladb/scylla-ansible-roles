@@ -22,3 +22,4 @@ users:
       - ['SELECT', 'ALL KEYSPACES']
       - ['MODIFY', 'ALL KEYSPACES']
       - ['AUTHORIZE', 'ALL KEYSPACES']
+      - ['ALTER', 'ALL ROLES'] # This is a workaround and should be removed once {https://github.com/scylladb/scylladb/issues/14279} is fixed
