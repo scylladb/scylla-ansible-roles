@@ -7,6 +7,7 @@
     state: started
   notify:
     - scylla-manager-agent restart
+    - Enable and start 'node-exporter.service' service (legacy)
     - Enable and start 'scylla-node-exporter.service' service
   become: true
 

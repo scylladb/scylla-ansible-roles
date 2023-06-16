@@ -114,15 +114,15 @@
   become: true
   when: skip_ntp is defined and skip_ntp|bool == false
 
-- name: node exporter setup
+- name: Run 'node_exporter_install' (legacy)
   shell: |
     node_exporter_install --force
-  when: install_type == 'online'
   become: true
   notify:
-    - node_exporter start
-  ignore_errors: true
-  #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
+    - Enable and start 'node-exporter.service' service (legacy)
+  when:
+    - install_type == 'online'
+    - ansible_facts.services["scylla-node-exporter.service"] is not defined
 
 - name: configure Scylla
   shell: |
