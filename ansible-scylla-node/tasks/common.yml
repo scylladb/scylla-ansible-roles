@@ -184,6 +184,7 @@
   - name: configure fstrim
     shell: |
       scylla_fstrim_setup
+    notify: Enable and start 'scylla-fstrim.timer' service
 
   - name: configure sysconfig
     shell: |
