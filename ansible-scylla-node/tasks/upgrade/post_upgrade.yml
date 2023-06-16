@@ -5,6 +5,8 @@
   ansible.builtin.service:
     name: scylla-server
     state: started
-  notify: scylla-manager-agent restart
+  notify:
+    - scylla-manager-agent restart
+    - Enable and start 'scylla-node-exporter.service' service
   become: true
 
