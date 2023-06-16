@@ -65,6 +65,7 @@
   - name: Install Scylla packages
     include_tasks: Debian_install.yml
   become: true
+  notify: Enable and start 'scylla-node-exporter.service' service
 
 # TODO: Implement this for the debian based distros
 # - name: install prerequisite python-yaml
