@@ -5,21 +5,31 @@ delete_cassandra_user: true
 
 scylla_admin_username: scylla_admin
 
-users:
+# Every user defined here must be also defined in the inventory file
+# under the section [cql_credentials] followed by its password.
+internal_users:
   scylla_cql_monitor:
     superuser: false
     permissions:
       - ['SELECT', 'KEYSPACE SYSTEM']
-  customer_admin:
-    superuser: false
-    permissions:
-      - ['CREATE', 'ALL ROLES']
-      - ['AUTHORIZE', 'ALL ROLES']
-      - ['DESCRIBE', 'ALL ROLES']
-      - ['AUTHORIZE', 'ALL KEYSPACES']
-      - ['CREATE', 'ALL KEYSPACES']
-      - ['ALTER', 'ALL KEYSPACES']
-      - ['SELECT', 'ALL KEYSPACES']
-      - ['MODIFY', 'ALL KEYSPACES']
-      - ['AUTHORIZE', 'ALL KEYSPACES']
-      - ['ALTER', 'ALL ROLES'] # This is a workaround and should be removed once {https://github.com/scylladb/scylladb/issues/14279} is fixed
+
+# Differently from internal users, the password for customer users
+# must be defined only here, and not in the inventory.
+# customer_users:
+#   customer_admin:
+#     password: p@ssw0rd1
+#     permissions:
+#       - ['CREATE', 'ALL ROLES']
+#       - ['AUTHORIZE', 'ALL ROLES']
+#       - ['DESCRIBE', 'ALL ROLES']
+#       - ['AUTHORIZE', 'ALL KEYSPACES']
+#       - ['CREATE', 'ALL KEYSPACES']
+#       - ['ALTER', 'ALL KEYSPACES']
+#       - ['SELECT', 'ALL KEYSPACES']
+#       - ['MODIFY', 'ALL KEYSPACES']
+#       - ['AUTHORIZE', 'ALL KEYSPACES']
+#       - ['ALTER', 'ALL ROLES'] # This is a workaround and should be removed once {https://github.com/scylladb/scylladb/issues/14279} is fixed
+#   another_customer_user:
+#     password: p@ssw0rd2
+#     permissions:
+#       - ['SELECT', 'ALL KEYSPACES']
