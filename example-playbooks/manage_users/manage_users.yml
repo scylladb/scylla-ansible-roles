@@ -2,15 +2,22 @@
 
 #     This playbook allows the creation of cql users and deletes the default cassandra user as recommended in scylla's
 #     documentation -> {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
-#     By default this playbook will add the users scylla_admin (superuser), scylla_cql_monitor and customer_admin,
-#     but you can change the list of users and permissions by overriding the variable users.
-#     Every user defined in this playbook must be also defined in the inventory file under the section [cql_credentials] followed
+#     By default this playbook will add the internal users scylla_admin (superuser) and scylla_cql_monitor,
+#     but you can change the list of internal users and permissions by overriding the variable internal_users.
+#     Besides the internal users, you can also pass a list of customer_users to this playbook.
+#     The customer_users variable is useful for creating on demand users that you don't want to mantain or keep track of once they're
+#     created, while the internal_users variable is useful for users that should be mantained and for which you want to be able to make sure
+#     that they are always in the same state, with the same set of permissions and with the same password.
+#     Every internal user defined in this playbook must be also defined in the inventory file under the section [cql_credentials] followed
 #     by its password.
 #     E.g.:
 #     [cql_credentials]
 #     scylla_admin=password1
 #     scylla_cql_monitor=password2
 #     customer_admin=password3
+#
+#     For customer users it's not necessary to define the password in the inventory. You should define it in the customer_users
+#     variable itself. Check 'vars/main.yml' for an example.
 #
 #     Operations allowed:
 #       * Addition of users
@@ -71,16 +78,29 @@
       ignore_errors: true
       run_once: true
 
-    - name: Create other users
+    - name: Create internal users
       include_tasks: create_user.yml
       vars:
-        superuser: "{{ item.value.superuser }}"
+        superuser: "{{ item.value.superuser|default(false) }}"
         admin_username: "{{ scylla_admin_username }}"
         admin_password: "{{ scylla_admin_password }}"
         username: "{{ item.key }}"
         password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
         permissions: "{{ item.value.permissions }}"
-      loop: "{{ users | dict2items }}"
+      loop: "{{ internal_users | dict2items }}"
+      run_once: true
+
+    - name: Create customer users
+      include_tasks: create_user.yml
+      vars:
+        superuser: "{{ item.value.superuser|default(false) }}"
+        admin_username: "{{ scylla_admin_username }}"
+        admin_password: "{{ scylla_admin_password }}"
+        username: "{{ item.key }}"
+        password: "{{ item.value.password }}"
+        permissions: "{{ item.value.permissions }}"
+      loop: "{{ customer_users | dict2items }}"
+      when: customer_users is defined
       run_once: true
 
     - name: Delete cassandra user
