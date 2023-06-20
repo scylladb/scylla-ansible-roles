@@ -24,39 +24,12 @@
     name: scylla-server
     state: stopped
 
-- name: Enable and start 'node-exporter.service' service (legacy)
-  block:
-  - name: Disable and stop 'scylla-node-exporter.service' service
-    ansible.builtin.service:
-      name: scylla-node-exporter.service
-      state: stopped
-      enabled: no
-    when: ansible_facts.services["scylla-node-exporter.service"] is defined
-
-  - name: Enable and start 'node-exporter.service' service (legacy)
-    ansible.builtin.service:
-      name: node-exporter.service
-      state: started
-      enabled: yes
+- name: node_exporter start
   become: true
-  when: ansible_facts.services["node-exporter.service"] is defined
-
-- name: Enable and start 'scylla-node-exporter.service' service
-  block:
-  - name: Disable and stop 'node-exporter.service' service (legacy)
-    ansible.builtin.service:
-      name: node-exporter.service
-      state: stopped
-      enabled: no
-    when: ansible_facts.services["node-exporter.service"] is defined
-
-  - name: Enable and start 'scylla-node-exporter.service' service
-    ansible.builtin.service:
-      name: scylla-node-exporter.service
-      state: started
-      enabled: yes
-  become: true
-  when: ansible_facts.services["scylla-node-exporter.service"] is defined
+  service:
+    name: node-exporter
+    state: started
+    enabled: yes
 
 - name: Enable and start 'scylla-fstrim.timer' service
   ansible.builtin.service:
