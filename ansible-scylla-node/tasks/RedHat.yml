@@ -111,6 +111,7 @@
       lock_timeout: 60
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
+  notify: Enable and start 'scylla-node-exporter.service' service
 
 - name: Configure SELinux
   shell: |
