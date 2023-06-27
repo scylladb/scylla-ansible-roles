@@ -1,0 +1,57 @@
+global:
+  smtp_smarthost: localhost:25
+  smtp_from: alertmanager@example.org
+inhibit_rules:
+- equal:
+  - alertname
+  source_match:
+    severity: "4"
+  target_match:
+    severity: "3"
+- equal:
+  - alertname
+  source_match:
+    severity: "3"
+  target_match:
+    severity: "2"
+- equal:
+  - alertname
+  source_match:
+    severity: "2"
+  target_match:
+    severity: "1"
+receivers:
+- name: team-X-mails-regular
+  email_configs:
+  - to: {{ alerts_receiver_email }}
+    from: {{ alerts_sender_email }}
+    smarthost: smtp.gmail.com:587
+    auth_username: {{ alerts_sender_email }}
+    auth_identity: {{ alerts_sender_email }}
+    auth_password: {{ alerts_sender_password }}
+    send_resolved: false
+    headers:
+      Subject: '[PRODUCTION] NORMAL Managed-Services - Cluster:{{ scylla_cluster_name }} Account: {{ account_name }}'
+- name: team-X-mails-urgent
+  email_configs:
+  - to: {{ alerts_receiver_email }}
+    from: {{ alerts_sender_email }}
+    smarthost: smtp.gmail.com:587
+    auth_username: {{ alerts_sender_email }}
+    auth_identity: {{ alerts_sender_email }}
+    auth_password: {{ alerts_sender_password }}
+    send_resolved: false
+    headers:
+      Subject: '[PRODUCTION] URGENT Managed-Services - Cluster:{{ scylla_cluster_name }} Account: {{ account_name }}'
+route:
+  group_interval: 5m
+  group_wait: 30s
+  repeat_interval: 6h
+  receiver: team-X-mails-regular
+  routes:
+  - match:
+      severity: "4"
+    receiver: team-X-mails-urgent
+  - match:
+      severity: "3"
+    receiver: team-X-mails-urgent

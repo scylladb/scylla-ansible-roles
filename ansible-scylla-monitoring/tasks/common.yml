@@ -176,17 +176,22 @@
     mode: '0644'
   when: prometheus_yml_template_file is defined and prometheus_yml_template_file == 'default'
 
-- name: set rule_config file from preset file
-  copy:
-    src: "{{ rule_config_file }}"
-    dest: "{{ scylla_monitoring_config_path }}/rule_config.yml"
-    mode: '0644'
-  when: rule_config_file is defined and rule_config_file != 'default'
+- stat:
+    path: "{{ rule_config_yml_path }}"
+  register: rule_config_stat
+  delegate_to: localhost
+  run_once: true
 
-- name: set rule_config from the default file
+- name: insert rule_config.yml if provided by the user
   copy:
-    src: "{{ base_dir }}/prometheus/rule_config.yml"
-    remote_src: true
+    src: "{{ rule_config_yml_path }}"
     dest: "{{ scylla_monitoring_config_path }}/rule_config.yml"
     mode: '0644'
-  when: rule_config_file is defined and rule_config_file == 'default'
+  when: rule_config_stat.stat.exists|bool
+
+- name: Generate rule_config if not provided by the user
+  template:
+    src: templates/rule_config.yml.j2
+    dest: "{{ scylla_monitoring_config_path }}/rule_config.yml"
+    mode: '0644'
+  when: rule_config_stat.stat.exists|bool == false
