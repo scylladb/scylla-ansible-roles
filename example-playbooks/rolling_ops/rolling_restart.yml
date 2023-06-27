@@ -60,7 +60,7 @@
       wait_for:
         port: 9042
         host: "{{ listen_address.stdout }}"
-        timeout: 3000
+        timeout: "{{ scylla_bootstrap_wait_time_sec | default(3000) }}"
 
     - name: wait for the cluster to become healthy
       shell: |
