@@ -202,3 +202,40 @@
   hosts: scylla-monitor
   roles:
     - ansible-scylla-monitoring
+
+
+# This play will repair the new node if RBNO was not used and skip_repair is not set to true
+- name: Repair the new node, if necessary
+  hosts: scylla-manager
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Skip this play if RBNO was used for the replacement or if skip_repair is true
+      meta: end_play
+      when: skip_repair|bool or (hostvars[new_node]['_enable_rbno_grep'].failed == false and hostvars[new_node]['_rbno_enabled'] and hostvars[new_node]['_rbno_allowed_for_replace'])
+
+    - name: Get cluster id
+      shell: |
+        sctool status | grep 'Cluster: {{ scylla_cluster_name }} ' | awk '{print $3}' | tr -d '()'
+      register: _cluster_id
+
+    - fail:
+        msg: "Unable to find cluster {{ scylla_cluster_name }} in scylla-manager"
+      when: _cluster_id.stdout|length == 0
+
+    - name: Repair the new node
+      shell: |
+        sctool repair --cluster "{{ _cluster_id.stdout }}" --host "{{ new_node }}" {{ extra_repair_params }}
+      register: _repair_id
+
+    - name: Wait for the repair to finish
+      shell:
+        sctool progress "{{ _repair_id.stdout }}" --cluster "{{ _cluster_id.stdout }}" | grep "Status:" | awk '{print $2}'
+      register: _repair_status
+      until: _repair_status.stdout != "RUNNING"
+      retries: "{{ new_node_repair_timeout_seconds|int // 30 }}" # retries = new_node_repair_timeout_seconds / delay
+      delay: 30
+
+    - fail:
+        msg: "Repair failed!"
+      when: _repair_status.stdout != "DONE"
