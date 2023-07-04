@@ -72,3 +72,133 @@
             io_properties: "{{ _io_properties.stdout }}"
       delegate_to: "{{ alive_node }}"
       run_once: true
+
+
+# This play will install Scylla in the new node and update the existing nodes.
+# The same variables used when the node role was executed for the replaced node should also
+# be passed to this playbook and will be used by this play.
+- name: Install/Update Scylla in all nodes
+  hosts: scylla
+  vars_files:
+    - vars/main.yml
+  vars:
+    firewall_enabled: true
+  roles:
+    - ansible-scylla-node
+
+
+# This play will set the ip/host_id of the replaced node in the scylla.yaml of the new node,
+# start the new node, and then wait until the new node finishes joining the cluster. The same
+# variables used when the node role was executed for the replaced node should also be passed
+# to this playbook and will be used by this play.
+- name: Start Scylla in the new node
+  hosts: "{{ new_node }}"
+  vars_files:
+    - vars/main.yml
+  become: true
+  tasks:
+    - name: Check if replace_node_first_boot is available in the current Scylla version
+      shell: |
+        scylla --help | grep replace-node-first-boot
+      register: _replace_node_first_boot_grep
+      ignore_errors: true
+
+    - name: Set replace_node_first_boot
+      block:
+        - name: Get the host id for all nodes
+          uri:
+            url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
+            method: GET
+          register: _host_ids
+          until: _host_ids.status == 200
+          retries: 5
+          delay: 1
+          delegate_to: "{{ alive_node }}"
+
+        - set_fact:
+            _replaced_node_host_id: "{{ item.value }}"
+          when: item.key == replaced_node
+          loop: "{{ _host_ids.json }}"
+
+        - name: Set replace_node_first_boot
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?replace_node_first_boot:'
+            line: "replace_node_first_boot: {{ _replaced_node_host_id }}"
+            create: yes
+      when: _replace_node_first_boot_grep.failed == false
+
+    - name: Set replace_address_first_boot
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(#\s*)?replace_address_first_boot:'
+        line: "replace_address_first_boot: {{ replaced_node }}"
+        create: yes
+      when: _replace_node_first_boot_grep.failed
+
+    - name: Start Scylla
+      service:
+        name: scylla-server
+        state: started
+
+    - name: Wait for CQL port on {{ listen_address }}
+      wait_for:
+        port: "{{ cql_port }}"
+        host: "{{ listen_address }}"
+        timeout: "{{ new_node_bootstrap_wait_time_sec }}"
+
+    - name: Wait for the added node to become healthy
+      shell: |
+        nodetool status|grep -E '^UN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
+      register: node_count
+      until: node_count.stdout|int == 1
+      retries: 300
+      delay: 1
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['scylla'] }}"
+
+    - name: Remove the replace_node_first_boot record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^replace_node_first_boot:'
+        state: absent
+      when: _replace_node_first_boot_grep.failed == false
+
+    - name: Remove the replace_address_first_boot record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^replace_address_first_boot:'
+        state: absent
+      when: _replace_node_first_boot_grep.failed
+
+    - name: start and enable the Manager agent service
+      service:
+        name: scylla-manager-agent
+        state: restarted
+        enabled: yes
+
+    - name: Check if RBNO is available in the current Scylla version
+      shell: |
+        scylla --help | grep enable-repair-based-node-ops
+      register: _enable_rbno_grep
+      ignore_errors: true
+
+    - name: Check if RBNO was enabled for node replacement
+      block:
+        - command: cat /etc/scylla/scylla.yaml
+          ignore_errors: true
+          register: _scylla_yaml_out
+
+        - set_fact:
+            _scylla_yaml_map: "{{ _scylla_yaml_out.stdout | from_yaml }}"
+
+        - set_fact:
+            _rbno_enabled: "{{ _scylla_yaml_map.enable_repair_based_node_ops is not defined or _scylla_yaml_map.enable_repair_based_node_ops }}"
+            _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
+      when: _enable_rbno_grep.failed == false
+
+
+- name: Update scylla-monitoring
+  hosts: scylla-monitor
+  roles:
+    - ansible-scylla-monitoring
