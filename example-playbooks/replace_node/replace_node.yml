@@ -1,64 +1,74 @@
 ---
-- name: Add Scylla without starting
-  # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
-  hosts: new_node
-  become: true
-  vars:
-    full_inventory: false
-    start_scylla_service: false
-
-    #address of the node being replaced. Please make sure to remove it from the inventory when done.
-    replaced_node: 1.2.3.4
-
-    # variables for the Scylla node role
-    # Please use the same parameters as were used for the rest of the existing cluster
-
-    # Use the same parameters as for the rest of the cluster with the addition of the following:
-    scylla_yaml_params:
-      replace_address_first_boot: {{ replaced_node }}
-
+# This play will make sure that the node being replaced is down and prevent it from trying to re-join
+# the cluster by blocking its ip via iptables.
+- name: Prepare nodes before replacement
+  hosts: scylla
+  vars_files:
+    - vars/main.yml
   tasks:
-    - name: check for the replaced node being a seed
-      fail:
-        msg: "The node being replaced {{ replaced_node }} is a seed node. Please demote it to a non-seed first and try again."
-      when: replaced_node in scylla_seeds
+    - name: Resolve a scylla_listen_address as a fact
+      set_fact:
+        listen_address: "{{ alive_nodes_listen_address }}"
 
-  roles:
-    - ansible-scylla-node
+    - name: Resolve scylla_broadcast_address as a fact
+      set_fact:
+        broadcast_address: "{{ alive_nodes_broadcast_address }}"
 
+    - fail:
+        msg: "The replaced node can't be a seed!"
+      when: replaced_node_broadcast_address in scylla_seeds
+      run_once: true
 
-- name: Start scylla services
-  # new_node should be the IP of the node that comes into the cluster. The node being replaced should be in `replaced_node` variable below
-  hosts: new_node
-  become: true
+    - fail:
+        msg: "The new node can't be a seed!"
+      when: new_node in scylla_seeds
+      run_once: true
 
-  tasks:
-    - name: start scylla
-      service:
-        name: scylla-server
-        state: started
-      become: true
+    - name: Save one of the seeds as a fact in order to run some checks
+      set_fact:
+        alive_node: "{{ item }}"
+      loop: "{{ scylla_seeds }}"
+      run_once: true
+
+    - name: Check if CQL port is up on {{ replaced_node_broadcast_address }}
+      wait_for:
+        port: "{{ cql_port }}"
+        host: "{{ replaced_node_broadcast_address }}"
+        timeout: 60
+      register: _wait_for_cql_port_output
       ignore_errors: true
-      #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
+      delegate_to: "{{ alive_node }}"
+      run_once: true
 
-    - name: wait for the cluster to become healthy
-      shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|grep "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
-      register: node_count
-      until: node_count.stdout|int == 1
-      retries: 300
-      delay: 1
+    - name: Validate that the node being replaced is down
+      fail:
+        msg: "The node {{ replaced_node }} must be down in order to be replaced!"
+      when: _wait_for_cql_port_output.failed|bool == false
+      run_once: true
 
-    - name: remove the replace_address_first_boot record
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^replace_address_first_boot:'
-        state: absent
+    - name: Check if the other nodes are UP
+      wait_for:
+        port: "{{ cql_port }}"
+        host: "{{ listen_address }}"
+        timeout: 60
+      when: inventory_hostname != new_node
+
+    - name: Block replaced node's broadcast_address to prevent it from trying to join the cluster again
+      iptables:
+        chain: INPUT
+        source: "{{ replaced_node_broadcast_address }}"
+        jump: DROP
       become: true
 
-    - name: run nodetool repair -pr
-      shell: |
-        nodetool repair -pr
+    # By doing this we make sure that the new node will have the same io_properties as the others
+    - name: Save io_properties from the seed node
+      block:
+        - name: store /etc/scylla.d/io_properties.yaml
+          shell: |
+            cat /etc/scylla.d/io_properties.yaml
+          register: _io_properties
 
-
-
+        - set_fact:
+            io_properties: "{{ _io_properties.stdout }}"
+      delegate_to: "{{ alive_node }}"
+      run_once: true
