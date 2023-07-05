@@ -1,0 +1,36 @@
+# The node being replaced and its broadcast_address
+# replaced_node: 10.142.0.1
+# replaced_node_broadcast_address: 10.142.0.1
+
+# The node replacing the replaced_node
+# new_node: 10.142.0.2
+
+# Seed nodes list
+# scylla_seeds:
+#   - "{{ groups['scylla'][0] }}"
+
+# This should always be set to False, since it'll be passed to the node role
+# and we don't want the node role to start the new node automatically.
+# If you're reusing (as expected) the parameters you used to deploy the other nodes,
+# make sure that you set this specific value to false
+start_scylla_service: false
+
+# By default, the playbook will repair the new node only if RBNO was not used
+# during the replacement.
+# If you set this to true, the repair will be skipped even in such case.
+skip_repair: false
+
+# Any extra params you might want to pass sctool repair, like --intensity and/or --parallel
+extra_repair_params: ''
+
+# The maximum time we'll wait for the repair to finish before
+# stopping the execution of the playbook with an error message.
+new_node_repair_timeout_seconds: 36000
+
+# Default bootstrap timeout for the new node
+new_node_bootstrap_wait_time_sec: 25200
+
+alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
+
+cql_port: 9042
