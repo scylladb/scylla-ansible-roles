@@ -4,8 +4,9 @@
 # The play must be run with the --limit argument, specifying either "all" or a list of node IPs
 #
 # In order to perform a rolling reboot set a 'reboot_hosts' boolean. By default, hosts are not rebooted.
+# You can control the bootstrap timeout by setting 'scylla_bootstrap_wait_time_sec'
 # For example
-#    ansible-playbook -i inventory.ini --limit x.y.z.k --extra-vars "reboot_hosts=true" <path to a playbook>/rolling_restart.yml
+#    ansible-playbook -i inventory.ini --limit x.y.z.k -e "reboot_hosts=true" -e "scylla_bootstrap_wait_time_sec=3600" <path to a playbook>/rolling_restart.yml
 
 - name: Rolling restart across a Scylla cluster - restart all inventory nodes
   hosts: scylla
