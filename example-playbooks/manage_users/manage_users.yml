@@ -105,6 +105,6 @@
 
     - name: Delete cassandra user
       shell: |
-        cqlsh {{ cql_address }} {{ cql_port }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "DROP ROLE IF EXISTS 'cassandra';"
+        cqlsh {{ cql_address }} {{ cql_port }} -u '{{ scylla_admin_username }}' -p '{{ scylla_admin_password }}' -e "DROP ROLE IF EXISTS 'cassandra';"
       run_once: true
       when: delete_cassandra_user|bool
