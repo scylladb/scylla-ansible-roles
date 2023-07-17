@@ -54,7 +54,6 @@ rule_config_yml_path: rule_config.yml
 
 # If no rule_config file was provided, the role will try to generate it automatically
 # and these variables must be provided
-# account_name: 'testaccount123'
 # alerts_sender_email: example-email@scylladb.com
 # alerts_sender_password: Sender_p@ssw0rd
 # alerts_receiver_email: example-email@scylladb.com
