@@ -97,16 +97,11 @@
         update_cache: yes
 
     - name: install the manager agent
+      vars:
+        scylla_manager_agent_state: "{{ 'latest' if scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade | bool else 'present' }}"
       apt:
         name: scylla-manager-agent
-        state: present
-      when: (scylla_manager_agent_upgrade is not defined) or (scylla_manager_agent_upgrade|bool == False)
-
-    - name: install the latest manager agent
-      apt:
-        name: scylla-manager-agent
-        state: present
-      when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
+        state: "{{ scylla_manager_agent_state }}"
 
   become: true
   when: scylla_manager_enabled|bool == true
