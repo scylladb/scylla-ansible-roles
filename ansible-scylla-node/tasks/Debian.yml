@@ -96,10 +96,10 @@
       apt:
         update_cache: yes
 
-    - name: install the manager agent
+    - name: Install Scylla Manager Agent
       vars:
         scylla_manager_agent_state: "{{ 'latest' if scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade | bool else 'present' }}"
-      apt:
+      ansible.builtin.apt:
         name: scylla-manager-agent
         state: "{{ scylla_manager_agent_state }}"
 
