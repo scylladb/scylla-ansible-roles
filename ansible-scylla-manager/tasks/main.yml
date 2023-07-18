@@ -33,7 +33,7 @@
 - name: start and enable scylla-manager
   service:
     name: scylla-manager
-    state: started
+    state: restarted
     enabled: yes
   become: true
 
