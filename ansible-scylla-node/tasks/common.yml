@@ -159,9 +159,15 @@
 
 - name: finalize Scylla node configuration
   block:
+  - name: check for scylla_bootparam_setup
+    stat:
+      path: /usr/sbin/scylla_bootparam_setup
+    register: scylla_bootparam_setup
+
   - name: run bootparam setup
     shell: |
       scylla_bootparam_setup
+    when: scylla_bootparam_setup.stat.exists
 
   - name: set up coredump
     shell: |
