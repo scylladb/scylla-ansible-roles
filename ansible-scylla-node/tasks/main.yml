@@ -8,6 +8,16 @@
   package_facts:
     manager: auto
 
+- name: Set Scylla package prefix as OSS
+  set_fact:
+    scylla_package_prefix: "scylla"
+  when: scylla_edition == 'oss'
+
+- name: Set Scylla package prefix as Enterprise
+  set_fact:
+    scylla_package_prefix: "scylla-enterprise"
+  when: scylla_edition == 'enterprise'
+
 # Upgrade
 - name: Upgrade Scylla
   include_tasks: upgrade/main.yml

@@ -42,6 +42,25 @@
 
 - name: Collect IO settings for the first node of every DC
   block:
+    - name: check for existing io_properties for cloud run
+      stat:
+        path: /etc/scylla.d/io_properties.yaml
+      register: io_prop_cloud_stat
+
+    - name: check for scylla_cloud_io_setup
+      stat:
+        path: /opt/scylladb/scylla-machine-image/scylla_cloud_io_setup
+      register: io_cloud_setup
+
+    - name: Run IO setup in case this is pre-configured environment
+      shell: |
+        /opt/scylladb/scylla-machine-image/scylla_cloud_io_setup
+      become: true
+# if above is not found leverage /opt/scylladb/python3/bin/python3 /opt/scylladb/scylla-machine-image/lib/scylla_cloud_io_setup.py ?
+# or provide our own role runner for pre 2022.2.1 ?
+      when: (io_cloud_setup.stat.exists) and (io_prop_cloud_stat.stat.exists|bool == False) and (present_scylla_disks.stdout|int > 0)
+# we should maybe add a better way how to detect if this is cloud and run it, otherwise fallback to below (though above should fall back to it too, but it was broken in early 2022.1 and 2022.2.0)
+
     - name: check for existing io_properties
       stat:
         path: /etc/scylla.d/io_properties.yaml

@@ -2,45 +2,30 @@
 # Requires a 'scylla_version_to_install' fact to be set to a version string we want to install
 - name: Install Scylla
   block:
-  - name: Install 'latest' Scylla
+
+  - name: Install 'latest' {{ scylla_edition }} Scylla
     block:
       - block:
-        - name: Nuke an OSS pin file if exists
+        - name: Nuke an {{ scylla_edition }} pin file if exists
           file:
             state: absent
-            path: /etc/apt/preferences.d/99-scylla
+            path: "/etc/apt/preferences.d/99-{{ scylla_package_prefix }}"
 
-        - name: Install latest OSS Scylla
+        - name: Install latest {{ scylla_edition }} Scylla
           apt:
-            name: scylla
+            name: "{{ scylla_package_prefix }}"
             state: latest
-        when: scylla_edition == 'oss'
 
-      - block:
-        - name: Nuke an Enterprise pin file if exists
-          file:
-            state: absent
-            path: /etc/apt/preferences.d/99-scylla-enterprise
-
-        - name: Install latest Enterprise Scylla
+        - name: Install latest {{ scylla_edition }} Scylla machine image
           apt:
-            name: scylla-enterprise
+            name: "{{ scylla_package_prefix }}-machine-image"
             state: latest
-        when: scylla_edition == 'enterprise'
+
     when: scylla_version_to_install == 'latest'
 
 ### Handle non-latest version installation
   - name: Install explicitly specified Scylla version
     block:
-      - name: Set Scylla package prefix as OSS
-        set_fact:
-          scylla_package_prefix: "scylla"
-        when: scylla_edition == 'oss'
-
-      - name: Set Scylla package prefix as Enterprise
-        set_fact:
-          scylla_package_prefix: "scylla-enterprise"
-        when: scylla_edition == 'enterprise'
 
       - name: Get versions of {{ scylla_edition }} package
         # 'apt list -a' output has a package version as a second column and an arch as a third one.
@@ -75,10 +60,32 @@
           group: root
           mode: '0644'
 
-      - name: "Install {{ aptversions.stdout }}"
+      - name: "Install {{ aptversions.stdout }} {{ scylla_edition }}"
         apt:
           name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
           state: present
           allow_downgrade: yes
+
+      - name: Get versions of {{ scylla_edition }} machine image package
+        # 'apt list -a' output has a package version as a second column and an arch as a third one.
+        # Let's filter by the arch first and then cut the version column.
+        # Then we will filter out all rows that start with a requested version string followed by a digit to filter out version like 2021.1.11 when 2021.1.1 was requested.
+        # And finally, we are going to get rid of duplications.
+        shell: apt list -a {{ scylla_package_prefix }}-machine-image 2>/dev/null | awk '{split($0,a," "); print a[2]}' | egrep "^{{ stripped_scylla_machine_image_version_escaped }}" | sort | uniq
+        register: aptversions_machine_image
+        vars:
+          stripped_scylla_machine_image_version_escaped: "{{ scylla_version_split[0][0] | regex_escape }}\\-"
+
+      - name: "Validate scylla-machine image version correctness"
+        ansible.builtin.fail:
+          msg: "Too many/few choices for a requested version '{{ stripped_scylla_machine_image_version_escaped }}': {{ aptversions_machine_image.stdout_lines }}. Fix your Scylla scylla_version or scylla_deb_repos/scylla_repo_keys!"
+        when: aptversions_machine_image.stdout_lines | length != 1
+
+      - name: "Install {{ aptversions_machine_image.stdout }} {{ scylla_edition }} machine image"
+        apt:
+          name: "{{ scylla_package_prefix }}-machine-image={{ aptversions_machine_image.stdout }}*"
+          state: present
+          allow_downgrade: yes
+
     when: scylla_version_to_install != 'latest'
   become: true
