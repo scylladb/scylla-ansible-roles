@@ -27,10 +27,24 @@
       register: present_scylla_disks
 
     - name: run raid setup if there is no scylla mount yet
-      shell: |
-        scylla_raid_setup --disks "{{ scylla_raid_setup | join(',') }}" --update-fstab
-      become: true
+      block:
+      - name: check if online-discard configuration is supported
+        shell: |
+          scylla_raid_setup --help
+        become: true
+        register: _scylla_raid_setup_help
+
+      - name: Explicitly set online discard option to {{ scylla_raid_online_discard }} if supported
+        set_fact:
+          _disable_online_discard: "--online-discard {{ scylla_raid_online_discard }}"
+        when: _scylla_raid_setup_help.stdout is search("--online-discard")
+
+      - name: run raid setup if there is no scylla mount yet
+        shell: "scylla_raid_setup --disks {{ scylla_raid_setup | join(',') }} --update-fstab {{ _disable_online_discard }}"
+        become: true
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and present_scylla_disks.stdout|int == 0
+      vars:
+        _disable_online_discard: ""
 
 # Resulting map -> {'dc1': [node1, node2, node3], 'dc2': [node4, node5, node6]}
 - name: Create a map from dc to its list of nodes
