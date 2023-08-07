@@ -2,7 +2,7 @@
 
 # Facts gathering
 - name: Populate service facts
-  service_facts:
+  ansible.builtin.service_facts:
 
 - name: Populate package facts
   package_facts:
