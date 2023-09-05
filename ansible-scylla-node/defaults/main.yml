@@ -320,6 +320,41 @@ handle_system_keys: false
 localhost_system_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
 system_key_directory: "/etc/scylla/system_encryption_keys"
 
+# Table keys are used for encrypting SSTables. Depending on your key provider, this key is stored in different locations:
+# Replicated key provider - encrypted_keys table
+# KMIP key provider - KMIP server
+# KMS key provider - AWS
+# Local key provider - in a local file with multiple keys. You can provide your own key or Scylla can make one for you.
+
+# You can use this role for managing your local table keys. In order to do so, you need to set {{ handle_table_keys }} to true
+# and place all of your local table keys under the {{ localhost_table_key_directory }} folder. The role will copy all the
+# local table keys to the {{ table_key_directory }} folder.
+# Note that by default the {{ inventory_hostname }} is part of the localhost_table_key_directory. This allows you to define
+# different keys per host.
+# e.g.:
+# If your localhost_table_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+# and you have the following file tree:
+#
+# ├── encryption_at_rest
+# │   ├── node1
+# │   │   └── table_encryption_keys
+# │   │       └── key1
+# │   ├── node2
+# │   │   └── table_encryption_keys
+# │   │       └── key2
+# │   └── node3
+# │       └── table_encryption_keys
+# │           └── key3
+# └── inventory.ini
+#
+# At the end of the process node1 will have key1, node2 will have key2 and node3 will have key3.
+# On the other hand, if you want to have the same keys for all the hosts you can define a {{ localhost_table_key_directory }}
+# without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
+
+handle_table_keys: false
+localhost_table_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+table_key_directory: "/etc/scylla/table_encryption_keys"
+
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 # deprecated in favour of below, it will be dropped soon, below should be used
