@@ -22,3 +22,4 @@
       --password {{ item.password }} \
       {% endif %}
   when: cluster_already_added is not defined or cluster_already_added.stdout != "present"
+  no_log: true
