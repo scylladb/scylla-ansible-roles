@@ -8,6 +8,17 @@
   package_facts:
     manager: auto
 
+- name: Check whether Scylla is already installed
+  fail:
+    msg: >
+      Detected an existing Scylla installation.
+      Should you want to upgrade, set `upgrade_version' to True.
+      If you are recovering from a failed role run, set `skip_upgrade_check' to True.
+  when: >
+      not upgrade_version and not skip_upgrade_check and
+      ( 'scylla-server' in ansible_facts.packages or
+        'scylla-enterprise-server' in ansible_facts.packages )
+
 # Upgrade
 - name: Upgrade Scylla
   include_tasks: upgrade/main.yml
