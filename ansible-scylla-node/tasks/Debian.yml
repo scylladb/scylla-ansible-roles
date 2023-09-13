@@ -16,6 +16,22 @@
     with_items: "{{ scylla_repo_keys }}"
     when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
 
+  - name: create the keyring directory {{ scylla_repo_keyring_dir }}
+    file:
+      path: "{{ scylla_repo_keyring_dir }}"
+      state: directory
+      mode: '1755'
+      owner: "root"
+
+  - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
+    ansible.builtin.apt_key:
+      id: "{{ item }}"
+      keyserver: "{{ scylla_repo_keyserver }}"
+      keyring: "{{ scylla_repo_keyringfile }}"
+      state: present
+    with_items: "{{ scylla_repo_keys }}"
+    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+
   - name: Add an Apt signing key for Debian
     apt_key:
       url: "{{ item }}"
@@ -78,6 +94,16 @@
     - name: Add an apt key by id from a keyserver
       apt_key:
         keyserver: "{{ scylla_repo_keyserver }}"
+        id: "{{ item }}"
+        state: present
+      with_items: "{{ scylla_manager_repo_keys }}"
+      when: (install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
+      become: true
+
+    - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
+      apt_key:
+        keyserver: "{{ scylla_repo_keyserver }}"
+        keyring: "{{ scylla_repo_keyringfile }}"
         id: "{{ item }}"
         state: present
       with_items: "{{ scylla_manager_repo_keys }}"

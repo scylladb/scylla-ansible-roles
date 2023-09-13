@@ -167,6 +167,9 @@ scylla_repo_keys:
   - d0a112e067426ab2
   - 5e08fbd8b5d6ec9c
 
+scylla_repo_keyring_dir: /etc/apt/keyrings/
+scylla_repo_keyringfile: "{{ scylla_repo_keyring_dir }}/scylladb.gpg"
+
 scylla_manager_repo_keys:
   - d0a112e067426ab2
   - 5e08fbd8b5d6ec9c

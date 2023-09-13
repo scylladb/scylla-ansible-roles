@@ -20,6 +20,9 @@ scylla_manager_db_vars:
   # scylla_repo_keys:
   #   - 5e08fbd8b5d6ec9c
 
+scylla_repo_keyring_dir: /etc/apt/keyrings/
+scylla_repo_keyringfile: "{{ scylla_repo_keyring_dir }}/scylladb.gpg"
+
   # # Configure when additional dependency packages are required (only for some distributions)
   # scylla_dependencies:
   #   - curl
