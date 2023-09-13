@@ -8,6 +8,22 @@
       with_items: "{{ scylla_manager_repo_keys }}"
       when: scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
 
+    - name: create the keyring directory {{ scylla_repo_keyring_dir }}
+      file:
+        path: "{{ scylla_repo_keyring_dir }}"
+        state: directory
+        mode: '1755'
+        owner: "root"
+
+    - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
+      ansible.builtin.apt_key:
+        id: "{{ item }}"
+        keyserver: "{{ scylla_repo_keyserver }}"
+        keyring: "{{ scylla_repo_keyringfile }}"
+        state: present
+      with_items: "{{ scylla_manager_repo_keys }}"
+      when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
+
     - name: add Scylla Manager repo
       get_url:
         url: "{{ scylla_manager_deb_repo_url }}"
