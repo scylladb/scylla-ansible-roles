@@ -208,7 +208,7 @@
 
   - name: configure sysconfig
     shell: |
-      scylla_sysconfig_setup --setup-nic-and-disks --nic {{ scylla_nic }}
+      scylla_sysconfig_setup --set-clocksource --setup-nic-and-disks --nic {{ scylla_nic }}
     when: skip_sysconfig is defined and skip_sysconfig|bool == false
   become: true
 
