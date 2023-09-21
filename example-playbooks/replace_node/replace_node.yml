@@ -132,7 +132,7 @@
       lineinfile:
         path: /etc/scylla/scylla.yaml
         regexp: '^(#\s*)?replace_address_first_boot:'
-        line: "replace_address_first_boot: {{ replaced_node }}"
+        line: "replace_address_first_boot: {{ replaced_node_broadcast_address }}"
         create: yes
       when: _replace_node_first_boot_grep.failed
 
