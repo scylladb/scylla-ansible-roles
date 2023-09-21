@@ -46,7 +46,7 @@
           minimum_version: '20.04',
           template: 'ubuntu',
           oss: ['4.4','4.3'],
-          enterprise: ['2022.2','2021.1']
+          enterprise: ['2022.2','2022.1','2021.1']
         },
         '18': {
           minimum_version: '18.04',
