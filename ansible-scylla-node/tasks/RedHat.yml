@@ -111,6 +111,7 @@
       lock_timeout: 60
     when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
+  when: scylla_is_installed|bool == false or scylla_allow_upgrades|bool == true
 
 - name: Configure SELinux
   shell: |

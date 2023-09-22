@@ -8,6 +8,11 @@
   package_facts:
     manager: auto
 
+- name: Check if scylla server is installed
+  set_fact:
+    scylla_is_installed: true
+  when: "'scylla-server' in ansible_facts.packages or 'scylla-enterprise-server' in ansible_facts.packages"
+
 # Upgrade
 - name: Upgrade Scylla
   include_tasks: upgrade/main.yml

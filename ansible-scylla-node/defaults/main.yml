@@ -200,6 +200,12 @@ scylla_version: '0.0.0'
 #scylla_edition: oss
 scylla_edition: enterprise
 
+# True if Scylla is already installed
+scylla_is_installed: False
+
+# Set to true if you want to allow a Role to upgrade and already installed Scylla
+scylla_allow_upgrades: False
+
 scylla_snitch: GossipingPropertyFileSnitch
 
 # OPTIONAL: If GossipingPropertyFileSnitch in use, set this variable as per Scylla documentation
