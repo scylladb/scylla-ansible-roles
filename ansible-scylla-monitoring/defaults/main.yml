@@ -18,7 +18,7 @@ scylla_servers_yml_path: scylla_servers.yml
 scylla_manager_ip: '127.0.0.1'
 
 # Download the scylla-monitoring from here
-scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.10.1.tar.gz'
+scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-4.0.0.tar.gz'
 
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
@@ -69,10 +69,10 @@ scylla_monitoring_retention: "14d"
 ### The following settings are only relevant for non-dockerized setup
 
 # Check https://prometheus.io/download/ for newer versions or stick to the default below
-alert_manager_url: 'https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz'
+alert_manager_url: 'https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.24.0.linux-amd64.tar.gz'
 
 # Check https://prometheus.io/download/ for newer versions or stick to the default below
-prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.32.0.linux-amd64.tar.gz'
+prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.32.0/prometheus-2.34.0.linux-amd64.tar.gz'
 
 # Additional arguments to pass to the prometheus binary
 #prometheus_args: "--web.enable-admin-api --storage.tsdb.retention.size=50G"
