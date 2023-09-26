@@ -82,6 +82,23 @@
   when: item.split(".")[-1] == "repo"
   become: true
 
+- name: If Scylla is installed check if it's the same version as requested
+  block:
+    - name: Check if {{ scylla_package_prefix }} {{ scylla_version_to_install }} is installed
+      yum:
+        name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
+        state: installed
+        lock_timeout: 60
+      check_mode: true
+      register: result
+      become: true
+
+    - name: Validate the result
+      fail:
+        msg: "Installed version ({{ installed_scylla_version }}) doesn't match a requested one ({{ scylla_version_to_install }})"
+      when: result.changed
+  when: scylla_is_installed and not skip_installed_scylla_version_check
+
 - name: Install Scylla
   block:
   - name: Install {{ scylla_edition }} Scylla
@@ -90,6 +107,7 @@
       state: present
       lock_timeout: 60
   become: true
+  when: not scylla_is_installed
 
 - name: Configure SELinux
   shell: |

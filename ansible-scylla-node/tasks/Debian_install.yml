@@ -21,6 +21,11 @@
         msg: "Too many/few choices for a requested version '{{ scylla_version_to_install }}': {{ aptversions.stdout_lines }}. Bailing out!"
       when: aptversions.stdout_lines | length != 1
 
+    - name: If Scylla is installed check if it's the same version as requested
+      fail:
+        msg: "Installed version ({{ installed_scylla_version }}) doesn't match a requested one ({{ aptversions.stdout }})"
+      when: scylla_is_installed and not skip_installed_scylla_version_check and installed_scylla_version != aptversions.stdout
+
     - name: Do install Scylla
       block:
         - name: Nuke a {{ scylla_edition }} pin file if exists
@@ -48,4 +53,5 @@
             name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
             state: present
             allow_downgrade: yes
+      when: not scylla_is_installed
   become: true
