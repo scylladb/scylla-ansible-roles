@@ -16,12 +16,12 @@
 
     - fail:
         msg: "The replaced node can't be a seed!"
-      when: replaced_node_broadcast_address in scylla_seeds
+      when: replaced_node_broadcast_address in scylla_seeds or replaced_node in scylla_seeds
       run_once: true
 
     - fail:
         msg: "The new node can't be a seed!"
-      when: new_node in scylla_seeds
+      when: hostvars[new_node]['broadcast_address'] in scylla_seeds or new_node in scylla_seeds
       run_once: true
 
     - name: Save one of the seeds as a fact in order to run some checks
