@@ -84,32 +84,11 @@
 
 - name: Install Scylla
   block:
-  - name: Install latest OSS Scylla
+  - name: Install {{ scylla_edition }} Scylla
     yum:
-      name: scylla
-      state: latest
-      lock_timeout: 60
-    when: scylla_version == 'latest' and scylla_edition == 'oss'
-
-  - name: Install latest Enterprise Scylla
-    yum:
-      name: scylla-enterprise
-      state: latest
-    when: scylla_version == 'latest' and scylla_edition == 'enterprise'
-
-  - name: Install specified OSS Scylla
-    yum:
-      name: "scylla-{{ scylla_version }}"
+      name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
       state: present
       lock_timeout: 60
-    when: scylla_version != 'latest' and scylla_edition == 'oss'
-
-  - name: Install specified Enterprise Scylla
-    yum:
-      name: "scylla-enterprise-{{ scylla_version }}"
-      state: present
-      lock_timeout: 60
-    when: scylla_version != 'latest' and scylla_edition == 'enterprise'
   become: true
 
 - name: Configure SELinux

@@ -74,10 +74,6 @@
       name: java
       path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
 
-  - name: "Going to install {{ scylla_version }}"
-    set_fact:
-      scylla_version_to_install: "{{ scylla_version }}"
-
   - name: Install Scylla packages
     include_tasks: Debian_install.yml
   become: true
