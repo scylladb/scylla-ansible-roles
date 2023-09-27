@@ -8,6 +8,7 @@
   vars:
     - upgrade_version: true
     - upgrade_major: true
+    - skip_installed_scylla_version_check: true
 #    - scylla_edition: enterprise
 #    - scylla_version: latest
 
