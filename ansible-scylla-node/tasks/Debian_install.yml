@@ -53,5 +53,5 @@
             name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
             state: present
             allow_downgrade: yes
-      when: not scylla_is_installed or upgrade_scylla
+      when: not scylla_is_installed or upgrade_version
   become: true
