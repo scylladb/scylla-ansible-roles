@@ -57,7 +57,7 @@ provisioner:
     group_vars:
       scylla:
         scylla_deb_repos:
-          - "http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list"
+          - "http://downloads.scylladb.com/deb/ubuntu/scylla-2023.1.list"
         scylla_edition: "enterprise"
         scylla_version: "latest"
         scylla_io_probe: false
