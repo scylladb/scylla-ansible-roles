@@ -26,7 +26,10 @@ jobs:
           #- ubuntu1604
           #- ubuntu1804
           - ubuntu2004
+          #- ubuntu2004-2
           - ubuntu2004-enterprise
+          - ubuntu2004-enterprise-2
+          - ubuntu2004-enterprise-3
     defaults:
       run:
         working-directory: ansible-scylla-node

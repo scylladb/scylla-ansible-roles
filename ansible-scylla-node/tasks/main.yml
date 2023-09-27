@@ -2,11 +2,21 @@
 
 # Facts gathering
 - name: Populate service facts
-  service_facts:
+  ansible.builtin.service_facts:
 
 - name: Populate package facts
   package_facts:
     manager: auto
+
+- name: Set Scylla package prefix as OSS
+  set_fact:
+    scylla_package_prefix: "scylla"
+  when: scylla_edition == 'oss'
+
+- name: Set Scylla package prefix as Enterprise
+  set_fact:
+    scylla_package_prefix: "scylla-enterprise"
+  when: scylla_edition == 'enterprise'
 
 # Upgrade
 - name: Upgrade Scylla

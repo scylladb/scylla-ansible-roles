@@ -56,6 +56,25 @@
 
 - name: Collect IO settings for the first node of every DC
   block:
+    - name: check for existing io_properties for cloud run
+      stat:
+        path: /etc/scylla.d/io_properties.yaml
+      register: io_prop_cloud_stat
+
+    - name: check for scylla_cloud_io_setup
+      stat:
+        path: /opt/scylladb/scylla-machine-image/scylla_cloud_io_setup
+      register: io_cloud_setup
+
+    - name: Run IO setup in case this is pre-configured environment
+      shell: |
+        /opt/scylladb/scylla-machine-image/scylla_cloud_io_setup
+      become: true
+# if above is not found leverage /opt/scylladb/python3/bin/python3 /opt/scylladb/scylla-machine-image/lib/scylla_cloud_io_setup.py ?
+# or provide our own role runner for pre 2022.2.1 ?
+      when: (io_cloud_setup.stat.exists) and (io_prop_cloud_stat.stat.exists|bool == False) and (present_scylla_disks.stdout|int > 0)
+# we should maybe add a better way how to detect if this is cloud and run it, otherwise fallback to below (though above should fall back to it too, but it was broken in early 2022.1 and 2022.2.0)
+
     - name: check for existing io_properties
       stat:
         path: /etc/scylla.d/io_properties.yaml
@@ -128,23 +147,38 @@
   become: true
   when: skip_ntp is defined and skip_ntp|bool == false
 
-- name: node exporter setup
+- name: check for node_exporter_install
+  stat:
+    path: /usr/sbin/node_exporter_install
+  register: node_exporter_install
+
+- name: setup legacy node exporter
   shell: |
     node_exporter_install --force
-  when: install_type == 'online'
+  when: (install_type == 'online') and (node_exporter_install.stat.exists)
   become: true
   notify:
     - node_exporter start
-  ignore_errors: true
-  #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
 
-- name: node exporter setup from 5.0/2022
-  service:
+- name: check for node_exporter
+  stat:
+    path: /opt/scylladb/node_exporter/node_exporter
+  register: node_exporter
+
+- name: setup bundled node exporter
+  block:
+  - name: Enforce disabling of old node exporter
+    service:
+        name: node-exporter
+        state: stopped
+    when: ansible_facts.services['node-exporter.service'] is defined and (ansible_facts.services['node-exporter.service']["status"] != "not-found")
+  - name: Start bundled node exporter
+    service:
         name: scylla-node-exporter
         state: started
+    when: ansible_facts.services['scylla-node-exporter.service'] is defined and (ansible_facts.services['scylla-node-exporter.service']["status"] != "not-found")
   become: true
-  ignore_errors: true
-  #TODO: stop ignoring errors when a version check is added
+  when: node_exporter.stat.exists
 
 - name: configure Scylla
   shell: |

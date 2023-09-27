@@ -1,0 +1,96 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: node1
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    docker_networks:
+      - name: scylla
+        ipam_config:
+          - subnet: "10.11.0.0/16"
+            gateway: "10.11.0.254"
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.2"
+  - name: node2
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.3"
+  - name: node3
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.4"
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_LIBRARY: $PWD/../example-playbooks/async_extra/library
+    ANSIBLE_ACTION_PLUGINS: $PWD/../example-playbooks/async_extra/action_plugins
+  log: True
+  options:
+    vvv: True
+  inventory:
+    group_vars:
+      scylla:
+        scylla_deb_repos:
+          - "http://downloads.scylladb.com/deb/ubuntu/scylla-2022.2.list"
+        scylla_edition: "enterprise"
+        scylla_version: "latest"
+        scylla_io_probe: false
+        io_properties:
+          disks:
+            - mountpoint: "/var/lib/scylla/data"
+              read_iops: 2000
+              read_bandwidth: 10000000
+              write_iops: 1000
+              write_bandwidth: 1000000
+        scylla_seeds:
+          - "10.11.0.2"
+        dc: "test_dc"
+        rack: "test_rack"
+        skip_coredump: True
+        skip_sysconfig: True
+        cpuset_command: "scylla_cpuset_setup --smp 1"
+        #skip_cpuset: True
+        #devmode: True
+#        skip_ntp: True
+        skip_swap: True
+        scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6-bionic.list"
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+verifier:
+  name: ansible

@@ -82,34 +82,40 @@
   when: item.split(".")[-1] == "repo"
   become: true
 
-- name: Install Scylla
+- name: Install {{ scylla_edition }}
   block:
-  - name: Install latest OSS Scylla
+  - name: Install latest {{ scylla_edition }} Scylla
     yum:
-      name: scylla
+      name: "{{ scylla_package_prefix }}"
       state: latest
       lock_timeout: 60
-    when: scylla_version == 'latest' and scylla_edition == 'oss'
+    when: scylla_version == 'latest'
 
-  - name: Install latest Enterprise Scylla
+  - name: Install latest {{ scylla_edition }} Scylla machine image
     yum:
-      name: scylla-enterprise
+      name: "{{ scylla_package_prefix }}-machine-image"
       state: latest
-    when: scylla_version == 'latest' and scylla_edition == 'enterprise'
+      lock_timeout: 60
+    when: scylla_version == 'latest'
 
-  - name: Install specified OSS Scylla
+  - name: Install specified {{ scylla_edition }} Scylla
     yum:
-      name: "scylla-{{ scylla_version }}"
+      name: "{{ scylla_package_prefix }}-{{ scylla_version }}"
       state: present
       lock_timeout: 60
-    when: scylla_version != 'latest' and scylla_edition == 'oss'
+    when: scylla_version != 'latest'
 
-  - name: Install specified Enterprise Scylla
+  - name: Split Scylla version by '-'
+    set_fact:
+      scylla_version_split: "{{ scylla_version.split('-')[0] }}"
+
+  - name: Install specified {{ scylla_edition }} Scylla machine image
     yum:
-      name: "scylla-enterprise-{{ scylla_version }}"
+      name: "{{ scylla_package_prefix }}-machine-image-{{ scylla_version_split }}"
       state: present
       lock_timeout: 60
-    when: scylla_version != 'latest' and scylla_edition == 'enterprise'
+    when: scylla_version != 'latest'
+
   become: true
 
 - name: Configure SELinux
