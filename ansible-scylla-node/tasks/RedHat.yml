@@ -107,7 +107,7 @@
       state: present
       lock_timeout: 60
   become: true
-  when: not scylla_is_installed or upgrade_scylla
+  when: not scylla_is_installed
 
 - name: Configure SELinux
   shell: |
