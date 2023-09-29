@@ -103,13 +103,15 @@ firewall_enabled: false
 
 # URL of an RPM .repo file or a DEB .list file
 # deprecated in favour of below, it will be dropped soon, below should be used
-scylla_repos:
-  - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
-
-scylla_deb_repos:
-  - http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
-
-scylla_rpm_repos: "{{ scylla_repos }}"
+#scylla_repos:
+#  - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
+#
+# Both scylla_deb_repos and scylla_rpm_repos, if undefined, would resolve to a URL that corresponds
+# to a scylla version to which scylla_version resolves to.
+#scylla_deb_repos:
+#  - http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
+#
+#scylla_rpm_repos: "{{ scylla_repos }}"
 
 # Use a newer kernel from ELRepo (was recommended for RHEL/CentOS until 5.11)
 # Reboot after the elrepo kernel has been installed is recommended as well.
@@ -194,6 +196,8 @@ scylla_dependencies:
 # Specify a Scylla version here (should be available in repo)
 # ex: scylla_version: 2019.1.9 or 3.2.1
 # Default is intentionally invalid version - it MUST be overridden
+# 'latest' value would resolve to a current latest OSS or Enterprise version
+# according to a scylla_edition value.
 scylla_version: '0.0.0'
 
 # Options are oss|enterprise
