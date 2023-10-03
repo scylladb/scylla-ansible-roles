@@ -117,7 +117,7 @@
 
         - set_fact:
             _replaced_node_host_id: "{{ item.value }}"
-          when: item.key == replaced_node
+          when: item.key == replaced_node or item.key == replaced_node_broadcast_address
           loop: "{{ _host_ids.json }}"
 
         - name: Set replace_node_first_boot
