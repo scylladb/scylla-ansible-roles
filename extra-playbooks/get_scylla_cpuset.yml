@@ -1,0 +1,14 @@
+---
+
+- hosts: scylla
+  gather_facts: no
+  tasks:
+    - name: Get CPUSET
+      shell: |
+        grep CPUSET /etc/scylla.d/cpuset.conf | grep -v ^# | cut -d" " -f2 | cut -d"\"" -f1
+      run_once: true
+      register: _scylla_cpuset
+
+    - name: Show the version
+      debug:
+        var: _scylla_cpuset.stdout
