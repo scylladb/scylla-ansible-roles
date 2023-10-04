@@ -87,6 +87,12 @@
     - ansible-scylla-node
 
 
+- name: Update scylla-monitoring
+  hosts: scylla-monitor
+  roles:
+    - ansible-scylla-monitoring
+
+
 # This play will set the ip/host_id of the replaced node in the scylla.yaml of the new node,
 # start the new node, and then wait until the new node finishes joining the cluster. The same
 # variables used when the node role was executed for the replaced node should also be passed
@@ -117,7 +123,7 @@
 
         - set_fact:
             _replaced_node_host_id: "{{ item.value }}"
-          when: item.key == replaced_node
+          when: item.key == replaced_node or item.key == replaced_node_broadcast_address
           loop: "{{ _host_ids.json }}"
 
         - name: Set replace_node_first_boot
@@ -196,12 +202,6 @@
             _rbno_enabled: "{{ _scylla_yaml_map.enable_repair_based_node_ops is not defined or _scylla_yaml_map.enable_repair_based_node_ops }}"
             _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
       when: _enable_rbno_grep.failed == false
-
-
-- name: Update scylla-monitoring
-  hosts: scylla-monitor
-  roles:
-    - ansible-scylla-monitoring
 
 
 # This play will repair the new node if RBNO was not used and skip_repair is not set to true
