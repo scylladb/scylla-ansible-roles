@@ -292,6 +292,13 @@
     - (scylla_ssl.internode.enabled|bool) or
       (scylla_ssl.client.enabled|bool)
 
+- name: Copy system keys
+  include_tasks: handle_encryption_at_rest_keys.yml
+  vars:
+    localhost_key_path: "{{ localhost_system_key_directory }}"
+    remote_key_path: "{{ system_key_directory }}"
+  when: handle_system_keys|bool
+
 # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
 # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
 # have an actual value resolved.
