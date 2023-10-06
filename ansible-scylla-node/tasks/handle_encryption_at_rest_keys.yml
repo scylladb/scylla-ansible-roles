@@ -1,0 +1,50 @@
+---
+- name: Fail if localhost_key_path or remote_key_path vars are not defined
+  fail:
+    msg: "localhost_key_path and/or remote_key_path are not defined"
+  when: localhost_key_path is not defined or remote_key_path is not defined
+
+- name: Get stat for each one of the localhost keys
+  stat:
+    path: "{{ item }}"
+  register: _localhost_keys_stat
+  delegate_to: localhost
+  with_fileglob: "{{ localhost_key_path }}/*"
+
+# We only handle remote keys that have a local counterpart
+- name: Get stat for each one of the remote keys being tracked
+  stat:
+    path: "{{ remote_key_path }}/{{ item.stat.path | basename }}"
+  register: _remote_keys_stat
+  become: true
+  loop: "{{ _localhost_keys_stat.results }}"
+
+- name: Validate that the existing keys on remote and local hosts are the same
+  fail:
+    msg: "The file {{ item[1].stat.path }} is different from {{ item[0].stat.path }}"
+  when:
+    - item[1].stat.exists
+    - item[0].stat.path | basename == item[1].stat.path | basename
+    - item[0].stat.checksum != item[1].stat.checksum
+  with_nested:
+    - "{{ _localhost_keys_stat.results }}"
+    - "{{ _remote_keys_stat.results }}"
+
+- name: Create keys dir if it doesn't already exist
+  file:
+    path: "{{ remote_key_path }}"
+    state: directory
+    owner: scylla
+    group: scylla
+    mode: '700'
+  become: true
+
+- name: Copy key from localhost to all nodes
+  copy:
+    src: "{{ item.item }}"
+    dest: "{{ remote_key_path }}"
+    owner: scylla
+    group: scylla
+    mode: '600'
+  loop: "{{ _localhost_keys_stat.results }}"
+  become: true
