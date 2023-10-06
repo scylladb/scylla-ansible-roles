@@ -284,6 +284,42 @@ scylla_ssl:
   client:
     enabled: true
 
+# Two types of encryption keys are available: System Keys and Table Keys.
+
+# System keys can be used for encrypting system data, like commit logs, batches and hints logs.
+# However, in the context of table keys (for encrypting sstables), if the user decides to use
+# a Replicated Key Provider, a system key will also be necessary for encrypting the encrypted_keys table,
+# where the replicated keys will be kept.
+# If you want to use this role for managing your system keys, regardless of them being used for system_info encryption
+# or for encrypting the encrypted_keys table, you should set {{ handle_system_keys }} to true and place all of your system
+# keys under the {{ localhost_system_key_directory }} folder. The role will copy all the local keys to the {{ system_key_directory }}
+# of every node.
+# Note that by default the {{ inventory_hostname }} is part of the localhost_system_key_directory. This allows you to define
+# different keys per host.
+# e.g.:
+# If your localhost_system_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+# and you have the following file tree:
+#
+# ├── encryption_at_rest
+# │   ├── node1
+# │   │   └── system_encryption_keys
+# │   │       └── key1
+# │   ├── node2
+# │   │   └── system_encryption_keys
+# │   │       └── key2
+# │   └── node3
+# │       └── system_encryption_keys
+# │           └── key3
+# └── inventory.ini
+#
+# At the end of the process node1 will have key1, node2 will have key2 and node3 will have key3.
+# On the other hand, if you want to have the same keys for all the hosts you can define a {{ localhost_system_key_directory }}
+# without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
+
+handle_system_keys: false
+localhost_system_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+system_key_directory: "/etc/scylla/system_encryption_keys"
+
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 # deprecated in favour of below, it will be dropped soon, below should be used
