@@ -64,3 +64,25 @@ server_encryption_options:
 {% if handle_system_keys|bool %}
 system_key_directory: {{ system_key_directory }}
 {% endif %}
+{% if system_info_encryption_local.enabled|bool %}
+system_info_encryption:
+    enabled: True
+    cipher_algorithm: {{ system_info_encryption_local.cipher_algorithm }}
+    secret_key_strength: {{ system_info_encryption_local.secret_key_strength }}
+    key_provider: LocalFileSystemKeyProviderFactory
+    secret_key_file: {{ system_info_encryption_local.secret_key_file }}
+{% elif system_info_encryption_kmip.enabled|bool %}
+system_info_encryption:
+    enabled: True
+    cipher_algorithm: {{ system_info_encryption_kmip.cipher_algorithm }}
+    secret_key_strength: {{ system_info_encryption_kmip.secret_key_strength }}
+    key_provider: KmipKeyProviderFactory
+    kmip_host: {{ system_info_encryption_kmip.kmip_host }}
+{% elif system_info_encryption_kms.enabled|bool %}
+system_info_encryption:
+    enabled: True
+    cipher_algorithm: {{ system_info_encryption_kms.cipher_algorithm }}
+    secret_key_strength: {{ system_info_encryption_kms.secret_key_strength }}
+    key_provider: KmsKeyProviderFactory
+    kms_host: {{ system_info_encryption_kms.kms_host }}
+{% endif %}
