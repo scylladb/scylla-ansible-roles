@@ -355,6 +355,40 @@ handle_table_keys: false
 localhost_table_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
 table_key_directory: "/etc/scylla/table_encryption_keys"
 
+# Encrypt system resources:
+# System encryption is applied to semi-transient on-disk data, such as commit logs, batch logs, and hinted handoff data.
+# Note that for system info encryption, only the following key providers are supported:
+# LocalKeyProvider: Stores the key on the same machine as the data. Please use the system_info_encrypt_local config.
+# KMIPKeyProvider: External key management server. Please use the system_info_encryption_kmip config.
+# KMSKeyProvider: Uses key(s) provided by the AWS KMS service. Please use the system_info_encryption_kms config.
+
+# If you decide to use a LocalKeyProvider and also want the role to manage the local key that will be used, make sure you
+# have {{ handle_system_keys }}, {{ localhost_system_key_directory }} and {{ system_key_directory }} set appropriately.
+
+# LocalKeyProvider:
+system_info_encryption_local:
+  enabled: false
+  secret_key_file: "{{ system_key_directory }}/system_info_key"
+  cipher_algorithm: AES/CBC/PKCS5Padding
+  secret_key_strength: 128
+
+# KMIPKeyProvider:
+# Make sure you set kmip_hosts accordingly
+system_info_encryption_kmip:
+  enabled: false
+  cipher_algorithm: AES
+  secret_key_strength: 128
+  kmip_host: yourkmipServerIP.com
+
+# KMSKeyProvider:
+# Make sure you set kms_hosts accordingly
+system_info_encryption_kms:
+  enabled: false
+  cipher_algorithm: AES/CBC/PKCS5Padding
+  secret_key_strength: 128
+  kms_host: myScylla
+
+
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 # deprecated in favour of below, it will be dropped soon, below should be used
