@@ -20,6 +20,24 @@ inhibit_rules:
     severity: "2"
   target_match:
     severity: "1"
+- equal:
+  - alertname
+  source_match:
+    severity: "critical"
+  target_match:
+    severity: "error"
+- equal:
+  - alertname
+  source_match:
+    severity: "error"
+  target_match:
+    severity: "warn"
+- equal:
+  - alertname
+  source_match:
+    severity: "warn"
+  target_match:
+    severity: "info"
 receivers:
 - name: team-X-mails-regular
   email_configs:
