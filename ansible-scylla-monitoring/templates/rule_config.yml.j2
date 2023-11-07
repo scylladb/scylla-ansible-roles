@@ -54,7 +54,7 @@ receivers:
   email_configs:
   - to: {{ alerts_receiver_email }}
     from: {{ alerts_sender_email }}
-    smarthost: smtp.gmail.com:587
+    smarthost: smtp-relay.gmail.com:587
     auth_username: {{ alerts_sender_email }}
     auth_identity: {{ alerts_sender_email }}
     auth_password: {{ alerts_sender_password }}
