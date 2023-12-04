@@ -16,17 +16,6 @@
   loop: "{{ wait_for_cql_port_output.results }}"
   when: bootstrapped_node is not defined and item.failed == False
 
-- name: Save token lists
-  block:
-    - shell: |
-        nodetool ring | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
-      register: _nodetool_ring_output
-    - set_fact:
-        token_list: "{{ token_list | default({}) | combine( {item.split()[0]: (token_list | default({}))[item.split()[0]] | default([]) + [item.split()[7]]} ) }}"
-      loop: "{{ _nodetool_ring_output.stdout_lines }}"
-  delegate_to: "{{ bootstrapped_node }}"
-  when: bootstrapped_node is defined
-
 - name: Prepare script arguments
   set_fact:
     node_list: "{{ node_list | default([]) + [hostvars[item]['broadcast_address']] }}"
@@ -34,20 +23,48 @@
     dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc']] }}"
   loop: "{{ groups['scylla'] }}"
 
-- name: Prepare old tokens list
-  set_fact:
-    token_list_str: "{{ token_list.keys() | zip(token_list.values()) | map('join', '=') | join('\n') | replace('[','') | replace(']','') | replace(\"'\", '') | replace(' ', '') }}"
-  when: token_list is defined
+- name: Create a temporary tokens file
+  tempfile:
+    state: file
+  register: tokens_file
+  delegate_to: localhost
+
+- name: Get existing tokens
+  block:
+    - name: Get tokens
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/tokens/{{ item }}"
+        method: GET
+      register: _existing_tokens
+      until: _existing_tokens.status == 200
+      retries: 5
+      delay: 1
+      delegate_to: "{{ bootstrapped_node }}"
+      loop: "{{ groups['scylla'] }}"
+
+    - name: Copy tokens to tmp file
+      lineinfile:
+        path: "{{ tokens_file.path }}"
+        line: "{{ item.item }}={{ item.json | map('int') | join(',') }}"
+        create: yes
+      when: item.json|length > 0
+      delegate_to: localhost
+      loop: "{{ _existing_tokens.results }}"
+  when: bootstrapped_node is defined
 
 - name: Generate and save tokens for the new nodes
   delegate_to: localhost
   become: false
   environment:
     PYTHONPATH: "{{ token_distributor.path }}"
-  shell: "{{ token_distributor.path }}/token_distributor.py --node={{ node_list | join(',') }} --rack={{ rack_list | join(',') }} --dc={{ dc_list | join(',') }} --rf={{ token_distributor.rf }}"
-  args:
-    stdin: "{% if token_list_str is defined %}{{ token_list_str }}{% endif %}"
+  shell: "{{ token_distributor.path }}/token_distributor.py --node={{ node_list | join(',') }} --rack={{ rack_list | join(',') }} --dc={{ dc_list | join(',') }} --rf={{ token_distributor.rf }} --tokens-file {{ tokens_file.path }}"
   register: _new_tokens
+
+- name: Delete tokens file
+  file:
+    path: "{{ tokens_file.path }}"
+    state: absent
+  delegate_to: localhost
 
 - name: Set initial tokens in scylla.yaml
   lineinfile:
