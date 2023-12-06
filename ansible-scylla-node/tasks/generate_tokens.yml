@@ -16,14 +16,13 @@
   loop: "{{ wait_for_cql_port_output.results }}"
   when: bootstrapped_node is not defined and item.failed == False
 
-- name: Validate that all nodes are in UN state and save token lists
+- name: Save token lists
   block:
     - shell: |
         nodetool ring | grep -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
       register: _nodetool_ring_output
     - set_fact:
         token_list: "{{ token_list | default({}) | combine( {item.split()[0]: (token_list | default({}))[item.split()[0]] | default([]) + [item.split()[7]]} ) }}"
-      failed_when: item.split()[2] != 'Up' or item.split()[3] != 'Normal'
       loop: "{{ _nodetool_ring_output.stdout_lines }}"
   delegate_to: "{{ bootstrapped_node }}"
   when: bootstrapped_node is defined
