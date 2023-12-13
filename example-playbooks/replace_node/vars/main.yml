@@ -30,6 +30,10 @@ new_node_repair_timeout_seconds: 36000
 # Default bootstrap timeout for the new node
 new_node_bootstrap_wait_time_sec: 25200
 
+# If you set this to true, this playbook will allow you to replace an alive node
+# by draining/stopping the node being replaced before starting the replace
+alive_node_replace: false
+
 alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 
