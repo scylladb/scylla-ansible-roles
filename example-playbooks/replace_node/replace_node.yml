@@ -24,6 +24,46 @@
       when: hostvars[new_node]['broadcast_address'] in scylla_seeds or new_node in scylla_seeds
       run_once: true
 
+    - name: Stop scylla-server on the node being replaced
+      block:
+        - name: Disable Scylla service
+          service:
+            name: scylla-server
+            enabled:  false
+          become: true
+
+        - name: Run nodetool drain
+          async_task:
+            shell: |
+              nodetool drain
+            alias: drain_scylla
+            async: 60
+            retries: 60
+            delay: 1
+          ignore_errors: true
+          register: _drain_scylla_output
+
+        - name: Stop Scylla service
+          async_task:
+            shell: |
+              systemctl stop scylla-server
+            alias: stop_scylla
+            async: 5
+            retries: 5
+            delay: 1
+          ignore_errors: true
+          register: _stop_scylla_output
+          become: true
+
+        - name: Send SIGKILL to scylla
+          shell: |
+            pkill -9 scylla$
+          ignore_errors: true
+          become: true
+      delegate_to: "{{ replaced_node }}"
+      run_once: true
+      when: alive_node_replace is defined and alive_node_replace|bool
+
     - name: Save one of the seeds as a fact in order to run some checks
       set_fact:
         alive_node: "{{ item }}"
