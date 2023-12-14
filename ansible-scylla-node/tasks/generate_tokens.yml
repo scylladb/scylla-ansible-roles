@@ -45,7 +45,7 @@
     - name: Copy tokens to tmp file
       lineinfile:
         path: "{{ tokens_file.path }}"
-        line: "{{ item.item }}={{ item.json | map('int') | join(',') }}"
+        line: "{{ hostvars[item.item]['broadcast_address'] }}={{ item.json | map('int') | join(',') }}"
         create: yes
       when: item.json|length > 0
       delegate_to: localhost
