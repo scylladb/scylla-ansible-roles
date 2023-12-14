@@ -33,7 +33,7 @@
   block:
     - name: Get tokens
       uri:
-        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/tokens/{{ item }}"
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/tokens/{{ hostvars[item]['broadcast_address'] }}"
         method: GET
       register: _existing_tokens
       until: _existing_tokens.status == 200
