@@ -198,7 +198,7 @@
         nodetool status|grep -E '^UN'|grep -w "{{ vars['ansible_'~scylla_nic].ipv4.address }}"| wc -l
       register: node_count
       until: node_count.stdout|int == 1
-      retries: 300
+      retries: "{{ new_node_bootstrap_wait_time_sec|int }}"
       delay: 1
       delegate_to: "{{ item }}"
       loop: "{{ groups['scylla'] }}"

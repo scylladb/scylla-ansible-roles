@@ -28,6 +28,11 @@ extra_repair_params: ''
 new_node_repair_timeout_seconds: 36000
 
 # Default bootstrap timeout for the new node
+# This value will be used as a timeout twice:
+#   * Once for waiting for the CQL port to become available
+#   * And then it'll also be used to wait for the node to be seen as healthy by itself and by the other nodes
+# This means that in the worst case the actual timeout for bootstrapping will be:
+# (new_node_bootstrap_wait_time_sec * (n_nodes + 1))
 new_node_bootstrap_wait_time_sec: 25200
 
 # If you set this to true, this playbook will allow you to replace an alive node
