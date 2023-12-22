@@ -22,6 +22,15 @@
 
     - name: Stop scylla-server on the node being replaced
       block:
+        # Here we're setting a very small silence just to be able to finish checking if we should indeed move forward with this replace.
+        # Once we pass all the checks from the current play we'll set a new silence with a proper duration
+        - name: Set silence for the node that we are about to stop
+          shell: |
+            docker exec -it aalert amtool silence add instance="{{ replaced_node }}" --alertmanager.url="{{ alertmanager_url }}" --comment='Replacing node' --duration '5m'
+          # We don't want the playbook to fail in case we don't succeed in silencing the alerts
+          ignore_errors: true
+          delegate_to: "{{ groups['scylla-monitor'][0] }}"
+
         - name: Disable Scylla service
           service:
             name: scylla-server
@@ -94,6 +103,27 @@
         source: "{{ replaced_node_broadcast_address }}"
         jump: DROP
       become: true
+
+
+# We want to silence alerts for the node being replaced and for the new node until the replace is finished
+- name: Silence alerts for the node being replaced and for the node that is going to be added
+  hosts: scylla-monitor
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Set silence for the node being replaced
+      shell: |
+        docker exec -it aalert amtool silence add instance="{{ replaced_node }}" --alertmanager.url="{{ alertmanager_url }}" --comment='Replacing node' --duration "{{ new_node_bootstrap_wait_time_sec|int * 2 }}s"
+      register: _replaced_node_silence_id
+      # We don't want the playbook to fail in case we don't succeed in silencing the alerts
+      ignore_errors: true
+
+    - name: Set silence for the new node
+      shell: |
+        docker exec -it aalert amtool silence add instance="{{ new_node }}" --alertmanager.url="{{ alertmanager_url }}" --comment='Replacing node' --duration "{{ new_node_bootstrap_wait_time_sec|int * 2 }}s"
+      register: _new_node_silence_id
+      # We don't want the playbook to fail in case we don't succeed in silencing the alerts
+      ignore_errors: true
 
 
 # This play will install Scylla in the new node and update the existing ones.
@@ -249,6 +279,23 @@
             _rbno_enabled: "{{ _scylla_yaml_map.enable_repair_based_node_ops is not defined or _scylla_yaml_map.enable_repair_based_node_ops }}"
             _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
       when: _enable_rbno_grep.failed == false
+
+
+# Expire the silences after the replace is finished
+- name: Expire silences
+  hosts: scylla-monitor
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Expire silence for the replaced node
+      shell: |
+        docker exec -it aalert amtool silence expire "{{ _replaced_node_silence_id.stdout }}" --alertmanager.url="{{ alertmanager_url }}"
+      ignore_errors: true
+
+    - name: Expire silence for the new node
+      shell: |
+        docker exec -it aalert amtool silence expire "{{ _new_node_silence_id.stdout }}" --alertmanager.url="{{ alertmanager_url }}"
+      ignore_errors: true
 
 
 # This play will repair the new node if RBNO was not used and skip_repair is not set to true

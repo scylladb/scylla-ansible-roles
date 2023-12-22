@@ -43,3 +43,5 @@ alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 
 cql_port: 9042
+
+alertmanager_url: "http://localhost:9093"
