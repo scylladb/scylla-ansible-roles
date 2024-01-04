@@ -14,16 +14,6 @@
       set_fact:
         broadcast_address: "{{ alive_nodes_broadcast_address }}"
 
-    - fail:
-        msg: "The replaced node can't be a seed!"
-      when: replaced_node_broadcast_address in scylla_seeds or replaced_node in scylla_seeds
-      run_once: true
-
-    - fail:
-        msg: "The new node can't be a seed!"
-      when: hostvars[new_node]['broadcast_address'] in scylla_seeds or new_node in scylla_seeds
-      run_once: true
-
     - name: Stop scylla-server on the node being replaced
       block:
         - name: Disable Scylla service
@@ -64,10 +54,9 @@
       run_once: true
       when: alive_node_replace is defined and alive_node_replace|bool
 
-    - name: Save one of the seeds as a fact in order to run some checks
+    - name: Define temporary seed
       set_fact:
-        alive_node: "{{ item }}"
-      loop: "{{ scylla_seeds }}"
+        temporary_seed: "{% if new_node == groups['scylla'][0] %}{{ groups['scylla'][1] }}{% else %}{{ groups['scylla'][0] }}{% endif %}"
       run_once: true
 
     - name: Check if CQL port is up on {{ replaced_node_broadcast_address }}
@@ -77,7 +66,7 @@
         timeout: 60
       register: _wait_for_cql_port_output
       ignore_errors: true
-      delegate_to: "{{ alive_node }}"
+      delegate_to: "{{ temporary_seed }}"
       run_once: true
 
     - name: Validate that the node being replaced is down
@@ -110,15 +99,15 @@
 
         - set_fact:
             io_properties: "{{ _io_properties.stdout }}"
-      delegate_to: "{{ alive_node }}"
+      delegate_to: "{{ temporary_seed }}"
       run_once: true
 
 
-# This play will install Scylla in the new node and update the existing nodes.
+# This play will install Scylla in the new node.
 # The same variables used when the node role was executed for the replaced node should also
 # be passed to this playbook and will be used by this play.
-- name: Install/Update Scylla in all nodes
-  hosts: scylla
+- name: Install/Update Scylla in the new node
+  hosts: "{{ new_node }}"
   vars_files:
     - vars/main.yml
   vars:
@@ -143,6 +132,23 @@
     - vars/main.yml
   become: true
   tasks:
+    - name: Get current seeds
+      shell: |
+        grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }'
+      register: _current_seeds
+
+    - name: Save current seeds list as a fact
+      set_fact:
+        original_seeds: "{{ _current_seeds.stdout }}"
+
+    - name: Set temporary_seed as seed for the new node
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ temporary_seed }}
+        backrefs: yes
+
     - name: Check if replace_node_first_boot is available in the current Scylla version
       shell: |
         scylla --help | grep replace-node-first-boot
@@ -159,7 +165,7 @@
           until: _host_ids.status == 200
           retries: 5
           delay: 1
-          delegate_to: "{{ alive_node }}"
+          delegate_to: "{{ temporary_seed }}"
 
         - set_fact:
             _replaced_node_host_id: "{{ item.value }}"
@@ -222,6 +228,14 @@
         name: scylla-manager-agent
         state: restarted
         enabled: yes
+
+    - name: Restore seeds list
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ original_seeds }}
+        backrefs: yes
 
     - name: Check if RBNO is available in the current Scylla version
       shell: |
