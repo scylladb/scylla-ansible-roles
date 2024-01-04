@@ -14,6 +14,12 @@
       set_fact:
         broadcast_address: "{{ alive_nodes_broadcast_address }}"
 
+    - name: "Check if the replaced node is in the seeds list"
+      fail:
+        msg: "The replaced node can't be a seed!"
+      when: replaced_node_broadcast_address in scylla_seeds or replaced_node in scylla_seeds
+      run_once: true
+
     - name: Stop scylla-server on the node being replaced
       block:
         - name: Disable Scylla service
@@ -103,11 +109,11 @@
       run_once: true
 
 
-# This play will install Scylla in the new node.
+# This play will install Scylla in the new node and update the existing ones.
 # The same variables used when the node role was executed for the replaced node should also
 # be passed to this playbook and will be used by this play.
-- name: Install/Update Scylla in the new node
-  hosts: "{{ new_node }}"
+- name: Install/Update Scylla in the new node and update the existing ones.
+  hosts: scylla
   vars_files:
     - vars/main.yml
   vars:
