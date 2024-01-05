@@ -242,6 +242,10 @@ always_replace_io_properties: False
 
 io_conf: 'SEASTAR_IO="--io-properties-file /etc/scylla.d/io_properties.yaml"'
 
+# Seeds node list
+scylla_seeds:
+  - "{{ groups['scylla'][0] }}"
+
 scylla_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_rpc_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
