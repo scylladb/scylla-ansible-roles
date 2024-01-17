@@ -57,12 +57,6 @@
     force_apt_get: yes
   become: true
 
-- name: Correct java version selected
-  alternatives:
-    name: java
-    path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
-  become: true
-
 - name: install scylla-tools-core|scylla-enterprise-tools-core
   block:
     - package:
