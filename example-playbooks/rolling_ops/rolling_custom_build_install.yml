@@ -1,0 +1,203 @@
+---
+- name: Install custom build
+  serial: 1
+  gather_facts: yes
+  hosts: scylla
+  vars:
+    custom_build_working_directory: "{{ ansible_env.HOME }}/custom_build"
+    custom_build_download_directory: "{{ custom_build_working_directory }}/download"
+    custom_build_unpack_directory: "{{ custom_build_working_directory }}/unpack"
+    api_address: 127.0.0.1
+    api_port: 10000
+    api_retries: 360
+    api_delay: 10
+    api_timeout: 300
+    pid_kill_retries: 5
+    pid_kill_delay: 12
+
+    # These next variables should be modified by the operator
+    custom_build_archive_base_url: "URL where the build tarball is at, e.g. http://www.custom-build-location.org"
+    custom_build_archive_name: "here goes your custom build tarball name"
+    custom_build_force_download: false   # Download the archive always even if there is a local file with the same name already.
+                                         # If "false" and the tarball file is already at the custom_build_download_directory
+                                         # the downloading from the URL won't be attempted.
+    custom_build_unpack_directory_deb: "{{ custom_build_unpack_directory }}/deb"   # Directory where .deb packages should be
+    scylla_package_prefix: "scylla-enterprise" # Can be either 'scylla-enterprise' or 'scylla' (for OSS)
+                                                                                   # located inside the tarball
+    custom_build_wipe_download: true   # Wipe the whole <custom_build_download_directory> directory
+    custom_build_wipe_all: false   # Wipe the whole <custom_build_working_directory> directory
+  tasks:
+    - name: Populate service facts
+      service_facts:
+
+    - name: Populate package facts
+      package_facts:
+        manager: auto
+
+    - name: Check if {{ scylla_package_prefix }} meta-package is installed
+      set_fact:
+        scylla_is_installed: "{{ true if scylla_package_prefix in ansible_facts.packages else false }}"
+
+    - name: Get installed scylla version
+      set_fact:
+        current_scylla_version: "{{ ansible_facts.packages[scylla_package_prefix][0]['version'] }}"
+      when: scylla_is_installed
+
+    - name: Check if 'scylla-server' service is running
+      set_fact:
+        scylla_server_is_running: "{{ true if ansible_facts.services['scylla-server.service'] is defined and ansible_facts.services['scylla-server.service']['state'] == 'running' else false }}"
+
+    - name: Create required directory structure
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ custom_build_working_directory }}"
+        - "{{ custom_build_download_directory }}"
+        - "{{ custom_build_unpack_directory }}"
+
+    - name: "Check if '{{ custom_build_archive_name }}' exists"
+      ansible.builtin.stat:
+        path: "{{ custom_build_download_directory }}/{{ custom_build_archive_name }}"
+      register: custom_build_archive_file
+
+    - name: "Download '{{ custom_build_archive_name }}'"
+      ansible.builtin.get_url:
+        url: "{{ custom_build_archive_base_url }}/{{ custom_build_archive_name }}"
+        dest: "{{ custom_build_download_directory }}/{{ custom_build_archive_name }}"
+        mode: '0644'
+      when: not custom_build_archive_file.stat.exists or custom_build_force_download
+
+    - name: "Extract '{{ custom_build_archive_name }}' into '{{ custom_build_unpack_directory }}'"
+      ansible.builtin.unarchive:
+        src: "{{ custom_build_download_directory }}/{{ custom_build_archive_name }}"
+        dest: "{{ custom_build_unpack_directory }}"
+        remote_src: yes
+
+    - name: Get Scylla configuration files
+      ansible.builtin.shell: |
+        cat /var/lib/dpkg/info/scylla*conffiles | grep -v init
+      register: scylla_config_files
+
+    - name: Backup Scylla configuration files
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ item }}-v{{ current_scylla_version }}"
+        remote_src: yes
+        mode: preserve
+      loop: "{{ scylla_config_files.stdout_lines }}"
+      become: yes
+      when: scylla_is_installed
+
+    - name: Stop Scylla
+      block:
+        - name: Drain node
+          ansible.builtin.uri:
+            url: "http://{{ api_address }}:{{ api_port }}/storage_service/drain"
+            method: POST
+          retries: "{{ api_retries }}"
+          delay: "{{ api_delay }}"
+          timeout: "{{ api_timeout }}"
+
+        - name: Check if the node if fully drained
+          ansible.builtin.uri:
+            url: "http://{{ api_address }}:{{ api_port }}/storage_service/operation_mode"
+            method: GET
+          retries: "{{ api_retries }}"
+          delay: "{{ api_delay }}"
+          timeout: "{{ api_timeout }}"
+          register: node_drain_status
+          failed_when: "'DRAINED' not in node_drain_status.json"
+
+        - name: Stop 'scylla-server' service
+          ansible.builtin.systemd:
+            name: scylla-server
+            state: stopped
+          become: yes
+          when: "'DRAINED' in node_drain_status.json"
+      rescue:
+        - name: Send a SIGKILL to Scylla PID
+          ansible.builtin.shell: kill -9 $(pidof scylla)
+          register: scylla_kill_pid
+          retries: "{{ pid_kill_retries }}"
+          delay: "{{ pid_kill_delay }}"
+          until: scylla_kill_pid.rc == 2
+          failed_when: scylla_kill_pid.rc != 2
+          become: yes
+      when: scylla_server_is_running
+
+    - name: Install custom build packages
+      ansible.builtin.shell:
+        "cd {{ custom_build_unpack_directory_deb }} && apt install -y --allow-downgrades ./*.deb"
+      become: yes
+
+    - name: Restore Scylla configuration files
+      ansible.builtin.copy:
+        src: "{{ item }}-v{{ current_scylla_version }}"
+        dest: "{{ item }}"
+        remote_src: yes
+        mode: preserve
+      loop: "{{ scylla_config_files.stdout_lines }}"
+      become: yes
+      when: scylla_is_installed
+
+    - name: Reload systemd's daemon
+      ansible.builtin.systemd:
+        daemon_reload: yes
+      become: yes
+
+    - name: Start Scylla service
+      block:
+        - name: Start 'scylla-server' service
+          ansible.builtin.systemd:
+            name: scylla-server
+            state: started
+          become: yes
+
+        - name: Wait for CQL port on {{ inventory_hostname }}
+          ansible.builtin.uri:
+            url: "http://{{ api_address }}:{{ api_port }}/storage_service/native_transport"
+            method: GET
+          retries: "{{ api_retries }}"
+          delay: "{{ api_delay }}"
+          timeout: "{{ api_timeout }}"
+          register: cql_status
+          until: "'true' in cql_status.json|lower"
+
+        - name: wait for the cluster to become healthy
+          shell: |
+            nodetool status|grep -E '^UN|^DN|^UJ'|wc -l
+          register: node_count
+          until: node_count.stdout|int == ansible_play_hosts|length
+          retries: "{{ api_retries }}"
+          delay: "{{ api_delay }}"
+      when: scylla_server_is_running
+
+    - name: Get current Scylla version
+      ansible.builtin.shell: scylla --version
+      register: get_current_scylla_version
+
+    - name: Print current Scylla version
+      ansible.builtin.debug:
+        msg: "Current Scylla version is '{{ get_current_scylla_version.stdout }}'"
+
+    - name: "Wipe '{{ custom_build_unpack_directory }}'"
+      ansible.builtin.file:
+        path: "{{ custom_build_unpack_directory }}"
+        state: absent
+
+    - name: "Wipe '{{ custom_build_wipe_download }}'"
+      ansible.builtin.file:
+        path: "{{ custom_build_download_directory }}"
+        state: absent
+      when:
+        - custom_build_wipe_download is defined
+        - custom_build_wipe_download
+
+    - name: "Wipe '{{ custom_build_wipe_all }}'"
+      ansible.builtin.file:
+        path: "{{ custom_build_working_directory }}"
+        state: absent
+      when:
+        - custom_build_wipe_all is defined
+        - custom_build_wipe_all
