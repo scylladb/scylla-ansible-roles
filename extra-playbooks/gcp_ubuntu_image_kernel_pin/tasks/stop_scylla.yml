@@ -1,0 +1,37 @@
+---
+
+- name: Stop Scylla
+  block:
+    - name: Drain node
+      ansible.builtin.uri:
+        url: "http://{{ api_address }}:{{ api_port }}/storage_service/drain"
+        method: POST
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+      timeout: "{{ api_timeout }}"
+
+    - name: Check if the node if fully drained
+      ansible.builtin.uri:
+        url: "http://{{ api_address }}:{{ api_port }}/storage_service/operation_mode"
+        method: GET
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+      timeout: "{{ api_timeout }}"
+      register: node_drain_status
+      failed_when: "'DRAINED' not in node_drain_status.json"
+
+    - name: Stop scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        state: stopped
+      become: true
+      when: "'DRAINED' in node_drain_status.json"
+  rescue:
+    - name: Send a SIGKILL to Scylla PID
+      ansible.builtin.shell: kill -9 $(pidof scylla)
+      register: scylla_kill_pid
+      retries: "{{ pid_kill_retries }}"
+      delay: "{{ pid_kill_delay }}"
+      until: scylla_kill_pid.rc == 2
+      failed_when: scylla_kill_pid.rc != 2
+      become: true

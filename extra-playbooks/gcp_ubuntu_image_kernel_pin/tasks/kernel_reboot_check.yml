@@ -1,0 +1,18 @@
+---
+
+- name: Reboot the node to use kernel '{{ image_version }}'
+  ansible.builtin.reboot:
+  become: true
+
+- name: Get current kernel image version
+  ansible.builtin.shell: uname --kernel-release
+  register: uname_post_output
+
+- name: Save kernel image version
+  ansible.builtin.set_fact:
+    target_image_version="{{ uname_post_output.stdout_lines | first }}"
+
+- name: Fail if kernel image version '{{ image_version }}' is not currently in use
+  ansible.builtin.fail:
+    msg: "'{{ image_version }}' is not currently used"
+  when: target_image_version is version(image_version, 'ne')
