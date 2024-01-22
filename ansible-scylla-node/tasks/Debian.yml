@@ -69,11 +69,6 @@
       state: present
       force_apt_get: yes
 
-  - name: Correct java version selected
-    alternatives:
-      name: java
-      path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java
-
   - name: Install Scylla packages
     include_tasks: Debian_install.yml
   become: true
