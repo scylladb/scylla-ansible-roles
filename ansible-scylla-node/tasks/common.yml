@@ -355,9 +355,24 @@
         host: "{{ scylla_api_address }}"
         timeout: 300
 
+    - name: Determine if Scylla release is prone to CASSANDRA-17581
+      shell:
+        cmd: nodetool status
+      register: nodetool
+      ignore_errors: True
+
+    - name: Configure JAVA_TOOL_OPTIONS in /etc/environment
+      lineinfile:
+        path: /etc/environment
+        regexp: '^JAVA_TOOL_OPTIONS='
+        line: 'JAVA_TOOL_OPTIONS="-Dcom.sun.jndi.rmiURLParsing=legacy"'
+        state: present
+      when:
+        - '"URISyntaxException" in nodetool.stderr'
+
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+        nodetool -Dcom.sun.jndi.rmiURLParsing=legacy status|grep -E '^UN|^UJ|^DN'|wc -l
       register: node_count
       until: node_count.stdout|int == ansible_play_batch|length
       retries: 300
