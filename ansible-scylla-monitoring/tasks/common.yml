@@ -156,6 +156,28 @@
     mode: '0755'
   when: prom_rules_sub_file.stat.exists
 
+- name: Filter out default rules
+  block:
+    - name: "Read current {{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
+      command: "cat {{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
+      register: _prometheus_rules_yaml_out
+
+    - name: "Parse {{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
+      set_fact:
+        _prometheus_rules_yaml_map: "{{ _prometheus_rules_yaml_out.stdout | from_yaml }}"
+
+    - name: Store filtered rules
+      set_fact:
+        _filtered_rules: "{{ _prometheus_rules_yaml_map.groups.0.rules | rejectattr('alert', 'match', scylla_monitoring_default_alert_reject_filter) }}"
+
+    - name: Combine after filtering
+      set_fact:
+        _full_filtered_rules_map: "{'groups': [{'name': 'scylla.rules', 'rules': {{ _filtered_rules }} }]}"
+
+    - name: Store filtered file
+      copy: content="{{ _full_filtered_rules_map | to_yaml }}" dest="{{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
+  when: scylla_monitoring_default_alert_reject_filter is defined
+
 - name: Delete backfill directory
   file:
     state: absent
