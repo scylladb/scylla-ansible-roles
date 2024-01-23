@@ -141,7 +141,7 @@
     remote_src: true
     dest: "{{ scylla_monitoring_prom_rules_path }}/prometheus.rules.yml"
     mode: '0644'
-  when: prometheus_rules_file is defined and prometheus_rules_file == 'default' and prom_rules_file.stat.exists
+  when: prom_rules_file.stat.exists
 
 - name: Check that prometheus rules file from the default file exists in new 3.8 path
   stat:
