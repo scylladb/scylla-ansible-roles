@@ -1,25 +1,25 @@
 ---
 - name: Add Scylla repos
   block:
-  - name: Install gnupg2 dependency
-    apt:
-      name: "gnupg2"
-      state: present
-      update_cache: yes
-    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
-
   - name: "Purge keyring '{{ scylla_repo_keyringfile }}'"
     ansible.builtin.file:
       path: "{{ scylla_repo_keyringfile }}"
       state: absent
-    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+    when: "'gnupg2' in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
 
   - name: Remove an apt key by id previously added
     ansible.builtin.apt_key:
       id: "{{ item }}"
       state: absent
     with_items: "{{ scylla_repo_keys }}"
-    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+    when: "'gnupg2' in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+
+  - name: Install gnupg2 dependency if it's not already installed
+    apt:
+      name: "gnupg2"
+      state: present
+      update_cache: yes
+    when: "'gnupg2' not in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
 
   - name: Add an apt key by id from a keyserver
     apt_key:
