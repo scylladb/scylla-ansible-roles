@@ -5,7 +5,6 @@
     apt:
       name: "gnupg2"
       state: present
-      update_cache: yes
     when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
 
   - name: "Purge keyring '{{ scylla_repo_keyringfile }}'"
