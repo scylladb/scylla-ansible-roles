@@ -326,20 +326,11 @@
       include_tasks: generate_tokens.yml
       when: token_distributor is defined
 
-    # Start all seeders together since we don't know which one is the "first" - so let them figure it by themselves
-    - name: start scylla on seeders
-      service:
-        name: scylla-server
-        state: started
-      become: true
-      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
-
-    - name: Wait for CQL port on seeders
-      wait_for:
-        port: 9042
-        host: "{{ listen_address }}"
-        timeout: "{{ scylla_bootstrap_wait_time_sec }}"
-      when: broadcast_address in scylla_seeds or inventory_hostname in scylla_seeds
+    - name: Start seeders serially
+      run_once: true
+      include_tasks: start_one_node.yml
+      loop: "{{ groups['scylla'] }}"
+      when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
