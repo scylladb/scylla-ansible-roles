@@ -82,7 +82,6 @@
     - set_fact:
         io_conf: "{{ _io_conf.stdout_lines[0] }}"
   when: io_properties is not defined and scylla_io_probe|bool == True and (scylla_io_probe_dc_aware|bool == False or dc_to_node_list[dc][0] == inventory_hostname)
-  run_once: "{{ not scylla_io_probe_dc_aware|bool }}"
   become: true
 
 - name: For every node, check if io.conf already exists and if it's not empty
