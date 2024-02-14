@@ -95,19 +95,6 @@
         jump: DROP
       become: true
 
-    # By doing this we make sure that the new node will have the same io_properties as the others
-    - name: Save io_properties from the seed node
-      block:
-        - name: store /etc/scylla.d/io_properties.yaml
-          shell: |
-            cat /etc/scylla.d/io_properties.yaml
-          register: _io_properties
-
-        - set_fact:
-            io_properties: "{{ _io_properties.stdout }}"
-      delegate_to: "{{ temporary_seed }}"
-      run_once: true
-
 
 # This play will install Scylla in the new node and update the existing ones.
 # The same variables used when the node role was executed for the replaced node should also
