@@ -147,9 +147,10 @@
 
 - name: configure Scylla
   shell: |
-    scylla_setup --no-raid-setup --nic {{ scylla_nic }} --setup-nic-and-disks --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup --no-swap-setup
+    scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter \  
+                 --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup \
+                 {% if skip_mem_setup is defined and skip_mem_setup|bool == True %} --no-memory-setup {% endif %}
   become: true
-  when: ansible_facts.services["scylla-server.service"] is defined and ansible_facts.services["scylla-server.service"]["state"] != "running"
 
 - name: configure scylla.yaml
   template:
