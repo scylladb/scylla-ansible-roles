@@ -19,6 +19,35 @@
   when: not firewall_enabled
   become: true
 
+- name: General, NIC and CPU settings related tweaking
+  block:
+    - name: configure Scylla
+      shell: |
+        scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter \
+                     --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup \
+                     {% if skip_mem_setup is defined and skip_mem_setup|bool == True %} --no-memory-setup {% endif %}
+
+    - name: check if /etc/scylla.d/perftune.yaml exists
+      stat:
+        path: /etc/scylla.d/perftune.yaml
+      register: _perftune_conf_file
+
+    # Formally speaking scylla_sysconfig_setup configures values in scylla-server sysconfig file.
+    # By default, the block below is going to be executed only once for a new node. And this is exactly how we want it.
+    # To make the block below run again once can simply nuke perftune.yaml.
+    # If some custom configuration is set then the user should be knowledgable enough to configure scylla-server file
+    # correctly.
+    - name: configure sysconfig and generate (enforce!) an auto-selected cpuset.conf
+      shell: |
+        scylla_sysconfig_setup --set-clocksource --setup-nic-and-disks --nic {{ scylla_nic }}
+      when: skip_sysconfig is defined and skip_sysconfig|bool == false and _perftune_conf_file.stat.exists|bool == false
+
+    - name: overwrite an automatic cpuset.conf with an explicit value
+      shell: |
+        {{ cpuset_command }}
+      when: cpuset_command is defined and skip_cpuset is defined and skip_cpuset|bool == false
+  become: true
+
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid
@@ -145,13 +174,6 @@
   ignore_errors: true
   #TODO: stop ignoring errors when a version check is added
 
-- name: configure Scylla
-  shell: |
-    scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter \  
-                 --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup \
-                 {% if skip_mem_setup is defined and skip_mem_setup|bool == True %} --no-memory-setup {% endif %}
-  become: true
-
 - name: configure scylla.yaml
   template:
     src: templates/scylla.yaml.j2
@@ -205,76 +227,19 @@
     shell: |
       scylla_fstrim_setup
     notify: Enable and start 'scylla-fstrim.timer' service
-
-  - name: configure sysconfig
-    shell: |
-      scylla_sysconfig_setup --set-clocksource --setup-nic-and-disks --nic {{ scylla_nic }}
-    when: skip_sysconfig is defined and skip_sysconfig|bool == false
   become: true
 
-- name: perftune related operations
-  block:
-  #TODO: additional testing on Debian/Ubuntu required.
-  - name: set perf_mode for 4 cores or less
-    set_fact:
-      perf_mode: mq
-    when: ansible_processor_vcpus <= 4
 
-  - name: set perf_mode for 5 to 8 cores
-    set_fact:
-      perf_mode: "sq"
-    when: ansible_processor_vcpus > 4 and ansible_processor_vcpus <= 8
 
-  - name: set perf_mode for 9+ cores
-    set_fact:
-      perf_mode: "sq_split"
-    when: ansible_processor_vcpus > 8
+- name: set devmode command
+  set_fact:
+    devmode_command: "scylla_dev_mode_setup --developer-mode 1"
 
-  - name: find perftune in the system
-    shell: |
-      if [ -f /usr/lib/scylla/perftune.py ]; then echo non-reloc; fi
-      if [ -f /opt/scylladb/scripts/perftune.py ]; then echo reloc; fi
-    register: is_reloc
-
-  - name: upload hex2list.py to /tmp
-    copy:
-      src: files/hex2list.py
-      dest: /tmp/hex2list.py
-      mode: '755'
-
-  - name: set perftune command for reloc
-    set_fact:
-      perftune: "PATH=$PATH:/opt/scylladb/bin /opt/scylladb/scripts/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /tmp/hex2list.py"
-    when: is_reloc.stdout == 'reloc'
-
-  - name: set perftune command for non-reloc
-    set_fact:
-      perftune: "/usr/lib/scylla/perftune.py --tune net --get-cpu-mask --nic {{ scylla_nic }} --mode {{ perf_mode }} | /tmp/hex2list.py"
-    when: is_reloc.stdout == 'non-reloc'
-
-  - name: set default cpuset command
-    set_fact:
-      cpuset_default: "scylla_cpuset_setup --cpuset `{{ perftune }}`"
-
-  - name: determine cpuset command (custom or default)
-    set_fact:
-      cpuset: "{{ (cpuset_command is defined) | ternary(cpuset_command, cpuset_default) }}"
-
-  - name: run cpuset
-    shell: |
-      {{ cpuset }}
-    become: true
-    when: skip_cpuset is defined and skip_cpuset|bool == false
-
-  - name: set devmode command
-    set_fact:
-      devmode_command: "scylla_dev_mode_setup --developer-mode 1"
-
-  - name: run devmode
-    shell: |
-      {{ devmode_command }}
-    become: true
-    when: (devmode is defined) and (devmode|bool)
+- name: run devmode
+  shell: |
+    {{ devmode_command }}
+  become: true
+  when: (devmode is defined) and (devmode|bool)
 
 - name: configure custom scylla.yaml paramaters
   lineinfile:
