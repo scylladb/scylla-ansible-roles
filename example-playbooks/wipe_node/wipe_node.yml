@@ -1,0 +1,98 @@
+---
+# This play will wipe a Scylla node completely by stopping/disabling the relevant services and by deleting data and configuration files.
+# This is useful when you want to re-use an instance that used to be a scylla node, for example when you want to replace a node by itself.
+# The play will expect a {{ node_to_be_cleaned }} variable as input.
+
+# BE VERY CAREFUL WHEN USING THIS PLAY!
+# If you pass as {{ node_to_be_cleaned }} a node that is part of the cluster, this playbook will DELETE ALL ITS DATA.
+
+- name: Wipe scylla node
+  hosts: "{{ node_to_be_cleaned }}"
+  become: true
+  tasks:
+    - name: Disable Scylla service
+      service:
+        name: scylla-server
+        enabled:  false
+      ignore_errors: true
+
+    - name: Stop Scylla service
+      async_task:
+        shell: |
+          systemctl stop scylla-server
+        alias: stop_scylla
+        async: 5
+        retries: 5
+        delay: 1
+      ignore_errors: true
+      register: _stop_scylla_output
+
+    - name: Send SIGKILL to scylla
+      shell: |
+        pkill -9 scylla$
+      ignore_errors: true
+
+    - name: Disable scylla-manager-agent
+      service:
+        name: scylla-manager-agent
+        enabled:  false
+      ignore_errors: true
+
+    - name: Stop scylla-manager-agent
+      service:
+        name: scylla-manager-agent
+        state: stopped
+      ignore_errors: true
+
+    - name: Disable var-lib-systemd-coredump.mount
+      service:
+        name: var-lib-systemd-coredump.mount
+        enabled: false
+      ignore_errors: true
+
+    - name: Stop var-lib-systemd-coredump.mount
+      service:
+        name: var-lib-systemd-coredump.mount
+        state: stopped
+      ignore_errors: true
+
+    - name: Remove /var/lib/scylla/*
+      shell: |
+        rm -rf /var/lib/scylla/*
+      ignore_errors: true
+
+    - name: Disable var-lib-scylla.mount
+      service:
+        name: var-lib-scylla.mount
+        enabled: false
+      ignore_errors: true
+
+    - name: Stop var-lib-scylla.mount
+      service:
+        name: var-lib-scylla.mount
+        state: stopped
+      ignore_errors: true
+
+    - name: Remove /etc/scylla.d
+      shell: |
+        rm -rf /etc/scylla.d
+      ignore_errors: true
+
+    - name: Remove /etc/systemd/system/var-lib-scylla.mount
+      shell: |
+        rm -rf /etc/systemd/system/var-lib-scylla.mount
+      ignore_errors: true
+
+    - name: Remove /etc/systemd/system/var-lib-systemd-coredump.mount
+      shell: |
+        rm -rf /etc/systemd/system/var-lib-systemd-coredump.mount
+      ignore_errors: true
+
+    - name: Reload systemd
+      shell: |
+        systemctl daemon-reload
+
+    - name: Remove Scylla packages
+      package:
+        name: "scylla*"
+        state: absent
