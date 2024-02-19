@@ -314,6 +314,11 @@
     listen_address: "{{ scylla_listen_address }}"
 
 # The same relates to the below
+- name: Resolve scylla_rpc_address
+  set_fact:
+    rpc_address: "{{ scylla_rpc_address }}"
+
+# The same relates to the below
 - name: Resolve scylla_broadcast_address
   set_fact:
     broadcast_address: "{{ scylla_broadcast_address }}"
