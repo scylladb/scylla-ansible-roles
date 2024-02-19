@@ -147,7 +147,7 @@
 
 - name: configure Scylla
   shell: |
-    scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup
+    scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup --no-memory-setup
   become: true
 
 - name: configure scylla.yaml
