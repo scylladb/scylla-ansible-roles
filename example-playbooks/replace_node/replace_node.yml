@@ -139,6 +139,8 @@
     - ansible-scylla-node
 
 
+# Update scylla-monitoring before the replacement starts to be able to see the
+# streaming progress
 - name: Update scylla-monitoring
   hosts: scylla-monitor
   roles:
