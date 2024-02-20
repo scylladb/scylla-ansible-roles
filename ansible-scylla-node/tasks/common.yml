@@ -170,6 +170,7 @@
   service:
         name: scylla-node-exporter
         state: started
+        enabled: yes
   become: true
   ignore_errors: true
   #TODO: stop ignoring errors when a version check is added
