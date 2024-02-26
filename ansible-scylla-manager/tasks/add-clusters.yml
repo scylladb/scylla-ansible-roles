@@ -12,10 +12,9 @@
   shell: |
     sctool cluster add \
       --host {{ item.host }} \
-      --auth-token "{{ auth_token }}" \
       --name {{ item.cluster_name }} \
-      {% if item.without_token is defined and item.without_token|bool == true %}
-      --without_token \
+      {% if not item.without_token is defined or item.without_token|bool == false %}
+      --auth-token "{{ auth_token }}" \
       {% endif %}
       {% if item.username is defined and item.password is defined %}
       --username {{ item.username }} \
