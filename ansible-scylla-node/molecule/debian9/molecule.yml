@@ -44,7 +44,7 @@ provisioner:
     group_vars:
       scylla:
         scylla_repos:
-          - "http://repositories.scylladb.com/scylla/repo/deb/debian/scylladb-4.4-stretch.list"
+          - "https://repositories.scylladb.com/scylla/repo/deb/debian/scylladb-4.4-stretch.list"
         scylla_edition: "oss"
         scylla_io_probe: false
         io_properties:
@@ -56,7 +56,7 @@ provisioner:
               write_bandwidth: 1000
         dc: "test_dc"
         rack: "test_rack"
-        scylla_manager_repo_url: "http://downloads.scylladb.com/deb/debian/scylladb-manager-2.3-stretch.list"
+        scylla_manager_repo_url: "https://downloads.scylladb.com/deb/debian/scylladb-manager-2.3-stretch.list"
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml

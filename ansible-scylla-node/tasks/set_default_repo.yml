@@ -12,7 +12,7 @@
   block:
     - name: Set temporary fact
       set_fact:
-        _scylla_repo_default: "http://downloads.scylladb.com/deb/ubuntu/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.list"
+        _scylla_repo_default: "https://downloads.scylladb.com/deb/ubuntu/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.list"
 
     - name: Set scylla_deb_repos
       set_fact:
@@ -23,7 +23,7 @@
   block:
     - name: Set temporary fact
       set_fact:
-        _scylla_repo_default: "http://downloads.scylladb.com/rpm/centos/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.repo"
+        _scylla_repo_default: "https://downloads.scylladb.com/rpm/centos/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.repo"
 
     - name: Set scylla_rpm_repos
       set_fact:
