@@ -32,11 +32,11 @@ Example Playbook
         host: "{{ groups['scylla'][0]}}"
         auth_token_file: scyllamgr_auth_token.txt
         without_repair: false
-    scylla_manager_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.1-bionic.list"
+    scylla_manager_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.1-bionic.list"
     #  These will be passed on to the ansible-scylla-node role applied to the Manager node in order to deploy a local Scylla instance
     scylla_manager_db_vars:
       scylla_repos:
-        - 'http://repositories.scylladb.com/scylla/repo/../ubuntu/scylladb-4.1-bionic.list'
+        - 'https://repositories.scylladb.com/scylla/repo/../ubuntu/scylladb-4.1-bionic.list'
       # Only for Ubuntu/Debian
       scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
       scylla_repo_keys:

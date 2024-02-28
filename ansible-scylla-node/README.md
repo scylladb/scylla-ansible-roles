@@ -45,7 +45,7 @@ Example Playbook
 
     # variables for the Scylla node role (can be set here or in the role's vars/main.yml)
     scylla_repos:
-      - 'http://repositories.scylladb.com/scylla/repo/613b5a39-91d7-4267-aa15-4384fde87442/ubuntu/scylladb-4.1-bionic.list'
+      - 'https://repositories.scylladb.com/scylla/repo/613b5a39-91d7-4267-aa15-4384fde87442/ubuntu/scylladb-4.1-bionic.list'
     scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
     scylla_repo_keys:
       - 5e08fbd8b5d6ec9c
@@ -66,7 +66,7 @@ Example Playbook
     scylla_api_address: '127.0.0.1'
     scylla_api_port: '10000'
     scylla_manager_enabled: true
-    scylla_manager_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.1-bionic.list"
+    scylla_manager_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.1-bionic.list"
 
   tasks:
     # Workaround for some Debian versions that might not have XFS support out of the box

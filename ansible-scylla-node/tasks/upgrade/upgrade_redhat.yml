@@ -13,7 +13,7 @@
 # Create Scylla repositories file
 - name: Create Scylla repositories file
   ansible.builtin.get_url:
-    url: "http://downloads.scylladb.com/rpm/centos/scylla-{{ scylla_upgrade['major_version'] }}.repo"
+    url: "https://downloads.scylladb.com/rpm/centos/scylla-{{ scylla_upgrade['major_version'] }}.repo"
     dest: /etc/yum.repos.d/scylla.repo
     mode: '0644'
   become: true

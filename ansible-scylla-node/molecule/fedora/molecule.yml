@@ -44,7 +44,7 @@ provisioner:
     group_vars:
       scylla:
         scylla_repos:
-          - "http://repositories.scylladb.com/scylla/repo/4a57aebd-c6ac-46e9-8030-bdcf5a51ee0e/centos/scylladb-4.4.repo"
+          - "https://repositories.scylladb.com/scylla/repo/4a57aebd-c6ac-46e9-8030-bdcf5a51ee0e/centos/scylladb-4.4.repo"
         scylla_edition: "oss"
         scylla_io_probe: false
         io_properties:
@@ -56,7 +56,7 @@ provisioner:
               write_bandwidth: 1000
         dc: "test_dc"
         rack: "test_rack"
-        scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.3.repo"
+        scylla_manager_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-2.3.repo"
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml

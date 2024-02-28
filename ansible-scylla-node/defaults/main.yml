@@ -104,12 +104,12 @@ firewall_enabled: false
 # URL of an RPM .repo file or a DEB .list file
 # deprecated in favour of below, it will be dropped soon, below should be used
 #scylla_repos:
-#  - http://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
+#  - https://downloads.scylladb.com/rpm/centos/scylla-2021.1.repo
 #
 # Both scylla_deb_repos and scylla_rpm_repos, if undefined, would resolve to a URL that corresponds
 # to a scylla version to which scylla_version resolves to.
 #scylla_deb_repos:
-#  - http://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
+#  - https://downloads.scylladb.com/deb/ubuntu/scylla-2021.1.list
 #
 #scylla_rpm_repos: "{{ scylla_repos }}"
 
@@ -392,9 +392,9 @@ system_info_encryption_kms:
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 # deprecated in favour of below, it will be dropped soon, below should be used
-scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
+scylla_manager_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
 
-scylla_manager_deb_repo_url: "http://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
+scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
 scylla_manager_rpm_repo_url: "{{ scylla_manager_repo_url }}"
 
 scylla_manager_agent_upgrade: true

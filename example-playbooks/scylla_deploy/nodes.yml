@@ -6,7 +6,7 @@
 
     # variables for the Scylla node role (can be set here or in the role's vars/main.yml)
     scylla_repos:
-      - 'http://repositories.scylladb.com/scylla/repo/****/centos/scylladb-4.1.repo'
+      - 'https://repositories.scylladb.com/scylla/repo/****/centos/scylladb-4.1.repo'
         #scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
         #scylla_repo_keys:
         #- 5e08fbd8b5d6ec9c
@@ -28,7 +28,7 @@
     scylla_api_port: '10000'
     generate_monitoring_config: True
     scylla_manager_enabled: true
-    scylla_manager_repo_url: "http://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
+    scylla_manager_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-2.1.repo"
 
   roles:
     - ansible-scylla-node
