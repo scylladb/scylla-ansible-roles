@@ -85,6 +85,14 @@
 
 - name: Collect IO settings for the first node of every DC
   block:
+    - name: store /etc/scylla.d/io.conf
+      shell: |
+        cat /etc/scylla.d/io.conf
+      register: _io_conf
+
+    - set_fact:
+        io_conf: "{{ _io_conf.stdout_lines[0] }}"
+
     - name: check for existing io_properties
       stat:
         path: /etc/scylla.d/io_properties.yaml
@@ -102,14 +110,6 @@
 
     - set_fact:
         io_properties: "{{ _io_properties.stdout }}"
-
-    - name: store /etc/scylla.d/io.conf
-      shell: |
-        cat /etc/scylla.d/io.conf
-      register: _io_conf
-
-    - set_fact:
-        io_conf: "{{ _io_conf.stdout_lines[0] }}"
   when: io_properties is not defined and scylla_io_probe|bool == True and (scylla_io_probe_dc_aware|bool == False or dc_to_node_list[dc][0] == inventory_hostname)
   become: true
 
