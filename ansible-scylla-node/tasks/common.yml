@@ -79,7 +79,7 @@
 - name: Create a map from dc to its list of nodes
   set_fact:
     dc_to_node_list: "{{ dc_to_node_list | default({}) | combine( {hostvars[item]['dc']: (dc_to_node_list | default({}))[hostvars[item]['dc']] | default([]) + [item]} ) }}"
-  loop: "{{ groups['scylla'] }}"
+  loop: "{{ play_hosts }}"
   run_once: true
   when: scylla_io_probe_dc_aware|bool
 
@@ -328,13 +328,13 @@
     - name: Start seeders serially
       run_once: true
       include_tasks: start_one_node.yml
-      loop: "{{ groups['scylla'] }}"
+      loop: "{{ play_hosts }}"
       when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
       include_tasks: start_one_node.yml
-      loop: "{{ groups['scylla'] }}"
+      loop: "{{ play_hosts }}"
       when:
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
@@ -345,11 +345,17 @@
         host: "{{ scylla_api_address }}"
         timeout: 300
 
+    - name: Create a list with the broadcast addresses of the nodes in play_hosts
+      set_fact:
+        broadcast_address_list: "{{ broadcast_address_list | default([]) + [hostvars[item]['broadcast_address']] }}"
+      loop: "{{ play_hosts }}"
+      run_once: true
+
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+        nodetool status|grep -E '^UN|^UJ|^DN'| grep -Ew "{{ broadcast_address_list | join('|') }}" | wc -l
       register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
+      until: node_count.stdout|int == play_hosts|length
       retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
       when: full_inventory|bool
