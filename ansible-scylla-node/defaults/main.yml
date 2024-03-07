@@ -89,7 +89,7 @@ install_only: false
 # Change here or override in vars
 scylla_nic: "{{ ansible_default_ipv4.interface }}"
 
-cluster_local_files_path: "{{ inventory_dir }}"
+cluster_local_files_path: "{{ playbook_dir }}"
 
 # online|offline - offline will disable all the attepts to download packages
 # node_exporter will need to be installed manually
@@ -297,7 +297,7 @@ scylla_ssl:
 # Note that by default the {{ inventory_hostname }} is part of the localhost_system_key_directory. This allows you to define
 # different keys per host.
 # e.g.:
-# If your localhost_system_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+# If your localhost_system_key_directory is set to "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
 # and you have the following file tree:
 #
 # ├── encryption_at_rest
@@ -317,7 +317,7 @@ scylla_ssl:
 # without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
 
 handle_system_keys: false
-localhost_system_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+localhost_system_key_directory: "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
 system_key_directory: "/etc/scylla/system_encryption_keys"
 
 # Table keys are used for encrypting SSTables. Depending on your key provider, this key is stored in different locations:
@@ -332,7 +332,7 @@ system_key_directory: "/etc/scylla/system_encryption_keys"
 # Note that by default the {{ inventory_hostname }} is part of the localhost_table_key_directory. This allows you to define
 # different keys per host.
 # e.g.:
-# If your localhost_table_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+# If your localhost_table_key_directory is set to "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
 # and you have the following file tree:
 #
 # ├── encryption_at_rest
@@ -352,7 +352,7 @@ system_key_directory: "/etc/scylla/system_encryption_keys"
 # without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
 
 handle_table_keys: false
-localhost_table_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+localhost_table_key_directory: "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
 table_key_directory: "/etc/scylla/table_encryption_keys"
 
 # Encrypt system resources:
