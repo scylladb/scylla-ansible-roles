@@ -20,7 +20,7 @@
   set_fact:
     node_list: "{{ node_list | default([]) + [hostvars[item]['broadcast_address']] }}"
     rack_list: "{{ rack_list | default([]) + [hostvars[item]['rack']] }}"
-    dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc']] }}"
+    dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc'] + hostvars[item]['dc_suffix'] | default('')] }}"
   loop: "{{ groups['scylla'] }}"
 
 - name: Create a temporary tokens file
