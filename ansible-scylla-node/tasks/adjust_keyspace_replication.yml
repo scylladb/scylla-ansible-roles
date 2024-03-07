@@ -17,9 +17,17 @@
   loop: "{{ _datacenter_out.results }}"
   run_once: true
 
-- set_fact:
-    scylla_admin_username: "{{ scylla_admin_default_user }}"
-    scylla_admin_password: "{{ lookup('ini', scylla_admin_default_user, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+- name: Set scylla_admin_username and scylla_admin_password
+  block:
+    - name: Set scylla_admin_username
+      set_fact:
+        scylla_admin_username: "{{ scylla_admin_default_user }}"
+
+    - name: Look for cql_credentials in the inventories and read scylla_admin_password
+      include_tasks: read_admin_password.yml
+      vars:
+        iv_file: "{{ item }}"
+      loop: "{{ ansible_inventory_sources }}"
   when: scylla_admin_default_user is defined and 'cql_credentials' in groups
 
 - fail:

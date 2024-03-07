@@ -63,9 +63,13 @@
       when: _authentication_enabled|bool == false
       run_once: true
 
-    - name: Set password for scylla_admin
-      set_fact:
-        scylla_admin_password: "{{ lookup('ini', scylla_admin_username, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+    - name: Loop through inventories to find scylla_admin credentials
+      block:
+        - name: Try to read scylla_admin credentials in the current inventory
+          include_tasks: ../../ansible-scylla-node/tasks/read_admin_password.yml
+          vars:
+            iv_file: "{{ item }}"
+          loop: "{{ ansible_inventory_sources }}"
 
     - name: Create scylla_admin user
       import_tasks: create_user.yml
@@ -85,7 +89,7 @@
         admin_username: "{{ scylla_admin_username }}"
         admin_password: "{{ scylla_admin_password }}"
         username: "{{ item.key }}"
-        password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+        password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_with_credentials) }}"
         permissions: "{{ item.value.permissions }}"
       loop: "{{ internal_users | dict2items }}"
       run_once: true
