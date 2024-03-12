@@ -5,3 +5,5 @@
     - name: Include ansible-scylla-monitoring
       include_role:
         name: ansible-scylla-monitoring
+      vars:
+        scylla_monitoring_dashboards_versions: ['2022.2']
