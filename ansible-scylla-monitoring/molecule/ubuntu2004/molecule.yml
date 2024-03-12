@@ -24,6 +24,7 @@ provisioner:
   inventory:
     group_vars:
       scylla:
+      scylla-manager:
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
