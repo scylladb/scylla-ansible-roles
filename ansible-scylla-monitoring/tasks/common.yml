@@ -240,3 +240,26 @@
         msg: "Can't auto-detect Scylla Manager dashboard version. Either specify it explicitly or install Scylla Manager Server on the Scylla Manager host."
       when: _sm_version_out.stdout == ''
   when: _scylla_monitoring_params is not search("-M\s+") and 'scylla-manager' in groups and (groups['scylla-manager']|length > 0)
+
+- name: Set _scylla_monitoring_dashboards_versions to scylla_monitoring_dashboards_versions
+  set_fact:
+    _scylla_monitoring_dashboards_versions: "{{ scylla_monitoring_dashboards_versions | default([]) }}"
+
+- name: Auto-detect Scylla version if dashboard versions were not explicitly specified
+  block:
+    - name: Get Scylla version from "{{ groups['scylla'][0] }}"
+      shell: |
+        scylla --version | cut -d'.' -f1,2
+      delegate_to: "{{ groups['scylla'][0] }}"
+      register: _scylla_version_out
+
+    - name: Adding Scylla dashboard option if getting a Scylla version was successful
+      set_fact:
+        _scylla_monitoring_dashboards_versions: ["{{ _scylla_version_out.stdout }}"]
+      when: _scylla_version_out.stdout != ''
+
+    - name: Error out if failed to get Scylla version
+      fail:
+        msg: "Can't auto-detect Scylla dashboard version. Either specify it explicitly or install scylla on the first Scylla node."
+      when: _scylla_version_out.stdout == ''
+  when: (_scylla_monitoring_dashboards_versions|length == 0) and 'scylla' in groups and (groups['scylla']|length > 0)
