@@ -72,7 +72,9 @@ rule_config_yml_path: rule_config.yml
 # Example: "1000h" will keep data to 1000 hours
 scylla_monitoring_retention: "14d"
 
-# Other scylla monitoring parameters used with start-all.sh
+# Other scylla monitoring parameters used with start-all.sh.
+# If '-M <Scylla Manager version>' is not explicitly specified and if inventory has a 'scylla-manager' section, a Scylla Manager
+# dashboard version will be auto-selected according to a version installed on the first host from the 'scylla-manager' inventory section.
 # scylla_monitoring_params: '-M 2.1 -a P@ssw0rd123'
 
 ### The following settings are only relevant for non-dockerized setup
