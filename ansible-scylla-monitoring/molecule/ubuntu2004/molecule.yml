@@ -16,6 +16,7 @@ platforms:
       - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
     groups:
       - scylla
+      - scylla-manager
 provisioner:
   name: ansible
   log: True
@@ -24,6 +25,7 @@ provisioner:
   inventory:
     group_vars:
       scylla:
+      scylla-manager:
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
