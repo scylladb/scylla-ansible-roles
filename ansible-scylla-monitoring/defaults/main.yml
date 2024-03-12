@@ -31,9 +31,10 @@ scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata
 # will use the information from the inventory to generate scylla_servers.yml.
 use_nodetool_status_with_genconfig: false
 
-# List of monitoring dashboards to enable
-scylla_monitoring_dashboards_versions:
-  - '2021.1'
+# List of monitoring dashboards to enable. If empty or not set the Role will auto-select the one that corresponds to a
+# Scylla version installed on the first host from the 'scylla' inventory section.
+#scylla_monitoring_dashboards_versions:
+#  - '2021.1'
 
 # Username which will be used for the cql plugin if auth is enabled on scylla-server side
 # scylla_monitoring_cql_default_user: 'scylla_cql_monitor'
