@@ -32,8 +32,8 @@ scylla_monitoring_alertdata_path: "{{ scylla_monitoring_deploy_path }}/alertdata
 use_nodetool_status_with_genconfig: false
 
 # List of monitoring dashboards to enable
-scylla_monitoring_dashboards_versions:
-  - '2021.1'
+#scylla_monitoring_dashboards_versions:
+#  - '2021.1'
 
 # Username which will be used for the cql plugin if auth is enabled on scylla-server side
 # scylla_monitoring_cql_default_user: 'scylla_cql_monitor'
