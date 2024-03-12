@@ -217,3 +217,26 @@
     dest: "{{ scylla_monitoring_config_path }}/rule_config.yml"
     mode: '0644'
   when: rule_config_stat.stat.exists|bool == false
+
+- name: Set _scylla_monitoring_params to scylla_monitoring_params
+  set_fact:
+    _scylla_monitoring_params: "{{ scylla_monitoring_params | default('') }}"
+
+- name: Auto detect Scylla Manager version
+  block:
+    - name: Get Scylla Manager version
+      shell: |
+        sctool version | grep ^Server | tr -d ' ' | cut -d':' -f2- | cut -d'.' -f1,2
+      delegate_to: "{{ groups['scylla-manager'][0] }}"
+      register: _sm_version_out
+
+    - name: Adding Scylla Manager dashboard option if getting a Manager version was successful
+      set_fact:
+        _scylla_monitoring_params: "{{ _scylla_monitoring_params }} -M {{ _sm_version_out.stdout }}"
+      when: _sm_version_out.rc == 0
+
+    - name: Error out if failed to get Scylla Manager version
+      fail:
+        msg: "Can't auto-detect Scylla Manager dashboard version. Either specify it explicitly or install Scylla Manager Server on the Scylla Manager host."
+      when: _sm_version_out.rc != 0
+  when: _scylla_monitoring_params is not search("-M\s+")
