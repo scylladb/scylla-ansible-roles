@@ -247,11 +247,15 @@
 
 - name: Auto detect Scylla version if dashboard versions were not explicitly specified
   block:
-    - name: Get Scylla version from the first Scylla node
+    - name: Get Scylla version from "{{ groups['scylla'][0] }}"
       shell: |
         scylla --version | cut -d'.' -f1,2
       delegate_to: "{{ groups['scylla'][0] }}"
       register: _scylla_version_out
+
+    - name: Read Scylla version
+      debug:
+        var: _scylla_version_out
 
     - name: Adding Scylla dashboard option if getting a Scylla version was successful
       set_fact:
