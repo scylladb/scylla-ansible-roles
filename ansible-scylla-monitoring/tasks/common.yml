@@ -260,10 +260,10 @@
     - name: Adding Scylla dashboard option if getting a Scylla version was successful
       set_fact:
         _scylla_monitoring_dashboards_versions: ["{{ _scylla_version_out.stdout }}"]
-      when: _scylla_version_out.rc == 0
+      when: _scylla_version_out.stdout != ''
 
     - name: Error out if failed to get Scylla version
       fail:
         msg: "Can't auto-detect Scylla dashboard version. Either specify it explicitly or install scylla on the first Scylla node."
-      when: _scylla_version_out.rc != 0
+      when: _scylla_version_out.stdout == ''
   when: (_scylla_monitoring_dashboards_versions|length == 0) and 'scylla' in groups and (groups['scylla']|length > 0)
