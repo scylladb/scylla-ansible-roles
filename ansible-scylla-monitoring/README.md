@@ -14,6 +14,14 @@ Role Variables
 
 Please check under `defaults/main.yml`, the variables are heavily commented
 
+Inventory
+---------
+Must include the following section:
+* [scylla]: Scylla nodes
+
+Optional section:
+* [scylla-manager]: Scylla Manager host
+
 
 Example Playbook
 ----------------
