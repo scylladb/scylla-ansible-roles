@@ -233,12 +233,12 @@
     - name: Adding Scylla Manager dashboard option if getting a Manager version was successful
       set_fact:
         _scylla_monitoring_params: "{{ _scylla_monitoring_params }} -M {{ _sm_version_out.stdout }}"
-      when: _sm_version_out.rc == 0
+      when: _sm_version_out.stdout != ''
 
     - name: Error out if failed to get Scylla Manager version
       fail:
         msg: "Can't auto-detect Scylla Manager dashboard version. Either specify it explicitly or install Scylla Manager Server on the Scylla Manager host."
-      when: _sm_version_out.rc != 0
+      when: _sm_version_out.stdout == ''
   when: _scylla_monitoring_params is not search("-M\s+") and 'scylla-manager' in groups and (groups['scylla-manager']|length > 0)
 
 - name: Set _scylla_monitoring_dashboards_versions to scylla_monitoring_dashboards_versions
