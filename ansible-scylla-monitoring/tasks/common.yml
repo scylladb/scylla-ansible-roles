@@ -245,6 +245,8 @@
   set_fact:
     _scylla_monitoring_dashboards_versions: "{{ scylla_monitoring_dashboards_versions | default([]) }}"
 
+sasdsad
+
 - name: Auto-detect Scylla version if dashboard versions were not explicitly specified
   block:
     - name: Get Scylla version from "{{ groups['scylla'][0] }}"
