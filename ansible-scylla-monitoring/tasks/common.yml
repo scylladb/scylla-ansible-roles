@@ -246,6 +246,8 @@
     _scylla_monitoring_dashboards_versions: "{{ scylla_monitoring_dashboards_versions | default([]) }}"
 
 sasdsad
+dsfsd
+qwdqwe
 
 - name: Auto-detect Scylla version if dashboard versions were not explicitly specified
   block:
