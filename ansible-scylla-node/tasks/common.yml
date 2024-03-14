@@ -168,9 +168,9 @@
 
 - name: node exporter setup from 5.0/2022
   service:
-        name: scylla-node-exporter
-        state: started
-        enabled: yes
+    name: scylla-node-exporter
+    state: started
+    enabled: yes
   become: true
   ignore_errors: true
   #TODO: stop ignoring errors when a version check is added
