@@ -1,14 +1,4 @@
 ---
-- name: Validate that all nodes are up before adjusting the replication
-  uri:
-    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
-    follow_redirects: none
-    method: GET
-  register: _result
-  until: _result.status == 200
-  retries: 10
-  delay: 1
-
 - name: Get datacenter name
   uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/snitch/datacenter"
@@ -17,11 +7,14 @@
   until: _datacenter_out.status == 200
   retries: 5
   delay: 1
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['scylla'] }}"
+  run_once: true
 
 - name: Prepare per DC replication_factor list
   set_fact:
-    dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + hostvars[item]['_datacenter_out'].json + \"':\" + _keyspace_rf|string] }}"
-  loop: "{{ groups['scylla'] }}"
+    dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + item.json + \"':\" + _keyspace_rf|string] }}"
+  loop: "{{ _datacenter_out.results }}"
   run_once: true
 
 - set_fact:
