@@ -166,14 +166,42 @@
   ignore_errors: true
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
 
+- name: Re-populate package facts
+  package_facts:
+    manager: auto
+
 - name: node exporter setup from 5.0/2022
-  service:
-    name: scylla-node-exporter
-    state: started
-    enabled: yes
+  block:
+    - name: Start scylla-node-exporter service
+      service:
+        name: scylla-node-exporter
+        state: started
+        enabled: yes
+      register: _scylla_node_exporter_status
+
+    - name: Set custom scylla-node-exporter service configuration
+      block:
+        - name: Get {{ scylla_package_prefix }}-node-exporter environment configuration file name
+          set_fact:
+            # 'EnvironmentFiles' has the following format: '<file name> (ignore_errors=[yes|no])'
+            _scylla_node_exporter_env_config_file: "{{ _scylla_node_exporter_status.status.EnvironmentFiles.split(' ')[0] }}"
+
+        - name: Set a custom configuration in {{ _scylla_node_exporter_env_config_file | default('a scylla-node-exporter configuration file') }}
+          template:
+            src: templates/scylla-node-exporter.j2
+            dest: "{{ _scylla_node_exporter_env_config_file }}"
+            owner: root
+            group: root
+            mode: '0644'
+
+        - name: Restart scylla-node-exporter service
+          service:
+            name: scylla-node-exporter
+            state: restarted
+            enabled: yes
+      when: scylla_node_exporter_params is defined
+  when: (scylla_package_prefix + '-node-exporter') in ansible_facts.packages
   become: true
-  ignore_errors: true
-  #TODO: stop ignoring errors when a version check is added
 
 - name: configure scylla.yaml
   template:
