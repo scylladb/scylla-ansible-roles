@@ -350,7 +350,7 @@
         nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
       register: node_count
       until: node_count.stdout|int == ansible_play_batch|length
-      retries: 300
+      retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
       when: full_inventory|bool
 
