@@ -92,7 +92,5 @@
       shell: |
         systemctl daemon-reload
 
-    - name: Remove Scylla packages
-      package:
-        name: "scylla*"
-        state: absent
+    - name: os-specific tasks
+      include_tasks: "{{ ansible_os_family }}.yml"

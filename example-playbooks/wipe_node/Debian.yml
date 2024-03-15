@@ -1,0 +1,6 @@
+---
+- name: Remove Scylla packages
+  apt:
+    name: "scylla*"
+    state: absent
+    purge: true
