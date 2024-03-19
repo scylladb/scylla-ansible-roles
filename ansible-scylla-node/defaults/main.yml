@@ -166,6 +166,7 @@ start_scylla_service: true
 # Only relevant for Debian/Ubuntu
 scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
 scylla_repo_keys:
+  - 491c93b9de7496a7
   - d0a112e067426ab2
   - 5e08fbd8b5d6ec9c
 
@@ -173,6 +174,7 @@ scylla_repo_keyring_dir: /etc/apt/keyrings/
 scylla_repo_keyringfile: "{{ scylla_repo_keyring_dir }}/scylladb.gpg"
 
 scylla_manager_repo_keys:
+  - 491c93b9de7496a7
   - d0a112e067426ab2
   - 5e08fbd8b5d6ec9c
   - 6B2BFD3660EF3F5B
