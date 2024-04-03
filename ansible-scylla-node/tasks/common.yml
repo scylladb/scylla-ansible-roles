@@ -304,18 +304,19 @@
 # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
 # have an actual value resolved.
 # One way to do that is to resolve it and store as an Ansible fact.
+
 - name: Resolve a scylla_listen_address as a fact
-  set_fact:
+  ansible.builtin.set_fact:
     listen_address: "{{ scylla_listen_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_rpc_address
-  set_fact:
+  ansible.builtin.set_fact:
     rpc_address: "{{ scylla_rpc_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_broadcast_address
-  set_fact:
+  ansible.builtin.set_fact:
     broadcast_address: "{{ scylla_broadcast_address }}"
 
 - name: start_scylla_service dependent tasks
@@ -329,13 +330,14 @@
       run_once: true
       include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
-      when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
+      when: (hostvars[item]['broadcast_address'] is defined) and ((hostvars[item]['broadcast_address'] in scylla_seeds) or (item in scylla_seeds))
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
       include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
       when:
+        - hostvars[item]['broadcast_address'] is defined
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
 
