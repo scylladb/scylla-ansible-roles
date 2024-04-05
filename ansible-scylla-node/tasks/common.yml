@@ -329,13 +329,14 @@
       run_once: true
       include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
-      when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
+      when: (hostvars[item]['broadcast_address'] is defined) and ((hostvars[item]['broadcast_address'] in scylla_seeds) or (item in scylla_seeds))
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
       include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
       when:
+        - hostvars[item]['broadcast_address'] is defined
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
 
