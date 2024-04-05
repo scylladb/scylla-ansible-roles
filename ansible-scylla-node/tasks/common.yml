@@ -304,6 +304,7 @@
 # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
 # have an actual value resolved.
 # One way to do that is to resolve it and store as an Ansible fact.
+
 - name: Resolve a scylla_listen_address as a fact
   ansible.builtin.set_fact:
     listen_address: "{{ scylla_listen_address }}"
