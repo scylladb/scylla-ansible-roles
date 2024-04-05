@@ -305,17 +305,17 @@
 # have an actual value resolved.
 # One way to do that is to resolve it and store as an Ansible fact.
 - name: Resolve a scylla_listen_address as a fact
-  set_fact:
+  ansible.builtin.set_fact:
     listen_address: "{{ scylla_listen_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_rpc_address
-  set_fact:
+  ansible.builtin.set_fact:
     rpc_address: "{{ scylla_rpc_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_broadcast_address
-  set_fact:
+  ansible.builtin.set_fact:
     broadcast_address: "{{ scylla_broadcast_address }}"
 
 - name: start_scylla_service dependent tasks
