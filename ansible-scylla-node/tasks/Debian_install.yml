@@ -19,7 +19,7 @@
     - name: "Validate scylla version correctness"
       ansible.builtin.fail:
         msg: "Too many/few choices for a requested version '{{ scylla_version_to_install }}': {{ aptversions.stdout_lines }}. Bailing out!"
-      when: aptversions.stdout_lines | length != 1
+      when: (not scylla_is_installed or upgrade_version) and aptversions.stdout_lines | length != 1
 
     - name: If Scylla is installed check if it's the same version as requested
       fail:
