@@ -242,7 +242,7 @@
   tasks:
     - name: Wait for the added node to become healthy
       shell: |
-        nodetool status|grep -E '^UN'|grep -w "{{ hostvars[new_node]['ansible_'~scylla_nic].ipv4.address }}"| wc -l
+        nodetool status|grep -E '^UN'|grep -w "{{ hostvars[new_node]['broadcast_address'] }}"| wc -l
       register: node_count
       until: node_count.stdout|int == 1
       retries: "{{ new_node_bootstrap_wait_time_sec|int }}"
