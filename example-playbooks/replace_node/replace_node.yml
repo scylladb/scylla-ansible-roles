@@ -277,7 +277,7 @@
 
     - name: Repair the new node
       shell: |
-        sctool repair --cluster "{{ _cluster_id.stdout }}" --host "{{ new_node }}" {{ extra_repair_params }}
+        sctool repair --cluster "{{ _cluster_id.stdout }}" --host "{{ hostvars[new_node]['broadcast_address'] }}" {{ extra_repair_params }}
       register: _repair_id
 
     - name: Wait for the repair to finish
