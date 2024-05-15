@@ -39,6 +39,10 @@ new_node_bootstrap_wait_time_sec: 25200
 # by draining/stopping the node being replaced before starting the replace
 alive_node_replace: false
 
+# If you set this to true, this playbook will disable RBNO for the new node
+# during the replace
+disable_rbno: false
+
 alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 
