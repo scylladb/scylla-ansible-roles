@@ -210,6 +210,15 @@
             _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
       when: _enable_rbno_grep.failed == false
 
+    # RBNO will be re-enabled once the replace is finished
+    - name: Disable RBNO
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(#\s*)?enable_repair_based_node_ops:'
+        line: "enable_repair_based_node_ops: False"
+        create: yes
+      when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
+
     - name: Start Scylla
       service:
         name: scylla-server
@@ -244,7 +253,7 @@
         backrefs: yes
 
 
-- name: Wait for added node to become healthy and start scylla-manager-agent
+- name: Wait for added node to become healthy and run post-replace tasks
   hosts: scylla
   vars_files:
     - vars/main.yml
@@ -263,6 +272,22 @@
         state: restarted
         enabled: yes
       become: true
+
+    - name: Re-enable RBNO for the new node
+      block:
+        - name: Set RBNO to true in scylla.yaml
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?enable_repair_based_node_ops:'
+            line: "enable_repair_based_node_ops: True"
+            create: yes
+
+        - name: Re-load scylla.yaml
+          shell: |
+            pkill -1 scylla$
+      delegate_to: "{{ new_node }}"
+      run_once: true
+      when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
 - name: Resume scylla-manager tasks
