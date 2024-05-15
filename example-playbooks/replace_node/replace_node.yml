@@ -115,6 +115,15 @@
     - ansible-scylla-monitoring
 
 
+- name: Temporarily suspend scylla-manager tasks
+  hosts: scylla-manager
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Suspend tasks
+      shell: sctool --cluster="{{ scylla_cluster_name }}" suspend
+
+
 # This play will set the ip/host_id of the replaced node in the scylla.yaml of the new node,
 # start the new node, and then wait until the new node finishes joining the cluster. The same
 # variables used when the node role was executed for the replaced node should also be passed
@@ -254,6 +263,15 @@
         state: restarted
         enabled: yes
       become: true
+
+
+- name: Resume scylla-manager tasks
+  hosts: scylla-manager
+  vars_files:
+    - vars/main.yml
+  tasks:
+    - name: Suspend tasks
+      shell: sctool --cluster="{{ scylla_cluster_name }}" resume
 
 
 # This play will repair the new node if RBNO was not used and skip_repair is not set to true
