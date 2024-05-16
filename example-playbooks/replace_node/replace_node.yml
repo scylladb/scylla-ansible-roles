@@ -306,7 +306,7 @@
   tasks:
     - name: Skip this play if RBNO was used for the replacement or if skip_repair is true
       meta: end_play
-      when: skip_repair|bool or (hostvars[new_node]['_enable_rbno_grep'].failed == false and hostvars[new_node]['_rbno_enabled'] and hostvars[new_node]['_rbno_allowed_for_replace'])
+      when: skip_repair|bool or (disable_rbno|bool == false and hostvars[new_node]['_enable_rbno_grep'].failed == false and hostvars[new_node]['_rbno_enabled'] and hostvars[new_node]['_rbno_allowed_for_replace'])
 
     - name: Get cluster id
       shell: |
