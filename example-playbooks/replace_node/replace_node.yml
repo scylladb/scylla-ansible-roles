@@ -285,8 +285,6 @@
         - name: Re-load scylla.yaml
           shell: |
             pkill -1 scylla$
-      delegate_to: "{{ new_node }}"
-      run_once: true
       when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
