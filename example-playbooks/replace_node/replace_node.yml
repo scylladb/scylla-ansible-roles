@@ -285,6 +285,7 @@
         - name: Re-load scylla.yaml
           shell: |
             pkill -1 scylla$
+      become: true
       when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
