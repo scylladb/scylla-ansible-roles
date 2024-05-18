@@ -1,14 +1,4 @@
 ---
-- name: Validate that all nodes are up before adjusting the replication
-  uri:
-    url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
-    follow_redirects: none
-    method: GET
-  register: _result
-  until: _result.status == 200
-  retries: 10
-  delay: 1
-
 - name: Get datacenter name
   uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/snitch/datacenter"
@@ -17,16 +7,27 @@
   until: _datacenter_out.status == 200
   retries: 5
   delay: 1
-
-- name: Prepare per DC replication_factor list
-  set_fact:
-    dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + hostvars[item]['_datacenter_out'].json + \"':\" + _keyspace_rf|string] }}"
+  delegate_to: "{{ item }}"
   loop: "{{ groups['scylla'] }}"
   run_once: true
 
-- set_fact:
-    scylla_admin_username: "{{ scylla_admin_default_user }}"
-    scylla_admin_password: "{{ lookup('ini', scylla_admin_default_user, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
+- name: Prepare per DC replication_factor list
+  set_fact:
+    dcs_to_rf: "{{ dcs_to_rf | default([]) + [\"'\" + item.json + \"':\" + _keyspace_rf|string] }}"
+  loop: "{{ _datacenter_out.results }}"
+  run_once: true
+
+- name: Set scylla_admin_username and scylla_admin_password
+  block:
+    - name: Set scylla_admin_username
+      set_fact:
+        scylla_admin_username: "{{ scylla_admin_default_user }}"
+
+    - name: Look for cql_credentials in the inventories and read scylla_admin_password
+      include_tasks: read_admin_password.yml
+      vars:
+        iv_file: "{{ item }}"
+      loop: "{{ ansible_inventory_sources }}"
   when: scylla_admin_default_user is defined and 'cql_credentials' in groups
 
 - fail:
