@@ -156,22 +156,30 @@
   become: true
   when: skip_ntp is defined and skip_ntp|bool == false
 
-- name: node exporter setup
+- name: check for node_exporter_install
+  stat:
+    path: /usr/sbin/node_exporter_install
+  register: node_exporter_install
+
+- name: setup legacy node exporter
   shell: |
     node_exporter_install --force
-  when: install_type == 'online'
+  when: (install_type == 'online') and (node_exporter_install.stat.exists) and ((scylla_package_prefix + '-node-exporter') not in ansible_facts.packages)
   become: true
   notify:
     - node_exporter start
-  ignore_errors: true
-  #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
 
 - name: Re-populate package facts
   package_facts:
     manager: auto
 
-- name: node exporter setup from 5.0/2022
+- name: setup bundled node exporter
   block:
+    - name: Enforce disabling of old node exporter
+      service:
+          name: node-exporter
+          state: stopped
+      when: ansible_facts.services['node-exporter.service'] is defined and (ansible_facts.services['node-exporter.service']["status"] != "not-found")
     - name: Start scylla-node-exporter service
       service:
         name: scylla-node-exporter
