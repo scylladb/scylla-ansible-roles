@@ -33,6 +33,10 @@
       ./kill-all.sh
       sudo ./kill-all.sh
 
+  - name: test
+    shell: |
+      sleep 10000
+
   - name: start scylla-monitoring
     shell: |
       cd {{ base_dir }}
@@ -136,3 +140,4 @@
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
   when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
+
