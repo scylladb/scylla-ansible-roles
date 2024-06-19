@@ -89,3 +89,7 @@ prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.3
 
 # Additional arguments to pass to the prometheus binary
 #prometheus_args: "--web.enable-admin-api --storage.tsdb.retention.size=50G"
+
+# Use this variable for setting any custom configuration allowed by dockerd (https://docs.docker.com/reference/cli/dockerd/#on-linux)
+# The content of this variable will be coppied to /etc/docker/daemon.json
+# docker_daemon_custom_config: { "bip": "172.17.0.1/24" }
