@@ -2,6 +2,13 @@
 - name: Populate service facts
   service_facts:
 
+- name: Add custom dockerd config
+  copy:
+    content: "{{ docker_daemon_custom_config }}"
+    dest: "/etc/docker/daemon.json"
+  become: true
+  when: docker_daemon_custom_config is defined
+
 - name: restart the docker daemon again
   service:
     name: docker
