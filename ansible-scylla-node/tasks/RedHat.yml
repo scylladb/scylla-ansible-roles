@@ -28,7 +28,7 @@
 
     - name: Install ELRepo mainline kernel
       yum:
-        name: kernel-ml
+        name: kernel-lt
         state: present
         enablerepo: elrepo-kernel
         lock_timeout: 60
