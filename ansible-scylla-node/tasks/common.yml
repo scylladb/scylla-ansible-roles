@@ -159,7 +159,7 @@
 - name: node exporter setup
   shell: |
     node_exporter_install --force
-  when: install_type == 'online'
+  when: scylla_install_type == 'online'
   become: true
   notify:
     - node_exporter start

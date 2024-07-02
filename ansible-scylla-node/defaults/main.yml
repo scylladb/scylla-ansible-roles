@@ -93,7 +93,7 @@ cluster_local_files_path: "{{ inventory_dir }}"
 
 # online|offline - offline will disable all the attepts to download packages
 # node_exporter will need to be installed manually
-install_type: online
+scylla_install_type: online
 
 # Defines if the node firewall should be enabled or not
 # Values:

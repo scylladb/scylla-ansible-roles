@@ -3,7 +3,7 @@
 
 # Set this to "nondocker" for a flat installation or "docker" for the dockerized install (recommended)
 # Default and recommended install is via docker
-install_type: 'docker'
+monitoring_install_type: 'docker'
 
 # In some rare scenarios, it is impossible to run docker containers as a regular user. Set this to True if you need
 # to use `sudo`
