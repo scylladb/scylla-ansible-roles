@@ -22,7 +22,7 @@
         keyring: "{{ scylla_repo_keyringfile }}"
         state: present
       with_items: "{{ scylla_manager_repo_keys }}"
-      when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
+      when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_manager_repo_keys is defined and (scylla_manager_repo_keys|length > 0)
 
     - name: add Scylla Manager repo
       get_url:

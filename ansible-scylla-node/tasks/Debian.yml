@@ -5,21 +5,21 @@
     ansible.builtin.file:
       path: "{{ scylla_repo_keyringfile }}"
       state: absent
-    when: "'gnupg2' in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+    when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
 
   - name: Remove an apt key by id previously added
     ansible.builtin.apt_key:
       id: "{{ item }}"
       state: absent
     with_items: "{{ scylla_repo_keys }}"
-    when: "'gnupg2' in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+    when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
 
   - name: Install gnupg2 dependency if it's not already installed
     apt:
       name: "gnupg2"
       state: present
       update_cache: yes
-    when: "'gnupg2' not in ansible_facts.packages and install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+    when: "'gnupg2' not in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
 
   - name: Add an apt key by id from a keyserver
     apt_key:
@@ -27,7 +27,7 @@
       id: "{{ item }}"
       state: present
     with_items: "{{ scylla_repo_keys }}"
-    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+    when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
 
   - name: create the keyring directory {{ scylla_repo_keyring_dir }}
     file:
@@ -43,7 +43,7 @@
       keyring: "{{ scylla_repo_keyringfile }}"
       state: present
     with_items: "{{ scylla_repo_keys }}"
-    when: install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+    when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
 
   - name: Add an Apt signing key for Debian
     apt_key:
@@ -59,7 +59,7 @@
       mode: '0644'
       owner: root
     with_items: "{{ scylla_deb_repos }}"
-    when: install_type == 'online' and item.split(".")[-1] == "list"
+    when: scylla_install_type == 'online' and item.split(".")[-1] == "list"
 
   become: true
 
@@ -101,7 +101,7 @@
         id: "{{ item }}"
         state: present
       with_items: "{{ scylla_manager_repo_keys }}"
-      when: (install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
+      when: (scylla_install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
       become: true
 
     - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
@@ -111,7 +111,7 @@
         id: "{{ item }}"
         state: present
       with_items: "{{ scylla_manager_repo_keys }}"
-      when: (install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
+      when: (scylla_install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
       become: true
 
     - name: add Scylla Manager repo
