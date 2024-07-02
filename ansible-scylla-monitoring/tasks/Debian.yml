@@ -70,4 +70,4 @@
       state: started
       enabled: yes
   become: true
-  when: install_type == "docker"
+  when: monitoring_install_type == "docker"

@@ -79,7 +79,7 @@
         state: started
         enabled: yes
   become: true
-  when: install_type == "docker" #and ansible_distribution_major_version|int == 7
+  when: monitoring_install_type == "docker" #and ansible_distribution_major_version|int == 7
 
 # - name: run docker related tasks for EL8
 #   block:
@@ -92,7 +92,7 @@
 #       shell: |
 #         touch /etc/containers/nodocker
 #   become: true
-#   when: install_type == "docker" and ansible_distribution_major_version|int > 7
+#   when: monitoring_install_type == "docker" and ansible_distribution_major_version|int > 7
 
 
 
