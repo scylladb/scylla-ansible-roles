@@ -3,6 +3,7 @@
 # the cluster by blocking its ip via iptables.
 - name: Prepare nodes before replacement
   hosts: scylla
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   tasks:
