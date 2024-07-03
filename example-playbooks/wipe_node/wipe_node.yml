@@ -88,6 +88,15 @@
         rm -rf /etc/systemd/system/var-lib-systemd-coredump.mount
       ignore_errors: true
 
+    - name: Stop /dev/md0
+      shell: |
+        mdadm --stop /dev/md0
+      ignore_errors: true
+
+    - name: Remove mdadm.conf
+      shell: |
+        rm -rf /etc/mdadm/mdadm.conf
+
     - name: Reload systemd
       shell: |
         systemctl daemon-reload
