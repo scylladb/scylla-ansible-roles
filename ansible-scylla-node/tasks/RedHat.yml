@@ -120,6 +120,11 @@
     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
   become: true
 
+- name: install nvme-cli
+  shell: |
+    yum install -y nvme-cli
+  become: true
+
 - name: install and configure Scylla Manager Agent
   block:
     - name: add Scylla Manager repo
