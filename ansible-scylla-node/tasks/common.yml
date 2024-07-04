@@ -48,6 +48,18 @@
       when: cpuset_command is defined and skip_cpuset is defined and skip_cpuset|bool == false
   become: true
 
+- name: Detect NVME disks
+  block:
+    - name: Get list of NVMEs
+      shell: |
+        nvme list | awk '{print $1}' | tail -n +3
+      register: _detected_nvmes
+
+    - set_fact:
+        scylla_raid_setup: "{{ _detected_nvmes.stdout_lines }}"
+  become: true
+  when: detect_nvmes|bool
+
 - name: configure RAID via Scylla-setup
   block:
     - name: check for current raid

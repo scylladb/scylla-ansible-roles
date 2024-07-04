@@ -190,6 +190,7 @@ scylla_dependencies:
   - curl
   - wget
   - python3-yaml # this will fail on non centos systems
+  - nvme-cli
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
@@ -423,6 +424,10 @@ scylla_manager_agent_config: |
   # - /dev/nvme0n2
   # - /dev/nvme0n3
 scylla_raid_online_discard: False
+
+# If scylla_raid_setup is not given and this is set to True, the role will use 'nvme list' for getting the list of nvme devices
+# in the machine and pass all of them to scylla_raid_setup
+detect_nvmes: False
 
 skip_coredump: False
 devmode: False
