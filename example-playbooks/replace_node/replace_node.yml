@@ -109,6 +109,7 @@
         source: "{{ replaced_node_broadcast_address }}"
         jump: DROP
       become: true
+      when: block_replaced_node|bool
 
 
 # This play will install Scylla in the new node and update the existing ones.
