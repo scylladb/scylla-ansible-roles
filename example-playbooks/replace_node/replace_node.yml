@@ -102,6 +102,7 @@
 # be passed to this playbook and will be used by this play.
 - name: Install/Update Scylla in the new node and update the existing ones.
   hosts: scylla
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   vars:
@@ -112,12 +113,14 @@
 
 - name: Update scylla-monitoring
   hosts: scylla-monitor
+  any_errors_fatal: true
   roles:
     - ansible-scylla-monitoring
 
 
 - name: Temporarily suspend scylla-manager tasks
   hosts: scylla-manager
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   tasks:
@@ -131,6 +134,7 @@
 # to this playbook and will be used by this play.
 - name: Start Scylla in the new node
   hosts: "{{ new_node }}"
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   become: true
@@ -256,6 +260,7 @@
 
 - name: Wait for added node to become healthy and run post-replace tasks
   hosts: scylla
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   tasks:
@@ -292,6 +297,7 @@
 
 - name: Resume scylla-manager tasks
   hosts: scylla-manager
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   tasks:
@@ -302,6 +308,7 @@
 # This play will repair the new node if RBNO was not used and skip_repair is not set to true
 - name: Repair the new node, if necessary
   hosts: scylla-manager
+  any_errors_fatal: true
   vars_files:
     - vars/main.yml
   tasks:
