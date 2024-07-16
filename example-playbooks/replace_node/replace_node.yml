@@ -30,26 +30,40 @@
           become: true
 
         - name: Run nodetool drain
-          async_task:
-            shell: |
-              nodetool drain
-            alias: drain_scylla
-            async: 60
-            retries: 60
-            delay: 1
-          ignore_errors: true
-          register: _drain_scylla_output
+          block:
+            - name: Async nodetool drain
+              async_task:
+                shell: |
+                  nodetool drain
+                alias: drain_scylla
+                async: 60
+                retries: 60
+                delay: 1
+              ignore_errors: true
+              register: _drain_scylla_output
+
+            - name: Cleanup job alias
+              shell: |
+                rm -rf "{{ _drain_scylla_output.alias_path }}"
+              when: _drain_scylla_output.failed
 
         - name: Stop Scylla service
-          async_task:
-            shell: |
-              systemctl stop scylla-server
-            alias: stop_scylla
-            async: 5
-            retries: 5
-            delay: 1
-          ignore_errors: true
-          register: _stop_scylla_output
+          block:
+            - name: Async stop Scylla service
+              async_task:
+                shell: |
+                  systemctl stop scylla-server
+                alias: stop_scylla
+                async: 5
+                retries: 5
+                delay: 1
+              ignore_errors: true
+              register: _stop_scylla_output
+
+            - name: Cleanup job alias
+              shell: |
+                rm -rf "{{ _stop_scylla_output.alias_path }}"
+              when: _stop_scylla_output.failed
           become: true
 
         - name: Send SIGKILL to scylla
