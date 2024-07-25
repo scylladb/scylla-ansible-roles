@@ -87,7 +87,7 @@
         port: "{{ cql_port }}"
         host: "{{ listen_address }}"
         timeout: 60
-      when: inventory_hostname != new_node
+      when: inventory_hostname != new_node and inventory_hostname not in dead_nodes_to_ignore
 
     - name: Block replaced node's broadcast_address to prevent it from trying to join the cluster again
       iptables:
@@ -173,6 +173,21 @@
           \g<1> - seeds: {{ temporary_seed }}
         backrefs: yes
 
+    - name: Set ignore_dead_nodes_for_replace
+      block:
+        - name: Set dead nodes host ids
+          set_fact:
+            _dead_nodes_host_ids: "{{ _dead_nodes_host_ids | default([]) + [hostvars[item]['_host_id']] }}"
+          loop: "{{ dead_nodes_to_ignore }}"
+
+        - name: Set ignore_dead_nodes_for_replace in scylla.yaml
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+            line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_host_ids | join(',')}}"
+            create: yes
+      when: dead_nodes_to_ignore|length > 0
+
     - name: Check if replace_node_first_boot is available in the current Scylla version
       shell: |
         scylla --help | grep replace-node-first-boot
@@ -256,6 +271,13 @@
         state: absent
       when: _replace_node_first_boot_grep.failed
 
+    - name: Remove the ignore_dead_nodes_for_replace record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^ignore_dead_nodes_for_replace:'
+        state: absent
+      when: dead_nodes_to_ignore|length > 0
+
     - name: Restore seeds list
       lineinfile:
         path: /etc/scylla/scylla.yaml
@@ -278,6 +300,7 @@
       until: node_count.stdout|int == 1
       retries: "{{ new_node_bootstrap_wait_time_sec|int }}"
       delay: 1
+      when: inventory_hostname not in dead_nodes_to_ignore
 
     - name: start and enable the Manager agent service
       service:
