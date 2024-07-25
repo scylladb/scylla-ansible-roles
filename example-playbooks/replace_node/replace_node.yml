@@ -177,18 +177,19 @@
       register: _replace_node_first_boot_grep
       ignore_errors: true
 
+    - name: Get the host id for all nodes
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
+        method: GET
+      register: _host_ids
+      until: _host_ids.status == 200
+      retries: 5
+      delay: 1
+      delegate_to: "{{ temporary_seed }}"
+      run_once: true
+
     - name: Set replace_node_first_boot
       block:
-        - name: Get the host id for all nodes
-          uri:
-            url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
-            method: GET
-          register: _host_ids
-          until: _host_ids.status == 200
-          retries: 5
-          delay: 1
-          delegate_to: "{{ temporary_seed }}"
-
         - set_fact:
             _replaced_node_host_id: "{{ item.value }}"
           when: item.key == replaced_node or item.key == replaced_node_broadcast_address
