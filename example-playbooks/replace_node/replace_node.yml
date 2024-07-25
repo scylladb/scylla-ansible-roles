@@ -188,6 +188,32 @@
       delegate_to: "{{ temporary_seed }}"
       run_once: true
 
+    - name: Set ignore_dead_nodes_for_replace using host ids
+      block:
+        - name: Set dead nodes host ids
+          set_fact:
+            _dead_nodes_host_ids: "{{ _dead_nodes_host_ids | default([]) + [item.value] }}"
+          when: item.key in dead_nodes_to_ignore
+          loop: "{{ _host_ids.json }}"
+
+        - name: Set ignore_dead_nodes_for_replace in scylla.yaml
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+            line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_host_ids | join(',')}}"
+            create: yes
+      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed == false
+
+    # If the _replace_node_first_boot_grep failed, it means that in this scylla version we are still using
+    # addresses instead of host ids for replace, so let's set broadcast addresses in ignore_dead_nodes_for_replace
+    - name: Set ignore_dead_nodes_for_replace using addresses
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+        line: "ignore_dead_nodes_for_replace: {{ dead_nodes_to_ignore | join(',')}}"
+        create: yes
+      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed
+
     - name: Set replace_node_first_boot
       block:
         - set_fact:
@@ -264,6 +290,13 @@
         regexp: '^replace_address_first_boot:'
         state: absent
       when: _replace_node_first_boot_grep.failed
+
+    - name: Remove the ignore_dead_nodes_for_replace record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^ignore_dead_nodes_for_replace:'
+        state: absent
+      when: dead_nodes_to_ignore|length > 0
 
     - name: Restore seeds list
       lineinfile:
