@@ -312,6 +312,7 @@
         state: restarted
         enabled: yes
       become: true
+      when: inventory_hostname == new_node
 
     - name: Re-enable RBNO for the new node
       block:
@@ -326,7 +327,7 @@
           shell: |
             pkill -1 scylla$
       become: true
-      when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
+      when: inventory_hostname == new_node and disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
 - name: Resume scylla-manager tasks
