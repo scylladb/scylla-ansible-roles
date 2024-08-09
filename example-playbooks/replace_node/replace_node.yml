@@ -101,7 +101,7 @@
         port: "{{ cql_port }}"
         host: "{{ listen_address }}"
         timeout: 60
-      when: inventory_hostname != new_node
+      when: inventory_hostname != new_node and inventory_hostname not in dead_nodes_to_ignore
 
     - name: Block replaced node's broadcast_address to prevent it from trying to join the cluster again
       iptables:
@@ -110,6 +110,23 @@
         jump: DROP
       become: true
       when: block_replaced_node|bool
+
+    - name: Get the host id for all nodes
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
+        method: GET
+      register: _host_ids
+      until: _host_ids.status == 200
+      retries: 5
+      delay: 1
+      delegate_to: "{{ temporary_seed }}"
+      run_once: true
+
+    - name: Set host_id for all nodes in the inventory
+      set_fact:
+        _host_id: "{{ item.value }}"
+      loop: "{{ _host_ids.json }}"
+      when: item.key == inventory_hostname or item.key == broadcast_address
 
 
 # This play will install Scylla in the new node and update the existing ones.
@@ -177,18 +194,40 @@
       register: _replace_node_first_boot_grep
       ignore_errors: true
 
+    - name: Set ignore_dead_nodes_for_replace using host ids
+      block:
+        - name: Set dead nodes host ids
+          set_fact:
+            _dead_nodes_host_ids: "{{ _dead_nodes_host_ids | default([]) + [hostvars[item]['_host_id']] }}"
+          loop: "{{ dead_nodes_to_ignore }}"
+
+        - name: Set ignore_dead_nodes_for_replace in scylla.yaml
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+            line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_host_ids | join(',')}}"
+            create: yes
+      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed == false
+
+    # If the _replace_node_firt_boot_grep failed, it means that in this scylla version we are still using
+    # addresses instead of host ids for replace, so let's set broadcast addresses in ignore_dead_nodes_for_replace
+    - name: Set ignore_dead_nodes_for_replace using addresses
+      block:
+        - name: Set dead nodes addresses as a fact
+          set_fact:
+            _dead_nodes_addresses: "{{ _dead_nodes_addresses | default([]) + [hostvars[item]['broadcast_address']] }}"
+          loop: "{{ dead_nodes_to_ignore }}"
+
+        - name: Set ignore_dead_nodes_for_replace in scylla.yaml
+          lineinfile:
+            path: /etc/scylla/scylla.yaml
+            regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+            line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_addresses | join(',')}}"
+            create: yes
+      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed
+
     - name: Set replace_node_first_boot
       block:
-        - name: Get the host id for all nodes
-          uri:
-            url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
-            method: GET
-          register: _host_ids
-          until: _host_ids.status == 200
-          retries: 5
-          delay: 1
-          delegate_to: "{{ temporary_seed }}"
-
         - set_fact:
             _replaced_node_host_id: "{{ item.value }}"
           when: item.key == replaced_node or item.key == replaced_node_broadcast_address
@@ -264,6 +303,13 @@
         state: absent
       when: _replace_node_first_boot_grep.failed
 
+    - name: Remove the ignore_dead_nodes_for_replace record
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^ignore_dead_nodes_for_replace:'
+        state: absent
+      when: dead_nodes_to_ignore|length > 0
+
     - name: Restore seeds list
       lineinfile:
         path: /etc/scylla/scylla.yaml
@@ -286,6 +332,7 @@
       until: node_count.stdout|int == 1
       retries: "{{ new_node_bootstrap_wait_time_sec|int }}"
       delay: 1
+      when: inventory_hostname not in dead_nodes_to_ignore
 
     - name: start and enable the Manager agent service
       service:
@@ -293,6 +340,7 @@
         state: restarted
         enabled: yes
       become: true
+      when: inventory_hostname == new_node
 
     - name: Re-enable RBNO for the new node
       block:
@@ -307,7 +355,7 @@
           shell: |
             pkill -1 scylla$
       become: true
-      when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
+      when: inventory_hostname == new_node and disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
 - name: Resume scylla-manager tasks
