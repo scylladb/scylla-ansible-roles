@@ -245,6 +245,14 @@ always_replace_io_properties: False
 
 io_conf: 'SEASTAR_IO="--io-properties-file /etc/scylla.d/io_properties.yaml"'
 
+# This parameter allows overriding a default SCYLLA_ARGS value in /etc/default/scylla-server file
+# When defined and not empty SCYLLA_ARGS is going to be set the corresponding value.
+#
+# The provided value will be set in double quotes by the Role:
+# SCYLLA_ARGS="{{ scylla_args_value }}"
+#
+# scylla_args_value: "--log-to-syslog 1 --log-to-stdout 0 --default-log-level info --network-stack posix"
+
 # Seeds node list
 scylla_seeds:
   - "{{ groups['scylla'][0] }}"

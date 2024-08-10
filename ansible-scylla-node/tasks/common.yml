@@ -162,6 +162,15 @@
   become: true
   when: _io_properties_file.stat.exists|bool == false or always_replace_io_properties|bool
 
+- name: Override SCYLLA_ARGS if requested
+  lineinfile:
+    path: /etc/default/scylla-server
+    regexp: '^SCYLLA_ARGS='
+    line: 'SCYLLA_ARGS="{{ scylla_args_value }}"'
+    create: yes
+  become: true
+  when: scylla_args_value is defined and scylla_args_value|length > 0
+
 - name: configure NTP
   shell: |
     scylla_ntp_setup
