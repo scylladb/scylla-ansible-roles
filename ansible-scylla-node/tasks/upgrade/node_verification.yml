@@ -62,4 +62,4 @@
     version_installed: "{{ version_major_installed if upgrade_major else version_full_installed }}"
   ansible.builtin.fail:
     msg: "Version set ({{ version_specified }}) and version installed ({{ version_installed }}) are different, thus the upgrade failed."
-  when: version_installed not in version_specified
+  when: version_specified not in version_installed
