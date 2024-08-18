@@ -1,4 +1,48 @@
 ---
+- name: Get relevant addresses for nodes that are not in 'play_hosts'
+  block:
+    - name: check if scylla.yaml exists
+      stat:
+        path: /etc/scylla/scylla.yaml
+      register: _scylla_yaml_stat
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      when: item not in play_hosts
+      loop: "{{ groups['scylla'] }}"
+
+    - name: Set _scylla_yaml_exists as a fact
+      set_fact:
+        _scylla_yaml_exists: "{{ item.stat.exists }}"
+      when: item.item not in play_hosts
+      delegate_to: "{{ item.item }}"
+      delegate_facts: true
+      loop: "{{ _scylla_yaml_stat.results }}"
+
+    # Let's assume that a node can only be started if it has a scylla yaml
+    - name: Register scylla.yaml
+      command: cat /etc/scylla/scylla.yaml
+      register: _scylla_yaml_out
+      delegate_to: "{{ item }}"
+      when: "item not in play_hosts and hostvars[item]['_scylla_yaml_exists']|bool"
+      loop: "{{ groups['scylla'] }}"
+
+    - name: Set _scylla_yaml_map as a fact
+      set_fact:
+        _scylla_yaml_map: "{{ item.stdout | from_yaml }}"
+      delegate_to: "{{ item.item }}"
+      delegate_facts: true
+      when: item.stdout is defined
+      loop: "{{ _scylla_yaml_out.results }}"
+
+    - name: Set addresses as facts
+      set_fact:
+        rpc_address: "{{ hostvars[item]['_scylla_yaml_map'].rpc_address }}"
+        broadcast_address: "{{ hostvars[item]['_scylla_yaml_map'].broadcast_address }}"
+      delegate_to: "{{ item }}"
+      delegate_facts: true
+      when: item not in play_hosts and hostvars[item]['_scylla_yaml_exists']|bool
+      loop: "{{ groups['scylla'] }}"
+
 - name: Find the first node which is already bootstrapped, if any
   wait_for:
     port: 9042
@@ -7,7 +51,7 @@
   register: wait_for_cql_port_output
   ignore_errors: true
   delegate_to: "{{ item }}"
-  loop: "{{ groups['scylla'] }}"
+  loop: "{{ scylla_seeds }}"
   when: wait_for_cql_port_output is not defined or wait_for_cql_port_output.failed == True
 
 - name: Set the already bootstrapped node as a fact, if any
@@ -21,6 +65,7 @@
     node_list: "{{ node_list | default([]) + [hostvars[item]['broadcast_address']] }}"
     rack_list: "{{ rack_list | default([]) + [hostvars[item]['rack']] }}"
     dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc'] + hostvars[item]['dc_suffix'] | default('')] }}"
+  when: hostvars[item]['broadcast_address'] is defined
   loop: "{{ groups['scylla'] }}"
 
 - name: Create a temporary tokens file
@@ -40,6 +85,7 @@
       retries: 5
       delay: 1
       delegate_to: "{{ bootstrapped_node }}"
+      when: hostvars[item]['broadcast_address'] is defined
       loop: "{{ groups['scylla'] }}"
 
     - name: Copy tokens to tmp file
@@ -47,7 +93,7 @@
         path: "{{ tokens_file.path }}"
         line: "{{ hostvars[item.item]['broadcast_address'] }}={{ item.json | map('int') | join(',') }}"
         create: yes
-      when: item.json|length > 0
+      when: hostvars[item.item]['broadcast_address'] is defined and item.json|length > 0
       delegate_to: localhost
       loop: "{{ _existing_tokens.results }}"
   when: bootstrapped_node is defined
@@ -77,4 +123,4 @@
   when: item[0].split('=')[0] == hostvars[item[1]]['broadcast_address']
   with_nested:
     - "{{ _new_tokens.stdout_lines }}"
-    - "{{ groups['scylla'] }}"
+    - "{{ play_hosts }}"
