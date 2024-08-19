@@ -1,9 +1,10 @@
 ---
-
 - name: Deactivate firewall
+  when: not firewall_enabled
+  become: true
   block:
     - name: Deactivate front-end firewall services
-      service:
+      ansible.builtin.service:
         name: "{{ item }}"
         state: stopped
         enabled: false
@@ -13,22 +14,21 @@
         - ufw.service
       when: ansible_facts.services[item] is defined
     - name: Flush all iptables rules
-      iptables:
+      ansible.builtin.iptables:
         flush: yes
       when: "'iptables' in ansible_facts.packages"
-  when: not firewall_enabled
-  become: true
 
 - name: General, NIC and CPU settings related tweaking
+  become: true
   block:
-    - name: configure Scylla
-      shell: |
+    - name: Configure Scylla
+      ansible.builtin.shell: |
         scylla_setup --no-raid-setup --no-ec2-check --no-kernel-check --no-ntp-setup --no-io-setup --no-node-exporter \
                      --no-coredump-setup --no-sysconfig-setup --no-swap-setup --no-cpuscaling-setup --no-fstrim-setup \
-                     {% if skip_mem_setup is defined and skip_mem_setup|bool == True %} --no-memory-setup {% endif %}
+                     {% if skip_mem_setup is defined and skip_mem_setup | bool == True %} --no-memory-setup {% endif %}
 
-    - name: check if /etc/scylla.d/perftune.yaml exists
-      stat:
+    - name: Check if /etc/scylla.d/perftune.yaml exists
+      ansible.builtin.stat:
         path: /etc/scylla.d/perftune.yaml
       register: _perftune_conf_file
 
@@ -37,148 +37,147 @@
     # To make the block below run again once can simply nuke perftune.yaml.
     # If some custom configuration is set then the user should be knowledgable enough to configure scylla-server file
     # correctly.
-    - name: configure sysconfig and generate (enforce!) an auto-selected cpuset.conf
-      shell: |
+    - name: Configure sysconfig and generate (enforce!) an auto-selected cpuset.conf
+      ansible.builtin.shell: |
         scylla_sysconfig_setup --set-clocksource --setup-nic-and-disks --nic {{ scylla_nic }}
       when: skip_sysconfig is defined and skip_sysconfig|bool == false and _perftune_conf_file.stat.exists|bool == false
 
-    - name: overwrite an automatic cpuset.conf with an explicit value
-      shell: |
+    - name: Overwrite an automatic cpuset.conf with an explicit value
+      ansible.builtin.shell: |
         {{ cpuset_command }}
       when: cpuset_command is defined and skip_cpuset is defined and skip_cpuset|bool == false
-  become: true
 
 - name: Detect NVME disks
+  become: true
+  when: detect_nvmes|bool
   block:
     - name: Get list of NVMEs
-      shell: |
+      ansible.builtin.shell: |
         nvme list | awk '{print $1}' | tail -n +3
       register: _detected_nvmes
 
-    - set_fact:
+    - ansible.builtin.set_fact:
         scylla_raid_setup: "{{ _detected_nvmes.stdout_lines }}"
-  become: true
-  when: detect_nvmes|bool
 
-- name: configure RAID via Scylla-setup
+- name: Configure RAID via Scylla-setup
   block:
-    - name: check for current raid
-      shell: |
+    - name: Check for current raid
+      ansible.builtin.shell: |
         lsblk | grep -w "/var/lib/scylla" | wc -l
       register: present_scylla_disks
 
-    - name: run raid setup if there is no scylla mount yet
-      block:
-      - name: check if online-discard configuration is supported
-        shell: |
-          scylla_raid_setup --help
-        become: true
-        register: _scylla_raid_setup_help
-
-      - name: Explicitly set online discard option to {{ scylla_raid_online_discard }} if supported
-        set_fact:
-          _disable_online_discard: "--online-discard {{ scylla_raid_online_discard }}"
-        when: _scylla_raid_setup_help.stdout is search("--online-discard")
-
-      - name: run raid setup if there is no scylla mount yet
-        shell: "scylla_raid_setup --disks {{ scylla_raid_setup | join(',') }} --update-fstab {{ _disable_online_discard }}"
-        become: true
+    - name: Run raid setup if there is no scylla mount yet
       when: scylla_raid_setup is defined and scylla_raid_setup|length > 0 and present_scylla_disks.stdout|int == 0
       vars:
         _disable_online_discard: ""
+      block:
+        - name: Check if online-discard configuration is supported
+          ansible.builtin.shell: |
+            scylla_raid_setup --help
+          become: true
+          register: _scylla_raid_setup_help
+
+        - name: Explicitly set online discard option to {{ scylla_raid_online_discard }} if supported
+          ansible.builtin.set_fact:
+            _disable_online_discard: "--online-discard {{ scylla_raid_online_discard }}"
+          when: _scylla_raid_setup_help.stdout is search("--online-discard")
+
+        - name: Run raid setup if there is no scylla mount yet
+          ansible.builtin.shell: "scylla_raid_setup --disks {{ scylla_raid_setup | join(',') }} --update-fstab {{ _disable_online_discard }}"
+          become: true
 
 # Resulting map -> {'dc1': [node1, node2, node3], 'dc2': [node4, node5, node6]}
 - name: Create a map from dc to its list of nodes
-  set_fact:
-    dc_to_node_list: "{{ dc_to_node_list | default({}) | combine( {hostvars[item]['dc']: (dc_to_node_list | default({}))[hostvars[item]['dc']] | default([]) + [item]} ) }}"
+  ansible.builtin.set_fact:
+    dc_to_node_list: "{{ dc_to_node_list | default({}) | combine({hostvars[item]['dc']: (dc_to_node_list | default({}))[hostvars[item]['dc']] | default([]) + [item]}) }}"
   loop: "{{ groups['scylla'] }}"
   run_once: true
   when: scylla_io_probe_dc_aware|bool
 
 - name: Collect IO settings for the first node of every DC
+  when: io_properties is not defined and scylla_io_probe|bool == True and (scylla_io_probe_dc_aware|bool == False or dc_to_node_list[dc][0] == inventory_hostname)
+  become: true
   block:
-    - name: check for existing io_properties
-      stat:
+    - name: Check for existing io_properties
+      ansible.builtin.stat:
         path: /etc/scylla.d/io_properties.yaml
       register: io_prop_stat
 
     - name: Measure IO settings on one node
-      shell: |
+      ansible.builtin.shell: |
         scylla_io_setup
       when: io_prop_stat.stat.exists|bool == False
 
-    - name: store /etc/scylla.d/io_properties.yaml
-      shell: |
+    - name: Store /etc/scylla.d/io_properties.yaml
+      ansible.builtin.shell: |
         cat /etc/scylla.d/io_properties.yaml
       register: _io_properties
 
-    - set_fact:
+    - ansible.builtin.shell:
         io_properties: "{{ _io_properties.stdout }}"
 
-    - name: store /etc/scylla.d/io.conf
-      shell: |
+    - name: Store /etc/scylla.d/io.conf
+      ansible.builtin.shell: |
         cat /etc/scylla.d/io.conf
       register: _io_conf
 
-    - set_fact:
+    - ansible.builtin.shell:
         io_conf: "{{ _io_conf.stdout_lines[0] }}"
-  when: io_properties is not defined and scylla_io_probe|bool == True and (scylla_io_probe_dc_aware|bool == False or dc_to_node_list[dc][0] == inventory_hostname)
-  become: true
 
 - name: For every node, check if io.conf already exists and if it's not empty
   block:
-  - stat:
-      path: /etc/scylla.d/io.conf
-    register: _io_conf_file
+    - ansible.builtin.stat:
+        path: /etc/scylla.d/io.conf
+      register: _io_conf_file
 
-  # During installation, scylla creates an io.conf filled only with comments and this file needs to be replaced
-  - name: Check if file is empty or filled only with comments
-    shell: "cat /etc/scylla.d/io.conf | grep -v ^#"
-    register: _io_conf_out
-    ignore_errors: true
-    when: _io_conf_file.stat.exists|bool
+    # During installation, scylla creates an io.conf filled only with comments and this file needs to be replaced
+    - name: Check if file is empty or filled only with comments
+      ansible.builtin.shell: "cat /etc/scylla.d/io.conf | grep -v ^#"
+      register: _io_conf_out
+      ignore_errors: true
+      when: _io_conf_file.stat.exists|bool
 
 - name: Set io.conf
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/scylla.d/io.conf
-    regexp: '^SEASTAR_IO='
-    line: "{% if scylla_io_probe|bool and scylla_io_probe_dc_aware|bool %}{{ hostvars[dc_to_node_list[dc][0]]['io_conf'] }}{% else %}{{ io_conf }}{% endif %}"
+    regexp: "^SEASTAR_IO="
+    line: "{% if scylla_io_probe | bool and scylla_io_probe_dc_aware | bool %}{{ hostvars[dc_to_node_list[dc][0]]['io_conf'] }}{% else %}{{ io_conf }}{% endif %}"
     create: yes
   become: true
-  when: io_conf is defined and (_io_conf_file.stat.exists|bool == false or _io_conf_out.stdout|length == 0 or always_replace_io_conf|bool)
+  when: io_conf is defined and (_io_conf_file.stat.exists | bool == false or _io_conf_out.stdout | length == 0 or always_replace_io_conf | bool)
 
 - name: For every node, check if io_properties.yaml already exists
-  stat:
+  ansible.builtin.stat:
     path: /etc/scylla.d/io_properties.yaml
   register: _io_properties_file
 
 - name: Set io_properties
-  template:
+  ansible.builtin.template:
     src: templates/io_properties.yaml.j2
     dest: /etc/scylla.d/io_properties.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
   when: _io_properties_file.stat.exists|bool == false or always_replace_io_properties|bool
 
 - name: Override SCYLLA_ARGS if requested
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/default/scylla-server
-    regexp: '^SCYLLA_ARGS='
+    regexp: "^SCYLLA_ARGS="
     line: 'SCYLLA_ARGS="{{ scylla_args_value }}"'
     create: yes
   become: true
   when: scylla_args_value is defined and scylla_args_value|length > 0
 
-- name: configure NTP
-  shell: |
+- name: Configure NTP
+  ansible.builtin.shell: |
     scylla_ntp_setup
   become: true
   when: skip_ntp is defined and skip_ntp|bool == false
 
-- name: node exporter setup
-  shell: |
+- name: Node exporter setup
+  ansible.builtin.shell: |
     node_exporter_install --force
   when: scylla_install_type == 'online'
   become: true
@@ -188,134 +187,132 @@
   #TODO: stop ignoring errors when the node_exporter_install script fix is available in all actual versions, resp. use only for < 5.0 / 2022
 
 - name: Re-populate package facts
-  package_facts:
+  ansible.builtin.package_facts:
     manager: auto
 
-- name: node exporter setup from 5.0/2022
+- name: Setup node exporter from 5.0/2022
+  when: (scylla_package_prefix + '-node-exporter') in ansible_facts.packages
+  become: true
   block:
     - name: Start scylla-node-exporter service
-      service:
+      ansible.builtin.service:
         name: scylla-node-exporter
         state: started
         enabled: yes
       register: _scylla_node_exporter_status
 
     - name: Set custom scylla-node-exporter service configuration
+      when: scylla_node_exporter_params is defined
       block:
         - name: Get {{ scylla_package_prefix }}-node-exporter environment configuration file name
-          set_fact:
+          ansible.builtin.set_fact:
             # 'EnvironmentFiles' has the following format: '<file name> (ignore_errors=[yes|no])'
             _scylla_node_exporter_env_config_file: "{{ _scylla_node_exporter_status.status.EnvironmentFiles.split(' ')[0] }}"
 
         - name: Set a custom configuration in {{ _scylla_node_exporter_env_config_file | default('a scylla-node-exporter configuration file') }}
-          template:
+          ansible.builtin.template:
             src: templates/scylla-node-exporter.j2
             dest: "{{ _scylla_node_exporter_env_config_file }}"
             owner: root
             group: root
-            mode: '0644'
+            mode: "0644"
 
         - name: Restart scylla-node-exporter service
-          service:
+          ansible.builtin.service:
             name: scylla-node-exporter
             state: restarted
             enabled: yes
-      when: scylla_node_exporter_params is defined
-  when: (scylla_package_prefix + '-node-exporter') in ansible_facts.packages
-  become: true
 
-- name: configure scylla.yaml
-  template:
+- name: Configure scylla.yaml
+  ansible.builtin.template:
     src: templates/scylla.yaml.j2
     dest: /etc/scylla/scylla.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
 
-- name: configure cassandra-rackdc.properties
-  template:
+- name: Configure cassandra-rackdc.properties
+  ansible.builtin.template:
     src: templates/cassandra-rackdc.properties.j2
     dest: /etc/scylla/cassandra-rackdc.properties
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
   when: scylla_snitch != 'SimpleSnitch' and scylla_snitch != 'RackInferringSnitch'
 
-- name: finalize Scylla node configuration
-  block:
-  - name: check for scylla_bootparam_setup
-    stat:
-      path: /usr/sbin/scylla_bootparam_setup
-    register: scylla_bootparam_setup
-
-  - name: run bootparam setup
-    shell: |
-      scylla_bootparam_setup
-    when: scylla_bootparam_setup.stat.exists
-
-  - name: set up coredump
-    shell: |
-      scylla_coredump_setup --dump-to-raiddir
-    when: skip_coredump is defined and skip_coredump|bool == false
-
-  - name: set up swap
-    shell: |
-      scylla_swap_setup{% if swap_file_size_mb is defined and swap_file_size_mb|int > 0 %} --swap-size {{ [swap_file_size_mb|int, 1024]|max // 1024 }} {% endif %}
-    register: swap_setup
-    failed_when:
-    - swap_setup.rc > 0
-    - '"swap already configured, exiting setup" not in swap_setup.stdout'
-    when: skip_swap is defined and skip_swap|bool == false
-
-  - name: configure cpu scaling
-    shell: |
-      scylla_cpuscaling_setup
-
-  - name: configure fstrim
-    shell: |
-      scylla_fstrim_setup
-    notify: Enable and start 'scylla-fstrim.timer' service
+- name: Finalize Scylla node configuration
   become: true
+  block:
+    - name: Check for scylla_bootparam_setup
+      ansible.builtin.stat:
+        path: /usr/sbin/scylla_bootparam_setup
+      register: scylla_bootparam_setup
 
+    - name: Run bootparam setup
+      ansible.builtin.shell: |
+        scylla_bootparam_setup
+      when: scylla_bootparam_setup.stat.exists
 
+    - name: Set up coredump
+      ansible.builtin.shell: |
+        scylla_coredump_setup --dump-to-raiddir
+      when: skip_coredump is defined and skip_coredump | bool == false
 
-- name: set devmode command
-  set_fact:
+    - name: Set up swap
+      ansible.builtin.shell: |
+        scylla_swap_setup{% if swap_file_size_mb is defined and swap_file_size_mb | int > 0 %} --swap-size {{ [swap_file_size_mb | int, 1024] | max // 1024 }} {% endif %}
+      register: swap_setup
+      failed_when:
+        - swap_setup.rc > 0
+        - '"swap already configured, exiting setup" not in swap_setup.stdout'
+      when: skip_swap is defined and skip_swap|bool == false
+
+    - name: Configure cpu scaling
+      ansible.builtin.shell: |
+        scylla_cpuscaling_setup
+
+    - name: Configure fstrim
+      ansible.builtin.shell: |
+        scylla_fstrim_setup
+      notify: Enable and start 'scylla-fstrim.timer' service
+
+- name: Set devmode command
+  ansible.builtin.set_fact:
     devmode_command: "scylla_dev_mode_setup --developer-mode 1"
 
-- name: run devmode
-  shell: |
+- name: Run devmode
+  ansible.builtin.shell: |
     {{ devmode_command }}
   become: true
   when: (devmode is defined) and (devmode|bool)
 
-- name: configure custom scylla.yaml paramaters
-  lineinfile:
+- name: Configure custom scylla.yaml paramaters
+  ansible.builtin.lineinfile:
     path: /etc/scylla/scylla.yaml
-    regexp: '^{{ item.key }}'
+    regexp: "^{{ item.key }}"
     line: "{{ item.key }}: {{ item.value }}"
     create: yes
   become: true
   loop: "{{ lookup('dict', scylla_yaml_params) }}"
 
-- name: enable ssl options
-  include_tasks: ssl.yml
+- name: Enable ssl options
+  ansible.builtin.include_tasks: ssl.yml
   when:
     - scylla_ssl is defined
     - (scylla_ssl.internode.enabled|bool) or
       (scylla_ssl.client.enabled|bool)
 
 - name: Copy system keys
-  include_tasks: handle_encryption_at_rest_keys.yml
+  ansible.builtin.include_tasks: handle_encryption_at_rest_keys.yml
   vars:
     localhost_key_path: "{{ localhost_system_key_directory }}"
     remote_key_path: "{{ system_key_directory }}"
   when: handle_system_keys|bool
 
 - name: Copy table keys
-  include_tasks: handle_encryption_at_rest_keys.yml
+  ansible.builtin.include_tasks: handle_encryption_at_rest_keys.yml
   vars:
     localhost_key_path: "{{ localhost_table_key_directory }}"
     remote_key_path: "{{ table_key_directory }}"
@@ -326,57 +323,58 @@
 # have an actual value resolved.
 # One way to do that is to resolve it and store as an Ansible fact.
 - name: Resolve a scylla_listen_address as a fact
-  set_fact:
+  ansible.builtin.set_fact:
     listen_address: "{{ scylla_listen_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_rpc_address
-  set_fact:
+  ansible.builtin.set_fact:
     rpc_address: "{{ scylla_rpc_address }}"
 
 # The same relates to the below
 - name: Resolve scylla_broadcast_address
-  set_fact:
+  ansible.builtin.set_fact:
     broadcast_address: "{{ scylla_broadcast_address }}"
 
 - name: start_scylla_service dependent tasks
+  when: start_scylla_service is defined and start_scylla_service | bool
   block:
     - name: Generate tokens for the new nodes
       run_once: true
-      include_tasks: generate_tokens.yml
+      ansible.builtin.include_tasks: generate_tokens.yml
       when: token_distributor is defined
 
     - name: Start seeders serially
       run_once: true
-      include_tasks: start_one_node.yml
+      ansible.builtin.include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
       when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
-      include_tasks: start_one_node.yml
+      ansible.builtin.include_tasks: start_one_node.yml
       loop: "{{ groups['scylla'] }}"
       when:
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
 
-    - name: wait for the API port to come up on all nodes
-      wait_for:
+    - name: Wait for the API port to come up on all nodes
+      ansible.builtin.wait_for:
         port: "{{ scylla_api_port }}"
         host: "{{ scylla_api_address }}"
         timeout: 300
 
-    - name: wait for the cluster to become healthy
-      shell: |
+    - name: Wait for the cluster to become healthy
+      ansible.builtin.shell: |
         nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
       register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
-      retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
+      until: node_count.stdout|int == ansible_play_batch | length
+      retries: "{{ scylla_bootstrap_wait_time_sec | int }}"
       delay: 1
-      when: full_inventory|bool
+      when: full_inventory | bool
 
-    - name: check API access
-      uri:
+    - name: Check API access
+      ansible.builtin.uri:
         url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/failure_detector/endpoints/"
         follow_redirects: none
         method: GET
@@ -386,33 +384,32 @@
       delay: 1
 
     - name: Delete initial_token in scylla.yaml
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: /etc/scylla/scylla.yaml
-        regexp: '^initial_token:'
+        regexp: "^initial_token:"
         line: ""
       become: true
       when: token_distributor is defined
-  when: start_scylla_service is defined and start_scylla_service|bool
 
 - name: Check if authentication and audit are enabled
+  run_once: true
   block:
-    - command: cat /etc/scylla/scylla.yaml
+    - ansible.builtin.command: cat /etc/scylla/scylla.yaml
       ignore_errors: true
       register: _scylla_yaml_out
 
-    - set_fact:
+    - ansible.builtin.set_fact:
         _scylla_yaml_map: "{{ _scylla_yaml_out.stdout | from_yaml }}"
 
-    - set_fact:
+    - ansible.builtin.set_fact:
         _authentication_enabled: |
           {% if (_scylla_yaml_map.authenticator is defined and (_scylla_yaml_map.authenticator == 'TransitionalAuthenticator' or _scylla_yaml_map.authenticator == 'PasswordAuthenticator')) or
           (_scylla_yaml_map.authorizer is defined and (_scylla_yaml_map.authorizer == 'TransitionalAuthorizer' or _scylla_yaml_map.authorizer == 'CassandraAuthorizer')) %}True{% else %}False{% endif %}
         _audit_enabled: |
           {% if (_scylla_yaml_map.audit is defined and _scylla_yaml_map.audit == 'table') %}True{% else %}False{% endif %}
-  run_once: true
 
 - name: Adjust replication for system_auth keyspace
-  include_tasks: adjust_keyspace_replication.yml
+  ansible.builtin.include_tasks: adjust_keyspace_replication.yml
   vars:
     _keyspace: "system_auth"
     _keyspace_replication_strategy: "{{ system_auth_replication_strategy }}"
@@ -424,7 +421,7 @@
     - system_auth_rf is defined and system_auth_replication_strategy is defined
 
 - name: Adjust replication for audit keyspace
-  include_tasks: adjust_keyspace_replication.yml
+  ansible.builtin.include_tasks: adjust_keyspace_replication.yml
   vars:
     _keyspace: "audit"
     _keyspace_replication_strategy: "{{ audit_replication_strategy }}"
@@ -436,7 +433,7 @@
     - audit_rf is defined and audit_replication_strategy is defined
 
 - name: Adjust replication for system_distributed keyspace
-  include_tasks: adjust_keyspace_replication.yml
+  ansible.builtin.include_tasks: adjust_keyspace_replication.yml
   vars:
     _keyspace: "system_distributed"
     _keyspace_replication_strategy: "{{ system_distributed_replication_strategy }}"
@@ -447,7 +444,7 @@
     - system_distributed_rf is defined and system_distributed_replication_strategy is defined
 
 - name: Adjust replication for system_traces keyspace
-  include_tasks: adjust_keyspace_replication.yml
+  ansible.builtin.include_tasks: adjust_keyspace_replication.yml
   vars:
     _keyspace: "system_traces"
     _keyspace_replication_strategy: "{{ system_traces_replication_strategy }}"
@@ -457,8 +454,8 @@
     - adjust_system_traces_replication is defined and adjust_system_traces_replication|bool
     - system_traces_rf is defined and system_traces_replication_strategy is defined
 
-- name: configure the Manager agents
-  include_tasks: manager_agents.yml
+- name: Configure the Manager agents
+  ansible.builtin.include_tasks: manager_agents.yml
   when: scylla_manager_enabled|bool
 
 - name: Update sysctl
@@ -469,4 +466,3 @@
   loop: "{{ sysctl }}"
   ignore_errors: true
   when: update_sysctl|bool is defined and update_sysctl|bool
-

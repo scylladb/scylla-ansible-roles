@@ -1,32 +1,31 @@
 ---
 - name: Split {{ scylla_version_to_install }}
-  set_fact:
+  ansible.builtin.set_fact:
     _split_version: "{{ scylla_version_to_install.split('.') }}"
 
 - name: Check that {{ scylla_version_to_install }} has a valid format
-  fail:
+  ansible.builtin.fail:
     msg: "scylla_version resolved to {{ scylla_version_to_install }} and it can't be used with undefined scylla_deb_repos. See README.md for more details."
   when: (_split_version|length < 2)
 
 - name: Set default repository for a Debian host
+  when: ansible_os_family|lower == 'debian' and scylla_deb_repos is not defined
   block:
     - name: Set temporary fact
-      set_fact:
+      ansible.builtin.set_fact:
         _scylla_repo_default: "https://downloads.scylladb.com/deb/ubuntu/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.list"
 
     - name: Set scylla_deb_repos
-      set_fact:
-        scylla_deb_repos: [ "{{ _scylla_repo_default }}" ]
-  when: ansible_os_family|lower == 'debian' and scylla_deb_repos is not defined
+      ansible.builtin.set_fact:
+        scylla_deb_repos: ["{{ _scylla_repo_default }}"]
 
 - name: Set default repository for a RedHat host
+  when: ansible_os_family|lower == 'redhat' and scylla_rpm_repos is not defined
   block:
     - name: Set temporary fact
-      set_fact:
+      ansible.builtin.set_fact:
         _scylla_repo_default: "https://downloads.scylladb.com/rpm/centos/scylla-{{ _split_version[0] }}.{{ _split_version[1] }}.repo"
 
     - name: Set scylla_rpm_repos
-      set_fact:
-        scylla_rpm_repos: [ "{{ _scylla_repo_default }}" ]
-  when: ansible_os_family|lower == 'redhat' and scylla_rpm_repos is not defined
-
+      ansible.builtin.set_fact:
+        scylla_rpm_repos: ["{{ _scylla_repo_default }}"]

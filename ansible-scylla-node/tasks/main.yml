@@ -1,40 +1,40 @@
 ---
-
 # Facts gathering
 - name: Populate service facts
-  service_facts:
+  ansible.builtin.service_facts:
 
 - name: Populate package facts
-  package_facts:
+  ansible.builtin.package_facts:
     manager: auto
 
 - name: Set Scylla package prefix as OSS
-  set_fact:
+  ansible.builtin.set_fact:
     scylla_package_prefix: "scylla"
   when: scylla_edition == 'oss'
 
 - name: Set Scylla package prefix as Enterprise
-  set_fact:
+  ansible.builtin.set_fact:
     scylla_package_prefix: "scylla-enterprise"
   when: scylla_edition == 'enterprise'
 
 - name: Check if {{ scylla_package_prefix }} meta-package is installed
-  set_fact:
+  ansible.builtin.set_fact:
     scylla_is_installed: "{{ true if scylla_package_prefix in ansible_facts.packages else false }}"
 
 - name: Get installed scylla version
-  set_fact:
+  ansible.builtin.set_fact:
     installed_scylla_version: "{{ ansible_facts.packages[scylla_package_prefix][0]['version'] }}"
   when: scylla_is_installed
 
 - name: Initialize scylla_version_to_install to {{ scylla_version }}
-  set_fact:
+  ansible.builtin.set_fact:
     scylla_version_to_install: "{{ scylla_version }}"
 
 - name: Get latest Scylla {{ scylla_package_prefix }} version if needed
+  when: scylla_version == 'latest' and scylla_install_type == 'online'
   block:
     - name: Set latest Scylla version URL optional parameter for Scylla Enterprise version
-      set_fact:
+      ansible.builtin.set_fact:
         scylla_latest_version_url_parameter: "{{ '?system=enterprise' if scylla_edition == 'enterprise' else '' }}"
 
     - name: Get {{ scylla_package_prefix }} latest version
@@ -45,29 +45,27 @@
       register: scylla_latest_version
 
     - name: Set scylla_version_to_install to {{ scylla_latest_version.json['version'] }}
-      set_fact:
+      ansible.builtin.set_fact:
         scylla_version_to_install: "{{ scylla_latest_version.json['version'] }}"
-  when: scylla_version == 'latest' and scylla_install_type == 'online'
 
 - name: "Sanity check: latest version requires online installation type"
-  fail:
+  ansible.builtin.fail:
     msg: "Latest Scylla version can only be installed with an 'online' installation"
   when: scylla_version == 'latest' and scylla_install_type != 'online'
 
 - name: Set a repository URL if not explicitly set
-  include_tasks: set_default_repo.yml
+  ansible.builtin.include_tasks: set_default_repo.yml
 
 # Upgrade
 - name: Upgrade Scylla
-  include_tasks: upgrade/main.yml
+  ansible.builtin.include_tasks: upgrade/main.yml
   when: upgrade_version
 
 # Install
-- name: os-specific tasks
-  include_tasks: "{{ ansible_os_family }}.yml"
+- name: OS-specific tasks
+  ansible.builtin.include_tasks: "{{ ansible_os_family }}.yml"
   when: not upgrade_version
 
-- name: common tasks
-  include_tasks: common.yml
+- name: Common tasks
+  ansible.builtin.include_tasks: common.yml
   when: not upgrade_version and install_only|bool == false
-

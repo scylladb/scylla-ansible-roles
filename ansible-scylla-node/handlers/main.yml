@@ -1,32 +1,31 @@
 ---
-
 - name: Clean yum metadata
-  command: yum clean metadata
+  ansible.builtin.command: yum clean metadata
   args:
     warn: no
-  become: true 
-
-- name: reload systemd configuration
   become: true
-  systemd:
+
+- name: Reload systemd configuration
+  become: true
+  ansible.builtin.systemd:
     daemon_reload: true
 
-- name: scylla restart
+- name: Restart scylla
   become: true
-  service:
+  ansible.builtin.service:
     name: scylla-server
     state: restarted
     enabled: yes
 
-- name: scylla stop
+- name: Stop scylla
   become: true
-  service:
+  ansible.builtin.service:
     name: scylla-server
     state: stopped
 
-- name: node_exporter start
+- name: Start node_exporter
   become: true
-  service:
+  ansible.builtin.service:
     name: node-exporter
     state: started
     enabled: yes
@@ -38,21 +37,21 @@
     enabled: yes
   become: true
 
-- name: scylla-manager-agent start
+- name: Start scylla-manager-agent
   become: true
-  service:
+  ansible.builtin.service:
     name: scylla-manager-agent
     state: started
     enabled: true
 
-- name: scylla-manager-agent stop
+- name: Stop scylla-manager-agent
   become: true
-  service:
+  ansible.builtin.service:
     name: scylla-manager-agent
     state: stopped
 
-- name: scylla-manager-agent restart
+- name: Restart scylla-manager-agent
   become: true
-  service:
+  ansible.builtin.service:
     name: scylla-manager-agent
     state: restarted

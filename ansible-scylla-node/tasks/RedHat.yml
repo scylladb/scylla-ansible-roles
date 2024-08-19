@@ -1,13 +1,13 @@
 ---
 - name: Add EPEL key
-  rpm_key:
+  ansible.builtin.rpm_key:
     state: present
     key: https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}
   when: scylla_install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
 - name: Add EPEL repository
-  yum:
+  ansible.builtin.yum:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
     lock_timeout: 60
@@ -15,19 +15,21 @@
   become: true
 
 - name: Install ELRepo kernel and reboot in to it if configured
+  when: elrepo_kernel|bool and scylla_install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
+  become: true
   block:
     - name: Install ELRepo key
-      rpm_key:
+      ansible.builtin.rpm_key:
         state: present
         key: https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 
     - name: Install ELRepo repository
-      yum:
+      ansible.builtin.yum:
         name: "https://www.elrepo.org/elrepo-release-{{ ansible_facts['distribution_major_version'] }}.el{{ ansible_facts['distribution_major_version'] }}.elrepo.noarch.rpm"
         state: present
 
     - name: Install ELRepo mainline kernel
-      yum:
+      ansible.builtin.yum:
         name: kernel-ml
         state: present
         enablerepo: elrepo-kernel
@@ -35,27 +37,27 @@
       register: kernel_installed
 
     - name: Configure grub2 to boot first entry
-      lineinfile:
+      ansible.builtin.lineinfile:
         dest: /etc/default/grub
         owner: root
         group: root
-        mode: '0644'
+        mode: "0644"
         backup: yes
         create: yes
-        regexp: '{{ item.regexp }}'
-        line: '{{ item.line }}'
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
         state: present
       with_items:
-        - regexp: 'GRUB_DEFAULT='
-          line: 'GRUB_DEFAULT=0'
+        - regexp: "GRUB_DEFAULT="
+          line: "GRUB_DEFAULT=0"
       when: kernel_installed.changed
 
     - name: Reconfigure Grub2
-      command: grub2-mkconfig -o /boot/grub2/grub.cfg
+      ansible.builtin.command: grub2-mkconfig -o /boot/grub2/grub.cfg
       when: kernel_installed.changed
 
     - name: Reboot host and wait for it to restart
-      reboot:
+      ansible.builtin.reboot:
         msg: "Reboot initiated by Ansible"
         connect_timeout: 5
         reboot_timeout: 600
@@ -63,29 +65,28 @@
         post_reboot_delay: 30
         test_command: whoami
       when: reboot_after_kernel_upgrade|bool and kernel_installed.changed
-  when: elrepo_kernel|bool and scylla_install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
-  become: true
 
-- name: remove abrt
-  package:
+- name: Remove abrt
+  ansible.builtin.package:
     name: abrt
     state: absent
   become: true
 
 - name: Install Scylla repo
-  get_url:
+  ansible.builtin.get_url:
     url: "{{ item }}"
     dest: '/etc/yum.repos.d/{{ item.split("/")[-1] | lower }}'
-    mode: '0644'
+    mode: "0644"
     owner: root
   with_items: "{{ scylla_rpm_repos }}"
   when: item.split(".")[-1] == "repo"
   become: true
 
 - name: If Scylla is installed check if it's the same version as requested
+  when: scylla_is_installed and not skip_installed_scylla_version_check
   block:
     - name: Check if {{ scylla_package_prefix }} {{ scylla_version_to_install }} is installed
-      yum:
+      ansible.builtin.yum:
         name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
         state: installed
         lock_timeout: 60
@@ -94,60 +95,60 @@
       become: true
 
     - name: Validate the result
-      fail:
+      ansible.builtin.fail:
         msg: "Installed version ({{ installed_scylla_version }}) doesn't match a requested one ({{ scylla_version_to_install }})"
       when: result.changed
-  when: scylla_is_installed and not skip_installed_scylla_version_check
 
 - name: Install Scylla
-  block:
-  - name: Install {{ scylla_edition }} Scylla
-    yum:
-      name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
-      state: present
-      lock_timeout: 60
-  become: true
   when: not scylla_is_installed
+  become: true
+  block:
+    - name: Install {{ scylla_edition }} Scylla
+      ansible.builtin.yum:
+        name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
+        state: present
+        lock_timeout: 60
 
 - name: Configure SELinux
-  shell: |
+  ansible.builtin.shell: |
     scylla_selinux_setup
   become: true
   when: skip_selinux is defined and skip_selinux|bool == false
 
-- name: install prerequisite python-yaml
-  shell: |
+- name: Install prerequisite python-yaml
+  ansible.builtin.shell: |
     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
   become: true
 
-- name: install nvme-cli
-  shell: |
-    yum install -y nvme-cli
+- name: Install nvme-cli
+  ansible.builtin.yum:
+    name: nvme-cli
+    state: present
+    lock_timeout: 60
   become: true
 
-- name: install and configure Scylla Manager Agent
+- name: Install and configure Scylla Manager Agent
+  become: true
+  when: scylla_manager_enabled|bool
   block:
-    - name: add Scylla Manager repo
-      get_url:
+    - name: Add Scylla Manager repo
+      ansible.builtin.get_url:
         url: "{{ scylla_manager_rpm_repo_url }}"
         dest: '/etc/yum.repos.d/{{ scylla_manager_rpm_repo_url.split("/")[-1] | lower }}'
-        mode: '0644'
+        mode: "0644"
         owner: root
       when: scylla_manager_rpm_repo_url.split(".")[-1] == "repo"
 
-    - name: install the manager agent
-      yum:
+    - name: Install the manager agent
+      ansible.builtin.yum:
         name: scylla-manager-agent
         state: present
         lock_timeout: 60
       when: scylla_manager_agent_upgrade is not defined or scylla_manager_agent_upgrade|bool == False
 
-    - name: install the latest manager agent
-      yum:
+    - name: Install the latest manager agent
+      ansible.builtin.yum:
         name: scylla-manager-agent
         state: latest
         lock_timeout: 60
       when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
-
-  become: true
-  when: scylla_manager_enabled|bool

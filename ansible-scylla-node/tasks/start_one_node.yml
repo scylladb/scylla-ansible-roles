@@ -1,6 +1,6 @@
 ---
-- name: start scylla on {{ item }}
-  service:
+- name: Start scylla on {{ item }}
+  ansible.builtin.service:
     name: scylla-server
     state: started
   become: true
@@ -8,7 +8,7 @@
 
 # By default waits at most 7 hours for a node to start - bootstrapping and the corresponding streaming can take quite long
 - name: Wait for CQL port on {{ hostvars[item]['rpc_address'] }}
-  wait_for:
+  ansible.builtin.wait_for:
     port: 9042
     host: "{{ hostvars[item]['rpc_address'] }}"
     timeout: "{{ scylla_bootstrap_wait_time_sec }}"

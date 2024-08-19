@@ -2,7 +2,7 @@
 - hosts: all
   tasks:
     - name: Update Apt Cache
-      apt:
+      ansible.builtin.apt:
         update_cache: true
       become: true
       when: ansible_os_family == "Debian"

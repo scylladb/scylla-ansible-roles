@@ -1,90 +1,89 @@
 ---
 - name: Add Scylla repos
-  block:
-  - name: "Purge keyring '{{ scylla_repo_keyringfile }}'"
-    ansible.builtin.file:
-      path: "{{ scylla_repo_keyringfile }}"
-      state: absent
-    when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
-
-  - name: Remove an apt key by id previously added
-    ansible.builtin.apt_key:
-      id: "{{ item }}"
-      state: absent
-    with_items: "{{ scylla_repo_keys }}"
-    when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
-
-  - name: Install gnupg2 dependency if it's not already installed
-    apt:
-      name: "gnupg2"
-      state: present
-      update_cache: yes
-    when: "'gnupg2' not in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
-
-  - name: Add an apt key by id from a keyserver
-    apt_key:
-      keyserver: "{{ scylla_repo_keyserver }}"
-      id: "{{ item }}"
-      state: present
-    with_items: "{{ scylla_repo_keys }}"
-    when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
-
-  - name: create the keyring directory {{ scylla_repo_keyring_dir }}
-    file:
-      path: "{{ scylla_repo_keyring_dir }}"
-      state: directory
-      mode: '1755'
-      owner: "root"
-
-  - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
-    ansible.builtin.apt_key:
-      id: "{{ item }}"
-      keyserver: "{{ scylla_repo_keyserver }}"
-      keyring: "{{ scylla_repo_keyringfile }}"
-      state: present
-    with_items: "{{ scylla_repo_keys }}"
-    when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
-
-  - name: Add an Apt signing key for Debian
-    apt_key:
-      url: "{{ item }}"
-      state: present
-    with_items: "{{ scylla_repo_keyfile_urls }}"
-    when: scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0)
-
-  - name: Install Scylla repo
-    get_url:
-      url: "{{ item }}"
-      dest: '/etc/apt/sources.list.d/{{ item.split("/")[-1] | lower }}'
-      mode: '0644'
-      owner: root
-    with_items: "{{ scylla_deb_repos }}"
-    when: scylla_install_type == 'online' and item.split(".")[-1] == "list"
-
   become: true
+  block:
+    - name: "Purge keyring '{{ scylla_repo_keyringfile }}'"
+      ansible.builtin.file:
+        path: "{{ scylla_repo_keyringfile }}"
+        state: absent
+      when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+
+    - name: Remove an apt key by id previously added
+      ansible.builtin.apt_key:
+        id: "{{ item }}"
+        state: absent
+      with_items: "{{ scylla_repo_keys }}"
+      when: "'gnupg2' in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+
+    - name: Install gnupg2 dependency if it's not already installed
+      ansible.builtin.apt:
+        name: "gnupg2"
+        state: present
+        update_cache: yes
+      when: "'gnupg2' not in ansible_facts.packages and scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)"
+
+    - name: Add an apt key by id from a keyserver
+      ansible.builtin.apt_key:
+        keyserver: "{{ scylla_repo_keyserver }}"
+        id: "{{ item }}"
+        state: present
+      with_items: "{{ scylla_repo_keys }}"
+      when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+
+    - name: Create the keyring directory {{ scylla_repo_keyring_dir }}
+      ansible.builtin.file:
+        path: "{{ scylla_repo_keyring_dir }}"
+        state: directory
+        mode: "1755"
+        owner: "root"
+
+    - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
+      ansible.builtin.apt_key:
+        id: "{{ item }}"
+        keyserver: "{{ scylla_repo_keyserver }}"
+        keyring: "{{ scylla_repo_keyringfile }}"
+        state: present
+      with_items: "{{ scylla_repo_keys }}"
+      when: scylla_install_type == 'online' and scylla_repo_keyserver is defined and scylla_repo_keys is defined and (scylla_repo_keys|length > 0)
+
+    - name: Add an Apt signing key for Debian
+      ansible.builtin.apt_key:
+        url: "{{ item }}"
+        state: present
+      with_items: "{{ scylla_repo_keyfile_urls }}"
+      when: scylla_repo_keyfile_urls is defined and (scylla_repo_keyfile_urls|length > 0)
+
+    - name: Install Scylla repo
+      ansible.builtin.get_url:
+        url: "{{ item }}"
+        dest: '/etc/apt/sources.list.d/{{ item.split("/")[-1] | lower }}'
+        mode: "0644"
+        owner: root
+      with_items: "{{ scylla_deb_repos }}"
+      when: scylla_install_type == 'online' and item.split(".")[-1] == "list"
 
 - name: Install Scylla
-  block:
-  - name: Run "apt-get update"
-    apt:
-      update_cache: yes
-
-  - name: Install additional dependencies
-    apt:
-      name: "{{ scylla_dependencies }}"
-      state: present
-      force_apt_get: yes
-    when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
-
-  - name: Install Java
-    apt:
-      name: openjdk-8-jre-headless
-      state: present
-      force_apt_get: yes
-
-  - name: Install Scylla packages
-    include_tasks: Debian_install.yml
   become: true
+  block:
+    - name: Run "apt-get update"
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install additional dependencies
+      ansible.builtin.apt:
+        name: "{{ scylla_dependencies }}"
+        state: present
+        force_apt_get: yes
+      when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
+
+    - name: Install Java
+      ansible.builtin.apt:
+        name: openjdk-8-jre-headless
+        state: present
+        force_apt_get: yes
+
+    - name: Install Scylla packages
+      ansible.builtin.include_tasks: Debian_install.yml
 
 # TODO: Implement this for the debian based distros
 # - name: install prerequisite python-yaml
@@ -92,11 +91,12 @@
 #     for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
 #   become: true
 
-
-- name: install and configure Scylla Manager Agent
+- name: Install and configure Scylla Manager Agent
+  become: true
+  when: scylla_manager_enabled|bool == true
   block:
     - name: Add an apt key by id from a keyserver
-      apt_key:
+      ansible.builtin.apt_key:
         keyserver: "{{ scylla_repo_keyserver }}"
         id: "{{ item }}"
         state: present
@@ -105,7 +105,7 @@
       become: true
 
     - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
-      apt_key:
+      ansible.builtin.apt_key:
         keyserver: "{{ scylla_repo_keyserver }}"
         keyring: "{{ scylla_repo_keyringfile }}"
         id: "{{ item }}"
@@ -114,16 +114,16 @@
       when: (scylla_install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
       become: true
 
-    - name: add Scylla Manager repo
-      get_url:
+    - name: Add Scylla Manager repo
+      ansible.builtin.get_url:
         url: "{{ scylla_manager_deb_repo_url }}"
         dest: '/etc/apt/sources.list.d/{{ scylla_manager_deb_repo_url.split("/")[-1] | lower }}'
-        mode: '0644'
+        mode: "0644"
         owner: root
       when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
 
     - name: Run "apt-get update"
-      apt:
+      ansible.builtin.apt:
         update_cache: yes
 
     - name: Install Scylla Manager Agent
@@ -133,11 +133,8 @@
         name: scylla-manager-agent
         state: "{{ scylla_manager_agent_state }}"
 
-  become: true
-  when: scylla_manager_enabled|bool == true
-
-- name: install XFSprogs
-  apt:
+- name: Install XFSprogs
+  ansible.builtin.apt:
     name: xfsprogs
     state: present
   become: true
