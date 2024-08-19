@@ -1,6 +1,5 @@
 ---
-
-allow_duplicates: yes
+allow_duplicates: true
 
 galaxy_info:
   role_name: scylla_node
@@ -11,22 +10,21 @@ galaxy_info:
   license: "license (Apache)"
   min_ansible_version: 2.8.0
   platforms:
-  - name: EL
-    versions:
-    - 7
-  - name: Debian
-    versions:
-    - 8
-    - 9
-  - name: Ubuntu
-    versions:
-    - 20.04
-    - 16.04
-    - 18.04
-  - galaxy_tags:
-    - scylla
-    - scylladb
-    - scylla-node
-    - cassandra
+    - name: EL
+      versions:
+        - "7"
+    - name: Debian
+      versions:
+        - "jessie"
+        - "stretch"
+    - name: Ubuntu
+      versions:
+        - "focal"
+        - "bionic"
+        - "xenial"
+    - galaxy_tags:
+        - scylla
+        - scylladb
+        - scylla-node
+        - cassandra
 dependencies: []
-

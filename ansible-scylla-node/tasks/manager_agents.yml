@@ -1,61 +1,60 @@
 ---
-
-- name: check for pre-existing agent-token file
-  stat:
+- name: Check for pre-existing agent-token file
+  ansible.builtin.stat:
     path: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
   register: token_file_stat
   run_once: true
   delegate_to: localhost
 
-- name: generate a new token file
-  block:
-  - name: generate the agent key
-    shell: |
-      LC_CTYPE=C tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
-    register: scyllamgr_auth_token
-    delegate_to: localhost
-    run_once: true
-
-  - name: store the auth token in a local file for later use
-    copy:
-      content: |
-        {{ scyllamgr_auth_token.stdout }}
-      dest: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
-    delegate_to: localhost
-    run_once: true
+- name: Generate a new token file
   when: token_file_stat.stat.islnk is not defined
+  block:
+    - name: Generate the agent key
+      ansible.builtin.shell: |
+        LC_CTYPE=C tr -dc 'a-zA-Z0-9' < /dev/urandom | fold -w 128 | head -n 1
+      register: scyllamgr_auth_token
+      delegate_to: localhost
+      run_once: true
 
-- name: read the key from auth token file
-  slurp:
+    - name: Store the auth token in a local file for later use
+      ansible.builtin.copy:
+        content: |
+          {{ scyllamgr_auth_token.stdout }}
+        dest: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
+      delegate_to: localhost
+      run_once: true
+
+- name: Read the key from auth token file
+  ansible.builtin.slurp:
     src: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
   register: b64auth_token
   delegate_to: localhost
   run_once: true
 
 - name: Decode data and store as fact
-  set_fact:
+  ansible.builtin.set_fact:
     auth_token: "{{ b64auth_token.content | b64decode }}"
   delegate_to: localhost
   run_once: true
 
-- name: apply the configuration data to scylla-manager-agent.yaml
-  template:
+- name: Apply the configuration data to scylla-manager-agent.yaml
+  ansible.builtin.template:
     src: templates/scylla-manager-agent.yaml.j2
     dest: /etc/scylla-manager-agent/scylla-manager-agent.yaml
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
   register: manager_agent_config_change
 
-- name: run scyllamgr_agent_setup
-  shell: |
+- name: Run scyllamgr_agent_setup
+  ansible.builtin.shell: |
     scyllamgr_agent_setup -y
   become: true
   when: manager_agent_config_change.changed
 
-- name: start and enable the Manager agent service
-  service:
+- name: Start and enable the Manager agent service
+  ansible.builtin.service:
     name: scylla-manager-agent
     state: restarted
     enabled: yes
@@ -63,5 +62,3 @@
   when: manager_agent_config_change.changed and start_scylla_service is defined and start_scylla_service|bool
   ignore_errors: true
   #TODO: remove ignore_errors when ansible is bumped to 2.10.4 or 2.9.16 as per https://github.com/ansible/ansible/issues/71528
-
-

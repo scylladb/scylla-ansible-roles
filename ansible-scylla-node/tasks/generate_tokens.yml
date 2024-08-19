@@ -1,6 +1,6 @@
 ---
 - name: Find the first node which is already bootstrapped, if any
-  wait_for:
+  ansible.builtin.wait_for:
     port: 9042
     host: "{{ hostvars[item]['rpc_address'] }}"
     timeout: 5
@@ -11,28 +11,29 @@
   when: wait_for_cql_port_output is not defined or wait_for_cql_port_output.failed == True
 
 - name: Set the already bootstrapped node as a fact, if any
-  set_fact:
+  ansible.builtin.set_fact:
     bootstrapped_node: "{{ item.item }}"
   loop: "{{ wait_for_cql_port_output.results }}"
   when: bootstrapped_node is not defined and item.failed == False
 
 - name: Prepare script arguments
-  set_fact:
+  ansible.builtin.set_fact:
     node_list: "{{ node_list | default([]) + [hostvars[item]['broadcast_address']] }}"
     rack_list: "{{ rack_list | default([]) + [hostvars[item]['rack']] }}"
     dc_list: "{{ dc_list | default([]) + [hostvars[item]['dc'] + hostvars[item]['dc_suffix'] | default('')] }}"
   loop: "{{ groups['scylla'] }}"
 
 - name: Create a temporary tokens file
-  tempfile:
+  ansible.builtin.tempfile:
     state: file
   register: tokens_file
   delegate_to: localhost
 
 - name: Get existing tokens
+  when: bootstrapped_node is defined
   block:
     - name: Get tokens
-      uri:
+      ansible.builtin.uri:
         url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/tokens/{{ hostvars[item]['broadcast_address'] }}"
         method: GET
       register: _existing_tokens
@@ -43,31 +44,30 @@
       loop: "{{ groups['scylla'] }}"
 
     - name: Copy tokens to tmp file
-      lineinfile:
+      ansible.builtin.lineinfile:
         path: "{{ tokens_file.path }}"
         line: "{{ hostvars[item.item]['broadcast_address'] }}={{ item.json | map('int') | join(',') }}"
         create: yes
       when: item.json|length > 0
       delegate_to: localhost
       loop: "{{ _existing_tokens.results }}"
-  when: bootstrapped_node is defined
 
 - name: Generate and save tokens for the new nodes
   delegate_to: localhost
   become: false
   environment:
     PYTHONPATH: "{{ token_distributor.path }}"
-  shell: "{{ token_distributor.path }}/token_distributor.py --node={{ node_list | join(',') }} --rack={{ rack_list | join(',') }} --dc={{ dc_list | join(',') }} --rf={{ token_distributor.rf }} --tokens-file {{ tokens_file.path }}"
+  ansible.builtin.shell: "{{ token_distributor.path }}/token_distributor.py --node={{ node_list | join(',') }} --rack={{ rack_list | join(',') }} --dc={{ dc_list | join(',') }} --rf={{ token_distributor.rf }} --tokens-file {{ tokens_file.path }}"
   register: _new_tokens
 
 - name: Delete tokens file
-  file:
+  ansible.builtin.file:
     path: "{{ tokens_file.path }}"
     state: absent
   delegate_to: localhost
 
 - name: Set initial tokens in scylla.yaml
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/scylla/scylla.yaml
     regexp: '^(#\s*)?initial_token:'
     line: "initial_token: {{ item[0].split('=')[1] }}"

@@ -1,5 +1,4 @@
 ---
-
 # Start Scylla service
 - name: Start Scylla service
   ansible.builtin.service:
@@ -7,4 +6,3 @@
     state: started
   notify: scylla-manager-agent restart
   become: true
-

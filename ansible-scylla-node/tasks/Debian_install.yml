@@ -1,6 +1,7 @@
 ---
 # Requires a 'scylla_version_to_install' fact to be set to a version string we want to install
 - name: Install Scylla version {{ scylla_version_to_install }}
+  become: true
   block:
     - name: Get versions of {{ scylla_edition }} package
       # 'apt list -a' output has a package version as a second column and an arch as a third one.
@@ -8,7 +9,7 @@
       # Then we will filter out all rows that start with a requested version string followed by a digit to filter out version like 2021.1.11 when 2021.1.1 was requested.
       # Also filter our RCs which versions go like 2021.1.0~rcX.
       # And finally, we are going to get rid of duplications.
-      shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789~]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
+      ansible.builtin.shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789~]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
       register: aptversions
       vars:
         scylla_version_escaped: "{{ scylla_version_to_install | regex_escape }}"
@@ -22,36 +23,35 @@
       when: (not scylla_is_installed or upgrade_version) and aptversions.stdout_lines | length != 1
 
     - name: If Scylla is installed check if it's the same version as requested
-      fail:
+      ansible.builtin.fail:
         msg: "Installed version ({{ installed_scylla_version }}) doesn't match a requested one ({{ aptversions.stdout }})"
       when: scylla_is_installed and not skip_installed_scylla_version_check and installed_scylla_version != aptversions.stdout
 
     - name: Do install Scylla
+      when: not scylla_is_installed or upgrade_version
       block:
         - name: Nuke a {{ scylla_edition }} pin file if exists
-          file:
+          ansible.builtin.file:
             state: absent
             path: "/etc/apt/preferences.d/99-{{ scylla_package_prefix }}"
 
         - name: Fetch version parts of Scylla package
-          set_fact:
+          ansible.builtin.set_fact:
             scylla_version_split: "{{ aptversions.stdout | regex_findall(regexp, ignorecase=True) }}"
           vars:
             # All we know that the version is a string comprised of 3 parts separated by '-'
             regexp: '^([^\-]+)-([^\-]+)-([^\-]+)$'
 
         - name: Create package version pin file
-          template:
+          ansible.builtin.template:
             src: templates/apt-pin-file.j2
             dest: "/etc/apt/preferences.d/99-{{ scylla_package_prefix }}"
             owner: root
             group: root
-            mode: '0644'
+            mode: "0644"
 
         - name: "Install {{ aptversions.stdout }}"
-          apt:
+          ansible.builtin.apt:
             name: "{{ scylla_package_prefix }}={{ aptversions.stdout }}"
             state: present
             allow_downgrade: yes
-      when: not scylla_is_installed or upgrade_version
-  become: true

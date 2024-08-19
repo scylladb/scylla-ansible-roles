@@ -2,7 +2,7 @@
 # Uses Scylla rest API served from scylla_api_address to trigger a repair of each one
 # of the primary token ranges belonging to the current node
 - name: Start repair
-  uri:
+  ansible.builtin.uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/repair_async/{{ keyspace }}?primaryRange='true'"
     method: POST
   register: _repair_id
@@ -11,7 +11,7 @@
   delay: 1
 
 - name: Wait for the repair to finish
-  uri:
+  ansible.builtin.uri:
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/repair_async/{{ keyspace }}?id={{ _repair_id.json }}"
     method: GET
   register: _repair_status
@@ -20,6 +20,6 @@
   delay: 30
 
 - name: Check if repair was successful
-  fail:
+  ansible.builtin.fail:
     msg: "Repair failed"
   when: _repair_status.json != 'SUCCESSFUL'

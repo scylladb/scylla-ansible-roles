@@ -1,9 +1,9 @@
 ---
-- set_fact:
+- ansible.builtin.set_fact:
     _localhost_cert_path: "{{ scylla_ssl.localhost_cert_path | default(inventory_dir) }}"
 
 - name: For every node, check if crt file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ _localhost_cert_path }}/ssl/{{ hostvars[item]['inventory_hostname'] }}/{{ hostvars[item]['inventory_hostname'] }}.crt"
   register: _node_crt
   loop: "{{ groups['scylla'] }}"
@@ -12,7 +12,7 @@
   run_once: true
 
 - name: For every node, check if key file exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ _localhost_cert_path }}/ssl/{{ hostvars[item]['inventory_hostname'] }}/{{ hostvars[item]['inventory_hostname'] }}.pem"
   register: _node_key
   loop: "{{ groups['scylla'] }}"
@@ -21,49 +21,52 @@
   run_once: true
 
 - name: Set existence of crt and key as a single fact
-  set_fact:
+  ansible.builtin.set_fact:
     _crt_and_key_exist: "{{ item.stat.exists }}"
   loop: "{{ _node_crt.results + _node_key.results }}"
   when: _crt_and_key_exist is not defined or _crt_and_key_exist == True
   run_once: true
 
 - name: Check if CA exists
+  delegate_to: localhost
+  run_once: true
   block:
     - name: Check if CA crt file exists
-      stat:
+      ansible.builtin.stat:
         path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
       register: _ca_crt
     - name: Check if CA key file exists
-      stat:
+      ansible.builtin.stat:
         path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
       register: _ca_key
-    - set_fact:
-        _ca_crt_and_key_exist: "{{ _ca_crt.stat.exists|bool and _ca_key.stat.exists|bool }}"
-  delegate_to: localhost
-  run_once: true
+    - ansible.builtin.set_fact:
+        _ca_crt_and_key_exist: "{{ _ca_crt.stat.exists | bool and _ca_key.stat.exists | bool }}"
 
-- fail:
+- ansible.builtin.fail:
     msg: "If you want to use your own node certificates you also have to provide a CA"
   when: _crt_and_key_exist and not _ca_crt_and_key_exist
 
 - name: If crt and keys were not provided for all nodes and no CA was provided, generate a self-signed CA
+  when: _crt_and_key_exist == False and _ca_crt_and_key_exist == False
+  delegate_to: localhost
+  run_once: true
   block:
     - name: Create dir for the CA
-      file:
+      ansible.builtin.file:
         path: "{{ _localhost_cert_path }}/ssl/ca"
         state: directory
 
     - name: Generate an OpenSSL private key for the CA.
-      openssl_privatekey:
+      community.crypto.openssl_privatekey:
         path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
 
     - name: Generate an OpenSSL Certificate Signing Request for the CA
       community.crypto.openssl_csr_pipe:
         privatekey_path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         common_name: "{{ scylla_cluster_name }}.internal"
-        use_common_name_for_san: false  # since we do not specify SANs, don't use CN as a SAN
+        use_common_name_for_san: false # since we do not specify SANs, don't use CN as a SAN
         basic_constraints:
-          - 'CA:TRUE'
+          - "CA:TRUE"
         basic_constraints_critical: yes
         key_usage:
           - keyCertSign
@@ -72,29 +75,27 @@
 
     - name: Generate a Self Signed OpenSSL certificate for the CA
       community.crypto.x509_certificate:
-        path: "{{ _localhost_cert_path }}/ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         privatekey_path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         csr_content: "{{ ca_csr.csr }}"
         provider: selfsigned
-  when: _crt_and_key_exist == False and _ca_crt_and_key_exist == False
-  delegate_to: localhost
-  run_once: true
 
 - name: Generate keys signed by the local CA
+  when: _crt_and_key_exist == False
   block:
     - name: Create a directory for the key
-      file:
+      ansible.builtin.file:
         path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}"
         state: directory
       delegate_to: localhost
 
     - name: Generate an OpenSSL private key.
-      openssl_privatekey:
+      community.crypto.openssl_privatekey:
         path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
       delegate_to: localhost
 
     - name: Generate an OpenSSL Certificate Signing Request
-      openssl_csr:
+      community.crypto.openssl_csr:
         path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
         privatekey_path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
         common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
@@ -104,19 +105,18 @@
       openssl_certificate:
         path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.crt"
         csr_path: "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.csr"
-        ownca_path: "{{ _localhost_cert_path }}/ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        ownca_path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
         ownca_privatekey_path: "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         provider: ownca
       delegate_to: localhost
-  when: _crt_and_key_exist == False
 
 - name: Copy the certificates into their proper locations
-  copy:
+  ansible.builtin.copy:
     src: "{{ item }}"
     dest: "{{ scylla_ssl.cert_path }}/{{ item | basename }}"
     owner: root
     group: root
-    mode: '0644'
+    mode: "0644"
   become: true
   loop:
     - "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
@@ -124,9 +124,8 @@
     - "{{ _localhost_cert_path }}/ssl/{{ inventory_hostname }}/{{ inventory_hostname }}.pem"
 
 - name: Generate cqlshrc
-  template:
+  ansible.builtin.template:
     src: templates/cqlshrc.j2
     dest: "{{ _localhost_cert_path }}/cqlshrc"
   delegate_to: localhost
   run_once: true
-

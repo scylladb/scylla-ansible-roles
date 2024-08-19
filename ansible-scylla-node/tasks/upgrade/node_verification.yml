@@ -1,5 +1,4 @@
 ---
-
 # Check node status
 - name: Check for leaving nodes
   ansible.builtin.uri:
@@ -7,8 +6,8 @@
     method: GET
   register: cluster_leaving_nodes
   until: cluster_leaving_nodes.status == 200
-  retries: "{{ upgrade_api_default_retries |int }}"
-  delay: "{{ upgrade_api_default_delay |int }}"
+  retries: "{{ upgrade_api_default_retries | int }}"
+  delay: "{{ upgrade_api_default_delay | int }}"
 
 - name: Check for moving nodes
   ansible.builtin.uri:
@@ -16,8 +15,8 @@
     method: GET
   register: cluster_moving_nodes
   until: cluster_moving_nodes.status == 200
-  retries: "{{ upgrade_api_default_retries |int }}"
-  delay: "{{ upgrade_api_default_delay |int }}"
+  retries: "{{ upgrade_api_default_retries | int }}"
+  delay: "{{ upgrade_api_default_delay | int }}"
 
 - name: Check for joining nodes
   ansible.builtin.uri:
@@ -25,8 +24,8 @@
     method: GET
   register: cluster_joining_nodes
   until: cluster_joining_nodes.status == 200
-  retries: "{{ upgrade_api_default_retries |int }}"
-  delay: "{{ upgrade_api_default_delay |int }}"
+  retries: "{{ upgrade_api_default_retries | int }}"
+  delay: "{{ upgrade_api_default_delay | int }}"
 
 - name: Check for down nodes
   ansible.builtin.uri:
@@ -34,18 +33,17 @@
     method: GET
   register: cluster_down_nodes
   until: cluster_down_nodes.status == 200
-  retries: "{{ upgrade_api_default_retries |int }}"
-  delay: "{{ upgrade_api_default_delay |int }}"
+  retries: "{{ upgrade_api_default_retries | int }}"
+  delay: "{{ upgrade_api_default_delay | int }}"
 
 - name: Check if the cluster status is not OK
   ansible.builtin.fail:
     msg: "Some node is not working as expected."
   when:
-  - cluster_leaving_nodes |length == 0
-  - cluster_moving_nodes |length == 0
-  - cluster_joining_nodes |length == 0
-  - cluster_down_nodes |length == 0
-
+    - cluster_leaving_nodes | length == 0
+    - cluster_moving_nodes | length == 0
+    - cluster_joining_nodes | length == 0
+    - cluster_down_nodes | length == 0
 
 # Check version
 - name: Get version installed
@@ -53,7 +51,7 @@
     url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/scylla_release_version"
     method: GET
   register: node_scylla_release_version
- 
+
 - name: Verify that selected and installed versions are not different
   vars:
     version_specified: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
