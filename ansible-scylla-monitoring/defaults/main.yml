@@ -20,6 +20,9 @@ scylla_manager_ip: '127.0.0.1'
 # Download the scylla-monitoring from here
 scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.10.1.tar.gz'
 
+# The path where the role will look for config files
+scylla_monitoring_role_config_path: "{{ inventory_dir }}"
+
 scylla_monitoring_deploy_path: /opt/scylla-monitoring
 scylla_monitoring_data_path: "{{ scylla_monitoring_deploy_path }}/data"
 scylla_monitoring_config_path:  "{{ scylla_monitoring_deploy_path }}/config"
@@ -49,6 +52,7 @@ use_nodetool_status_with_genconfig: false
 # is always installed.
 # If below value is different from 'default' a corresponding file is going to be installed as 'userdefined.rules.yml'
 # in scylla_monitoring_prom_rules_path folder.
+# The value should be a file path relative to 'scylla_monitoring_role_config_path'.
 prometheus_rules_file: default
 
 # Reject filter for alerts in the prometheus.rules.yml that comes as part of the Monitoring distribution.
