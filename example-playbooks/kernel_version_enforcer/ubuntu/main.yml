@@ -1,0 +1,118 @@
+---
+
+- name: Get current kernel image version
+  ansible.builtin.command: uname --kernel-release
+  register: uname_pre_output
+
+- name: Save kernel image version
+  ansible.builtin.set_fact:
+    detected_image_version="{{ uname_pre_output.stdout_lines | first }}"
+
+- name: Define if the kernel image should be installed
+  ansible.builtin.set_fact:
+    kernel_image_required="{{ image_version is version(detected_image_version, 'ne') or upgrade_latest_kernel }}"
+
+- name: Mark to unhold kernel-related packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop: "{{ kernel_related_packages }}"
+  become: true
+  when: kernel_image_required
+
+- name: Ensure kernel image '{{ image_package_prefix }}-{{ image_version }}' is installed
+  ansible.builtin.apt:
+    name: "{{ image_package_prefix }}-{{ image_version }}"
+    state: present
+  become: true
+  when:
+    - kernel_image_required
+    - not upgrade_latest_kernel
+
+- name: Upgrade kernel-related packages to the latest version available
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: true
+    autoclean: true
+    autoremove: true
+    force_apt_get: true
+  loop: "{{ kernel_related_packages }}"
+  become: true
+  when: upgrade_latest_kernel
+
+- name: Mark to hold kernel-related packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ kernel_related_packages }}"
+  become: true
+  when: pin_kernel_version
+
+- name: Upgrade all upgradable packages
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: true
+    autoclean: true
+    autoremove: true
+    force_apt_get: true
+  become: true
+  when: upgrade_all_packages
+
+- name: Get all vmlinuz files available
+  ansible.builtin.shell: ls /boot/vmlinuz-* | sed 's/\/boot\/vmlinuz-*//'
+  register: vmlinuz_versions
+
+- name: Define if reconfiguration is required due to the presence of serveral vmlinuz files
+  ansible.builtin.set_fact:
+    reconfiguration_required="{{ vmlinuz_versions.stdout_lines | length > 1 }}"
+
+- name: Mark to unhold kernel-related packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop: "{{ kernel_related_packages }}"
+  become: true
+  when: reconfiguration_required
+
+- name: Prepare GRUB modifications
+  ansible.builtin.include_tasks: grub.yml
+  when:
+    - reconfiguration_required
+    - not upgrade_latest_kernel
+
+- name: Stop, reboot and start each node (if required)
+  ansible.builtin.include_tasks: stop_reboot_start.yml
+  when: reconfiguration_required
+
+- name: Set final kernel image version if '{{ image_version }}' was installed
+  ansible.builtin.set_fact:
+    final_image_version="{{ image_version }}"
+  when: not upgrade_latest_kernel
+
+- name: Set final kernel image version if the latest one was installed
+  ansible.builtin.set_fact:
+    final_image_version="{{ target_image_version }}"
+  when:
+    - reconfiguration_required
+    - upgrade_latest_kernel
+
+- name: Enforce kernel version '{{ final_image_version }}' usage
+  ansible.builtin.include_tasks: kernel_enforce_cleanup.yml
+  when: reconfiguration_required
+
+- name: Mark to hold kernel-related packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ kernel_related_packages }}"
+  become: true
+  when:
+    - pin_kernel_version
+    - reconfiguration_required
+
+- name: Make a pause of {{ pause_time }} seconds
+  ansible.builtin.wait_for:
+    timeout: "{{ pause_time | int }}"
+  when: kernel_image_required
