@@ -11,7 +11,7 @@
         - firewalld.service
         - iptables_services.service
         - ufw.service
-      when: ansible_facts.services[item] is defined
+      when: ansible_facts.services[item] is defined and ansible_facts.services[item]['status'] != 'not-found'
     - name: Flush all iptables rules
       iptables:
         flush: yes
