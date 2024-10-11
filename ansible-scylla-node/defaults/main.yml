@@ -190,7 +190,6 @@ scylla_dependencies:
   - curl
   - wget
   - python3-yaml # this will fail on non centos systems
-  - nvme-cli
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
