@@ -1,0 +1,122 @@
+---
+- name: Populate service facts
+  ansible.builtin.service_facts:
+
+- name: Check if Scylla is installed
+  ansible.builtin.set_fact:
+    scylla_installation="{{ true if ansible_facts.services['scylla-server.service'] is defined else false }}"
+
+- name: Stop Scylla
+  block:
+    - name: Mask scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        masked: true
+      become: true
+
+    - name: Drain node
+      ansible.builtin.uri:
+        url: "http://{{ api_address }}:{{ api_port }}/storage_service/drain"
+        method: POST
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+      timeout: "{{ api_timeout }}"
+
+    - name: Check if the node if fully drained
+      ansible.builtin.uri:
+        url: "http://{{ api_address }}:{{ api_port }}/storage_service/operation_mode"
+        method: GET
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+      timeout: "{{ api_timeout }}"
+      register: node_drain_status
+      failed_when: "'DRAINED' not in node_drain_status.json"
+
+    - name: Stop scylla-manager-agent service (if exists)
+      ansible.builtin.systemd:
+        name: scylla-manager-agent
+        enabled: true
+        state: stopped
+      become: true
+      when: ansible_facts.services['scylla-manager-agent.service'] is defined
+
+    - name: Stop scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        state: stopped
+      become: true
+      when: "'DRAINED' in node_drain_status.json"
+  rescue:
+    - name: Send a SIGKILL to Scylla PID
+      ansible.builtin.shell: kill -9 $(pidof scylla)
+      register: scylla_kill_pid
+      retries: "{{ pid_kill_retries }}"
+      delay: "{{ pid_kill_delay }}"
+      until: scylla_kill_pid.rc == 2
+      failed_when: scylla_kill_pid.rc != 2
+      become: true
+  always:
+    - name: Unask scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        masked: false
+      become: true
+  when:
+    - scylla_installation
+    - kernel_image_required
+
+- name: Reboot and post-reboot checks
+  block:
+    - name: Reboot the node
+      ansible.builtin.reboot:
+        reboot_timeout: "{{ reboot_timeout }}"
+      become: true
+
+    - name: Get current kernel image version
+      ansible.builtin.shell: uname --kernel-release
+      register: uname_post_output
+
+    - name: Save kernel image version
+      ansible.builtin.set_fact:
+        target_image_version="{{ uname_post_output.stdout_lines | first }}"
+
+    - name: Fail if kernel image version '{{ image_version }}' is not currently in use
+      ansible.builtin.fail:
+        msg: "'{{ image_version }}' is not currently used"
+      when:
+        - target_image_version is version(image_version, 'ne')
+        - not upgrade_latest_kernel
+  when: kernel_image_required
+
+- name: Start Scylla
+  block:
+    - name: Get listen address
+      ansible.builtin.shell: grep '^listen_address:' /etc/scylla/scylla.yaml | awk '{ print $2 }'
+      register: listen_address
+
+    - name: Start scylla-server service
+      ansible.builtin.systemd:
+        name: scylla-server
+        state: started
+      retries: "{{ systemd_unit_retries }}"
+      delay: "{{ systemd_unit_delay }}"
+      become: true
+      when:
+      - ansible_facts.services['scylla-server.service'] is defined
+      - ansible_facts.services['scylla-server.service'].status == "disabled"
+
+    - name: Wait for CQL port on {{ listen_address.stdout }}
+      ansible.builtin.wait_for:
+        port: 9042
+        host: "{{ listen_address.stdout }}"
+        timeout: "{{ cql_timeout }}"
+
+    - name: Wait for the cluster to become healthy
+      ansible.builtin.shell: nodetool status | grep "{{ listen_address.stdout }}" | grep '^UN'
+      register: node_status
+      until: node_status.rc == 0
+      retries: "{{ api_retries }}"
+      delay: "{{ api_delay }}"
+  when:
+    - scylla_installation
+    - kernel_image_required
