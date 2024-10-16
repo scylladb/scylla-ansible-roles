@@ -93,13 +93,15 @@
     is_scylla_installed: "{{ is_oss_installed or is_enterprise_installed }}"
     edition_installed: "{{ 'oss' if is_oss_installed else 'enterprise' }}"
     package_installed: "{{ 'scylla' if is_oss_installed else 'scylla-enterprise' }}"
+    full_version: "{{ ansible_facts.packages[package_installed][0].version }}"
+    full_version_split: "{{ (full_version.split('-')[0]).split('.') }}"
   ansible.builtin.set_fact:
     scylla_detected: {
       edition: "{{ edition_installed }}",
       edition_friendly_name: "{{ 'Open Source' if is_oss_installed else 'Enterprise' }}",
       package_name: "{{ package_installed }}",
-      version: "{{ ansible_facts.packages[package_installed][0].version }}",
-      major_version: "{{ (ansible_facts.packages[package_installed][0].version).split('.')[0] }}.{{ (ansible_facts.packages[package_installed][0].version).split('.')[1] }}"
+      version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}.{{ full_version_split[2] }}",
+      major_version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}"
     }
   when: is_scylla_installed
 
@@ -129,13 +131,15 @@
   vars:
     is_oss_selected: "{{ true if scylla_edition == 'oss' else false }}"
     final_version: "{{ scylla_version_to_install }}"
+    final_version_split: "{{ (final_version.split('-')[0]).split('.') }}"
   ansible.builtin.set_fact:
     # If this fact should be updated later, it should be updated entirely due to its structure
     scylla_upgrade: {
       edition: "{{ scylla_edition }}",
       edition_friendly_name: "{{ 'Open Source' if is_oss_selected else 'Enterprise' }}",
-      version: "{{ final_version }}",
-      major_version: "{{ final_version.split('.')[0] }}.{{ final_version.split('.')[1] }}",
+      full_version: "{{ final_version }}",
+      version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}.{{ final_version_split[2] }}",
+      major_version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}",
       id: "{{ ansible_date_time.epoch }}",
       upgrade: true
     }
