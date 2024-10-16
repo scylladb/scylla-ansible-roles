@@ -125,11 +125,10 @@
 
 
 # Scylla upgrade information
-# ----- TODO: CHANGE THIS TASK TO ALLOW 'latest' FOR MINOR UPGRADES -----
 - name: Gather information about Scylla upgrade
   vars:
     is_oss_selected: "{{ true if scylla_edition == 'oss' else false }}"
-    final_version: "{{ scylla_version if scylla_version != 'latest' else scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_edition] |first }}"
+    final_version: "{{ scylla_version_to_install }}"
   ansible.builtin.set_fact:
     # If this fact should be updated later, it should be updated entirely due to its structure
     scylla_upgrade: {
@@ -149,7 +148,6 @@
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} is incomplete and can't be used for a minor upgrade. Version format is: '{{ version_format }}'."
   when:
-    - scylla_version != 'latest'
     - scylla_upgrade['version'] == scylla_upgrade['major_version']
     - not upgrade_major
 
@@ -306,6 +304,3 @@
     - name: Verify if the upgrade was done sucessfully
       include_tasks: node_verification.yml
   
-
-  # ----- TODO: If the upgrade version is the latest one and if 'latest' was used to specify the version
-  # replace upgrade version with latest
