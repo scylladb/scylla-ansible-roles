@@ -8,3 +8,8 @@
   notify: scylla-manager-agent restart
   become: true
 
+- name: Wait for CQL port
+  wait_for:
+    port: 9042
+    host: "{{ scylla_listen_address }}"
+
