@@ -301,6 +301,6 @@
       ansible.builtin.wait_for:
         timeout: "{{ upgrade_break_before_verification |int }}"
 
-    - name: Verify if the upgrade was done sucessfully
+    - name: Verify if the upgrade was done successfully
       include_tasks: node_verification.yml
   
