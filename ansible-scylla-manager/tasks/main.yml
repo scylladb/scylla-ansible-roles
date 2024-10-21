@@ -1,24 +1,4 @@
 ---
-- name: deploy local Scylla on the Manager node
-  import_role:
-    name: "{{ role_path }}/../ansible-scylla-node"
-  vars:
-  # TODO how to use scylla_manager_db_vars to be passed on as role params?
-    install_only: True
-    scylla_manager_enabled: false
-    scylla_version: 'latest'
-    scylla_edition: "{{ scylla_manager_db_vars.scylla_edition|default('oss') }}"
-    elrepo_kernel: false
-    scylla_repo_keyserver: "{{ scylla_manager_db_vars.scylla_repo_keyserver|default('') }}"
-    scylla_repo_keys: "{{ scylla_manager_db_vars.scylla_repo_keys|default([]) }}"
-    scylla_dependencies: "{{ scylla_manager_db_vars.scylla_dependencies|default([]) }}"
-    scylla_ssl:
-      internode:
-        enabled: false
-      client:
-        enabled: false
-
-
 - name: install Scylla Manager
   include_tasks: "{{ ansible_os_family }}.yml"
 
