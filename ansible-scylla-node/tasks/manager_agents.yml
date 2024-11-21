@@ -2,7 +2,7 @@
 
 - name: check for pre-existing agent-token file
   stat:
-    path: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
+    path: "{{ manager_local_files_path }}/scyllamgr_auth_token.txt"
   register: token_file_stat
   run_once: true
   delegate_to: localhost
@@ -20,14 +20,14 @@
     copy:
       content: |
         {{ scyllamgr_auth_token.stdout }}
-      dest: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
+      dest: "{{ manager_local_files_path }}/scyllamgr_auth_token.txt"
     delegate_to: localhost
     run_once: true
   when: token_file_stat.stat.islnk is not defined
 
 - name: read the key from auth token file
   slurp:
-    src: "{{ cluster_local_files_path }}/scyllamgr_auth_token.txt"
+    src: "{{ manager_local_files_path }}/scyllamgr_auth_token.txt"
   register: b64auth_token
   delegate_to: localhost
   run_once: true

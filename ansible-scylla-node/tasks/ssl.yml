@@ -1,6 +1,6 @@
 ---
 - set_fact:
-    _localhost_cert_path: "{{ scylla_ssl.localhost_cert_path | default(inventory_dir) }}"
+    _localhost_cert_path: "{{ scylla_ssl.localhost_cert_path | default(playbook_dir) }}"
 
 - name: For every node, check if crt file exists
   stat:

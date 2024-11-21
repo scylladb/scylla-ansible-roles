@@ -91,7 +91,7 @@
 - name: Create a map from dc to its list of nodes
   set_fact:
     dc_to_node_list: "{{ dc_to_node_list | default({}) | combine( {hostvars[item]['dc']: (dc_to_node_list | default({}))[hostvars[item]['dc']] | default([]) + [item]} ) }}"
-  loop: "{{ groups['scylla'] }}"
+  loop: "{{ play_hosts }}"
   run_once: true
   when: scylla_io_probe_dc_aware|bool
 
@@ -349,13 +349,13 @@
     - name: Start seeders serially
       run_once: true
       include_tasks: start_one_node.yml
-      loop: "{{ groups['scylla'] }}"
+      loop: "{{ play_hosts }}"
       when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
       include_tasks: start_one_node.yml
-      loop: "{{ groups['scylla'] }}"
+      loop: "{{ play_hosts }}"
       when:
         - item not in scylla_seeds
         - hostvars[item]['broadcast_address'] not in scylla_seeds
@@ -366,11 +366,17 @@
         host: "{{ scylla_api_address }}"
         timeout: 300
 
+    - name: Create a list with the broadcast addresses of the nodes in play_hosts
+      set_fact:
+        broadcast_address_list: "{{ broadcast_address_list | default([]) + [hostvars[item]['broadcast_address']] }}"
+      loop: "{{ play_hosts }}"
+      run_once: true
+
     - name: wait for the cluster to become healthy
       shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+        nodetool status|grep -E '^UN|^UJ|^DN'| grep -Ew "{{ broadcast_address_list | join('|') }}" | wc -l
       register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
+      until: node_count.stdout|int == play_hosts|length
       retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
       when: full_inventory|bool
@@ -411,6 +417,18 @@
           {% if (_scylla_yaml_map.audit is defined and _scylla_yaml_map.audit == 'table') %}True{% else %}False{% endif %}
   run_once: true
 
+- name: Check if all nodes are up
+  block:
+    - name: Check if there are joining or down nodes
+      shell: |
+        nodetool status|grep -E '^UJ|^DN' | wc -l
+      register: node_count
+
+    - name: Set all_nodes_up as a fact
+      set_fact:
+        all_nodes_up: "{{ node_count.stdout|int == 0 }}"
+  run_once: true
+
 - name: Adjust replication for system_auth keyspace
   include_tasks: adjust_keyspace_replication.yml
   vars:
@@ -418,7 +436,7 @@
     _keyspace_replication_strategy: "{{ system_auth_replication_strategy }}"
     _keyspace_rf: "{{ system_auth_rf }}"
   when:
-    - start_scylla_service|bool
+    - all_nodes_up|bool
     - adjust_system_auth_replication is defined and adjust_system_auth_replication|bool
     - _authentication_enabled is defined and _authentication_enabled|bool
     - system_auth_rf is defined and system_auth_replication_strategy is defined
@@ -430,7 +448,7 @@
     _keyspace_replication_strategy: "{{ audit_replication_strategy }}"
     _keyspace_rf: "{{ audit_rf }}"
   when:
-    - start_scylla_service|bool
+    - all_nodes_up|bool
     - adjust_audit_replication is defined and adjust_audit_replication|bool
     - _audit_enabled is defined and _audit_enabled|bool
     - audit_rf is defined and audit_replication_strategy is defined
@@ -442,7 +460,7 @@
     _keyspace_replication_strategy: "{{ system_distributed_replication_strategy }}"
     _keyspace_rf: "{{ system_distributed_rf }}"
   when:
-    - start_scylla_service|bool
+    - all_nodes_up|bool
     - adjust_system_distributed_replication is defined and adjust_system_distributed_replication|bool
     - system_distributed_rf is defined and system_distributed_replication_strategy is defined
 
@@ -453,7 +471,7 @@
     _keyspace_replication_strategy: "{{ system_traces_replication_strategy }}"
     _keyspace_rf: "{{ system_traces_rf }}"
   when:
-    - start_scylla_service|bool
+    - all_nodes_up|bool
     - adjust_system_traces_replication is defined and adjust_system_traces_replication|bool
     - system_traces_rf is defined and system_traces_replication_strategy is defined
 
