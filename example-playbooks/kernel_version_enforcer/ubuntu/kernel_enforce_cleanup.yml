@@ -1,0 +1,75 @@
+---
+
+- name: Purge all kernel images newer than '{{ final_image_version }}'
+  ansible.builtin.apt:
+    name: "{{ image_package_prefix }}-{{ item }}"
+    state: absent
+    purge: true
+  become: true
+  when: item is version(final_image_version, '>')
+  loop: "{{ vmlinuz_versions.stdout_lines }}"
+
+- name: Erase all kernel images related files newer than '{{ final_image_version }}'
+  ansible.builtin.shell: rm -f /boot/*-{{ item }}
+  become: true
+  when: item is version(final_image_version, '>')
+  loop: "{{ vmlinuz_versions.stdout_lines }}"
+
+- name: Purge all kernel images older than '{{ final_image_version }}'
+  ansible.builtin.apt:
+    name: "{{ image_package_prefix }}-{{ item }}"
+    state: absent
+    purge: true
+  become: true
+  when:
+    - purge_older_images
+    - item is version(final_image_version, '<')
+  loop: "{{ vmlinuz_versions.stdout_lines }}"
+
+- name: Erase all kernel images related files older than '{{ final_image_version }}'
+  ansible.builtin.shell: rm -f /boot/*-{{ item }}
+  become: true
+  when:
+    - purge_older_images
+    - item is version(final_image_version, '<')
+  loop: "{{ vmlinuz_versions.stdout_lines }}"
+
+- name: Remove useless packages from the cache
+  ansible.builtin.apt:
+    autoclean: true
+  become: true
+
+- name: Reconfigure '{{ image_package_prefix }}-{{ final_image_version }}' package
+  ansible.builtin.command: dpkg-reconfigure {{ image_package_prefix }}-{{ final_image_version }} -f noninteractive -p critical
+  become: true
+
+- name: Get /boot/vmlinuz metadata
+  ansible.builtin.stat:
+    path: /boot/vmlinuz
+  register: vmlinuz
+
+- name: Fail if /boot/vmlinuz is not a symbolic link of /boot/vmlinuz-{{ final_image_version }}
+  ansible.builtin.fail:
+    msg: "/boot/vmlinuz is not a symbolic link of /boot/vmlinuz-{{ final_image_version }}"
+  when:
+    - not vmlinuz.stat.islnk
+    - not vmlinuz.stat.lnk_source is /boot/vmlinuz-{{ final_image_version }}
+
+- name: Get /boot/initrd.img metadata
+  ansible.builtin.stat:
+    path: /boot/initrd.img
+  register: initrd
+
+- name: Fail if /boot/initrd.img is not a symbolic link of /boot/initrd.img-{{ final_image_version }}
+  ansible.builtin.fail:
+    msg: "/boot/initrd.img is not a symbolic link of /boot/initrd.img-{{ final_image_version }}"
+  when:
+    - not initrd.stat.islnk
+    - not initrd.stat.lnk_source is /boot/initrd.img-{{ final_image_version }}
+
+- name: Clean all non-required packages
+  ansible.builtin.apt:
+    autoclean: true
+    autoremove: true
+    force_apt_get: true
+  become: true
