@@ -14,7 +14,7 @@
 #
 
 {% if scylla_snitch == 'GossipingPropertyFileSnitch' %}
-dc={{ dc }}
+dc={{ dc + dc_suffix | default('') }}
 rack={{ rack }}
 prefer_local={{ gpfs_prefer_local|default('false')|lower }}
 {% endif %}
