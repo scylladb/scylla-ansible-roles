@@ -8,7 +8,6 @@
   register: _node_crt
   loop: "{{ groups['scylla'] }}"
   delegate_to: localhost
-  when: _node_crt is not defined or _node_crt.stat.exists == True
   run_once: true
 
 - name: For every node, check if key file exists
@@ -17,7 +16,6 @@
   register: _node_key
   loop: "{{ groups['scylla'] }}"
   delegate_to: localhost
-  when: _node_key is not defined or _node_key.stat.exists == True
   run_once: true
 
 - name: Set existence of crt and key as a single fact
