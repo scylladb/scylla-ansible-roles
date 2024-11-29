@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2021 ScyllaDB
@@ -374,9 +374,9 @@ class ActionModule(ActionBase):
     def v2_on_result(self, host, task, result):
         handler = self._shared_loader_obj.callback_loader.get('default')
         handler._display = self._display
-        handler.display_ok_hosts = True
-        handler.display_failed_stderr = True
-        handler.display_skipped_hosts = True
+        handler.set_option('display_ok_hosts', True)
+        handler.set_option('display_failed_stderr', True)
+        handler.set_option('display_skipped_hosts', True)
 
         payload = TaskResult(host=host, task=task, return_data=result, task_fields=self._task.dump_attrs())
 
