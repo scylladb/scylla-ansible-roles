@@ -8,7 +8,6 @@
   ignore_errors: true
   delegate_to: "{{ item }}"
   loop: "{{ groups['scylla'] }}"
-  when: wait_for_cql_port_output is not defined or wait_for_cql_port_output.failed == True
 
 - name: Set the already bootstrapped node as a fact, if any
   set_fact:
