@@ -25,6 +25,12 @@
   when: _crt_and_key_exist is not defined or _crt_and_key_exist == True
   run_once: true
 
+- name: Check if at least one crt was provided
+  set_fact:
+    _some_crt_and_key_exist: "{{ item.stat.exists }}"
+  loop: "{{ _node_crt.results + _node_key.results }}"
+  when: _some_crt_and_key_exist is not defined or _some_crt_and_key_exist == False
+
 - name: Check if CA exists
   block:
     - name: Check if CA crt file exists
@@ -41,8 +47,9 @@
   run_once: true
 
 - fail:
-    msg: "If you want to use your own node certificates you also have to provide a CA"
-  when: _crt_and_key_exist and not _ca_crt_and_key_exist
+    msg: "You've provided crts only for a subset of your nodes. Either provide a CA that should be used for generating equivalent certificates for the others or delete the existing crts in order for the role to generate a new self-signed CA and certs for all the nodes"
+  run_once: true
+  when: not _crt_and_key_exist and _some_crt_and_key_exist and not _ca_crt_and_key_exist
 
 - name: If crt and keys were not provided for all nodes and no CA was provided, generate a self-signed CA
   block:
