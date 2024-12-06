@@ -277,6 +277,7 @@ scylla_yaml_params:
 # SSL configuration for Scylla nodes:
 # localhost_cert_path and localhost_cert_key_path are the paths where the certificates and keys will be stored in the localhost before they're coppied to the nodes.
 # cert_path is the path where the certificates will be placed in the scylla nodes.
+# localhost_truststore_path is the path to the truststore that should be coppied to the nodes. You can remove this variable if you don't want to provide a truststore.
 # If no certificates are present, this playbook will generate a selfsigned CA and node certificates locally and push them out to all the nodes.
 # WARNING: if certs are no given by the user they will be automatically generated if scylla_ssl is enabled and certificates on the nodes can get overwritten
 # To use existing certificates:
@@ -287,6 +288,7 @@ scylla_yaml_params:
 scylla_ssl:
   localhost_cert_path: "{{ inventory_dir }}/ssl/scylla.crt"
   localhost_cert_key_path: "{{ inventory_dir }}/scylla.pem"
+  localhost_truststore_path: "{{ inventory_dir }}/ssl/scylla.crt"
   localhost_ca_cert_path: "{{ inventory_dir }}/ssl/ca/"
   cert_path: /etc/scylla
   internode:

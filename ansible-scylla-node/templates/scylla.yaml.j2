@@ -51,7 +51,9 @@ client_encryption_options:
     enabled: true
     certificate: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_path | basename }}
     keyfile: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_key_path | basename }}
-    truststore: {{ inventory_hostname }}/{{ scylla_cluster_name }}-ca.crt
+{% if _truststore_exists %}
+    truststore: {{ scylla_ssl.cert_path }}/truststore.crt
+{% endif %}
 {% endif %}
 
 {% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
@@ -59,7 +61,9 @@ server_encryption_options:
     internode_encryption: {{ scylla_ssl.internode.internode_encryption }}
     certificate: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_path | basename }}
     keyfile: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_key_path | basename }}
-    truststore: {{ inventory_hostname }}/{{ scylla_cluster_name }}-ca.crt
+{% if _truststore_exists %}
+    truststore: {{ scylla_ssl.cert_path }}/truststore.crt
+{% endif %}
 {% endif %}
 {% if handle_system_keys|bool %}
 system_key_directory: {{ system_key_directory }}

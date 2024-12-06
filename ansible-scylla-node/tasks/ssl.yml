@@ -83,6 +83,9 @@
         privatekey_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
         csr_content: "{{ ca_csr.csr }}"
         provider: selfsigned
+
+    - set_fact:
+        _ca_crt_and_key_exist: True
   when: _crt_and_key_exist == False and _ca_crt_and_key_exist == False
   delegate_to: localhost
   run_once: true
@@ -123,6 +126,32 @@
       delegate_to: localhost
   when: _crt_and_key_exist == False
 
+- name: Copy truststore to the nodes
+  block:
+    - name: Copy truststore
+      copy:
+        src: "{{ scylla_ssl.localhost_truststore_path }}"
+        dest: "{{ scylla_ssl.cert_path }}/truststore.crt"
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      when: scylla_ssl.localhost_truststore_path is defined
+
+    - name: Copy CA
+      copy:
+        src: "{{ inventory_dir }}/ssl/ca/{{scylla_cluster_name }}-ca.crt"
+        dest: "{{ scylla_ssl.cert_path }}/truststore.crt"
+        owner: root
+        group: root
+        mode: '0644'
+      become: true
+      when: scylla_ssl.localhost_truststore_path is not defined and _ca_crt_and_key_exist
+
+    - name: Set _truststore_exists
+      set_fact:
+        _truststore_exists: "{{ scylla_ssl.localhost_truststore_path is defined or _ca_crt_and_key_exist }}"
+
 - name: Copy the certificates into their proper locations
   copy:
     src: "{{ item }}"
@@ -132,7 +161,6 @@
     mode: '0644'
   become: true
   loop:
-    - "{{ _localhost_cert_path }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
     - "{{ _localhost_cert_path }}"
     - "{{ _localhost_cert_key_path }}"
 
