@@ -224,6 +224,13 @@
   when: (scylla_package_prefix + '-node-exporter') in ansible_facts.packages
   become: true
 
+- name: enable ssl options
+  include_tasks: ssl.yml
+  when:
+    - scylla_ssl is defined
+    - (scylla_ssl.internode.enabled|bool) or
+      (scylla_ssl.client.enabled|bool)
+
 - name: configure scylla.yaml
   template:
     src: templates/scylla.yaml.j2
@@ -299,13 +306,6 @@
     create: yes
   become: true
   loop: "{{ lookup('dict', scylla_yaml_params) }}"
-
-- name: enable ssl options
-  include_tasks: ssl.yml
-  when:
-    - scylla_ssl is defined
-    - (scylla_ssl.internode.enabled|bool) or
-      (scylla_ssl.client.enabled|bool)
 
 - name: Copy system keys
   include_tasks: handle_encryption_at_rest_keys.yml
