@@ -50,9 +50,12 @@
 
 - name: Detect NVME disks
   block:
-    - name: Get list of NVMEs
+    - name: Get list of NVMEs with no mount points
       shell: |
-        nvme list | awk '{print $1}' | tail -n +3
+        for nvme_disk in $(nvme list | awk '{print $1}' | tail -n +3)
+        do
+          { echo -n "$nvme_disk "; lsblk -n "$nvme_disk" -o MOUNTPOINT | grep / | wc -l; } | awk '{if ($2=="0") print $1}'
+        done
       register: _detected_nvmes
 
     - set_fact:
@@ -79,6 +82,10 @@
         set_fact:
           _disable_online_discard: "--online-discard {{ scylla_raid_online_discard }}"
         when: _scylla_raid_setup_help.stdout is search("--online-discard")
+
+      - name: "ansible-scylla-node: common.yml: Setting raid setup with disks"
+        debug:
+          msg: "Using the following disk devices: {{ scylla_raid_setup | join(',') }}"
 
       - name: run raid setup if there is no scylla mount yet
         shell: "scylla_raid_setup --disks {{ scylla_raid_setup | join(',') }} --update-fstab {{ _disable_online_discard }}"
