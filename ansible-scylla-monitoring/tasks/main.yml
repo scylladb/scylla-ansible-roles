@@ -10,8 +10,3 @@
 
 - name: install dockerized monitoring
   include_tasks: docker.yml
-  when: monitoring_install_type == 'docker'
-
-- name: install non-dockerized monitoring
-  include_tasks: non-docker.yml
-  when: monitoring_install_type != 'docker'
