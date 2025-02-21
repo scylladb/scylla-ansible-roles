@@ -1,9 +1,9 @@
 ---
-- name: os-specific tasks
+- name: "main.yml: os-specific tasks"
   include_tasks: "{{ ansible_os_family }}.yml"
 
-- name: common tasks
+- name: "main.yml: common tasks"
   include_tasks: common.yml
 
-- name: install dockerized monitoring
+- name: "main.yml: install dockerized monitoring"
   include_tasks: docker.yml
