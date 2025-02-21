@@ -1,8 +1,8 @@
 ---
-- name: Populate service facts
+- name: "grafana_docker.yml: Populate service facts"
   service_facts:
 
-- name: Add custom dockerd config
+- name: "grafana_docker.yml: Add custom dockerd config"
   copy:
     content: "{{ docker_daemon_custom_config }}"
     dest: "/etc/docker/daemon.json"
@@ -39,7 +39,7 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
-- name: update docker.sock permissions to work around the restart issue
+- name: "grafana_docker.yml: update docker.sock permissions to work around the restart issue"
   file:
     path: /var/run/docker.sock
     owner: root
