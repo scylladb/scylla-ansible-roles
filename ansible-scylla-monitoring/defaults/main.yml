@@ -97,4 +97,6 @@ prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.3
 #####################################
 # User configuration
 ####################################
+grafana_admin_user: "admin"
 # grafana_admin_password: "admin"
+# grafana_viewer_password (in case a viewer user, with username: 'viewer', should be created)
