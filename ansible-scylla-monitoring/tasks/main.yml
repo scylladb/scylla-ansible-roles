@@ -1,17 +1,12 @@
 ---
-# - name: os-specific vars
-#   include_vars: "{{ ansible_os_family }}.yml"
-
-- name: os-specific tasks
+- name: "main.yml: os-specific tasks"
   include_tasks: "{{ ansible_os_family }}.yml"
 
-- name: common tasks
+- name: "main.yml: common tasks"
   include_tasks: common.yml
 
-- name: install dockerized monitoring
+- name: "main.yml: install dockerized monitoring"
   include_tasks: docker.yml
-  when: monitoring_install_type == 'docker'
 
-- name: install non-dockerized monitoring
-  include_tasks: non-docker.yml
-  when: monitoring_install_type != 'docker'
+- name: "main.yml: setup Grafana users"
+  include_tasks: grafana_users.yml
