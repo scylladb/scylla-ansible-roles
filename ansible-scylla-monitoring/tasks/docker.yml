@@ -9,7 +9,29 @@
   become: true
   when: docker_daemon_custom_config is defined
 
-- name: restart the docker daemon again
+- name: "grafana_docker.yml: Set start command"
+  set_fact:
+    start_command: |
+      ./start-all.sh \
+        -d {{ scylla_monitoring_data_path }} \
+        -f {{ scylla_monitoring_alertdata_path }} \
+        -v {{ _scylla_monitoring_dashboards_versions|join(',') }} \
+        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
+        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
+        -r {{ scylla_monitoring_config_path }}/rule_config.yml  \
+        -R {{ scylla_monitoring_prom_rules_path }} \
+        -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
+        -c GF_AUTH_BASIC_ENABLED=True \
+        {{ '-a ' + grafana_admin_password if grafana_admin_password is defined }} \
+        {{ _scylla_monitoring_params }}
+
+- set_fact:
+    monitoring_cql_username: "{{ item.split('=')[0] }}"
+    monitoring_cql_password: "{{ item.split('=')[1] }}"
+  when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
+  loop: "{{ groups['cql_credentials'] }}"
+
+- name: "grafana_docker.yml: restart the docker daemon again"
   service:
     name: docker
     state: restarted
@@ -26,120 +48,17 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
-- set_fact:
-    monitoring_cql_username: "{{ item.split('=')[0] }}"
-    monitoring_cql_password: "{{ item.split('=')[1] }}"
-  when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
-  loop: "{{ groups['cql_credentials'] }}"
+- name: "grafana_docker.yml: Stop monitoring"
+  shell: |
+    cd {{ base_dir }}
+    ./kill-all.sh
+    sudo ./kill-all.sh
 
-- name: Start monitoring
-  block:
-  - name: ensure monitoring is stopped
-    shell: |
-      cd {{ base_dir }}
-      ./kill-all.sh
-      sudo ./kill-all.sh
-
-  - name: start scylla-monitoring
-    shell: |
-      cd {{ base_dir }}
-      ./start-all.sh \
-        -d {{ scylla_monitoring_data_path }} \
-        -f {{ scylla_monitoring_alertdata_path }} \
-        -v {{ _scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
-        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
-        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_prom_rules_path }}/ \
-        -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-        {{ _scylla_monitoring_params }}
-    ignore_errors: true
-
-  # Workaround for potential inner networking issue under docker
-  - name: Stop monitoring again
-    shell: |
-      cd {{ base_dir }}
-      ./kill-all.sh
-      sudo ./kill-all.sh
-
-  - name: Restart the docker service
-    service:
-      name: docker
-      state: restarted
-    become: true
-
-  - name: start scylla-monitoring
-    shell: |
-      cd {{ base_dir }}
-      ./start-all.sh \
-        -d {{ scylla_monitoring_data_path }} \
-        -f {{ scylla_monitoring_alertdata_path }} \
-        -v {{ _scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
-        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
-        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_prom_rules_path }}/ \
-        -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-        {{ _scylla_monitoring_params }}
+- name: "grafana_docker.yml: start scylla-monitoring"
+  shell: "{{ start_command }}"
+  args:
+    chdir: "{{ base_dir }}"
+  become: "{{ 'true' if run_docker_with_sudo is defined and run_docker_with_sudo|bool == True else 'false' }}"
   environment:
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
-  when:
-    - run_docker_with_sudo is defined and run_docker_with_sudo|bool == False or
-      run_docker_with_sudo is not defined
-
-- name: Start monitoring
-  block:
-  - name: ensure monitoring is stopped
-    shell: |
-      cd {{ base_dir }}
-      ./kill-all.sh
-    become: true
-
-  - name: start scylla-monitoring
-    shell: |
-      cd {{ base_dir }}
-      ./start-all.sh \
-        -d {{ scylla_monitoring_data_path }} \
-        -f {{ scylla_monitoring_alertdata_path }} \
-        -v {{ _scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
-        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
-        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_prom_rules_path }}/ \
-        -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-        {{ _scylla_monitoring_params }}
-    ignore_errors: true
-    become: true
-
-  # Workaround for potential inner networking issue under docker
-  - name: Stop monitoring again
-    shell: |
-      cd {{ base_dir }}
-      ./kill-all.sh
-    become: true
-
-  - name: Restart the docker service
-    service:
-      name: docker
-      state: restarted
-    become: true
-
-  - name: start scylla-monitoring
-    shell: |
-      cd {{ base_dir }}
-      ./start-all.sh \
-        -d {{ scylla_monitoring_data_path }} \
-        -f {{ scylla_monitoring_alertdata_path }} \
-        -v {{ _scylla_monitoring_dashboards_versions|join(',') }} \
-        -s {{ scylla_monitoring_config_path }}/scylla_servers.yml \
-        -N {{ scylla_monitoring_config_path }}/scylla_manager_servers.yml \
-        -r {{ scylla_monitoring_config_path }}/rule_config.yml \
-        -R {{ scylla_monitoring_prom_rules_path }}/ \
-        -b --storage.tsdb.retention.time={{ scylla_monitoring_retention }} \
-        {{ _scylla_monitoring_params }}
-    become: true
-  environment:
-    SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
-    SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
-  when: run_docker_with_sudo is defined and run_docker_with_sudo|bool == True
