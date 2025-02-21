@@ -1,0 +1,52 @@
+---
+#------------------------------------------------------------------------------------------------------------
+# Sets a new non-default admin, drops the default admin user, and creates a viewer user.
+#
+# Note: The default admin (='admin') and password is configured at start-up of the monitoring.
+#------------------------------------------------------------------------------------------------------------
+- name: "grafana_users.yml: Create new admin when non-default username is specified"
+  when: grafana_admin_user != "admin"
+  block:
+  - name: "grafana_users.yml: Create new admin"
+    community.grafana.grafana_user:
+      url: "http://localhost:3000"
+      url_username: "admin"
+      url_password: "{{ grafana_admin_password }}"
+      name: "{{ grafana_admin_user }}"
+      email: "{{ grafana_admin_user }}@localhost"
+      login: "{{ grafana_admin_user }}"
+      password: "{{ grafana_admin_password }}"
+      is_admin: true
+      state: present
+
+  - name: "grafana_users.yml: Drop default admin"
+    community.grafana.grafana_user:
+      url: "http://localhost:3000"
+      url_username: "{{ grafana_admin_user }}"
+      url_password: "{{ grafana_admin_password }}"
+      login: "admin"
+      state: absent
+
+# Viewer user has to be dropped and re-created since the grafana module does not allow password update.
+- name: "grafana_users.yml: Create new viewer user"
+  when: grafana_viewer_password is defined
+  block:
+  - name: "grafana_users.yml: Drop viewer user"
+    community.grafana.grafana_user:
+      url: "http://localhost:3000"
+      url_username: "{{ grafana_admin_user }}"
+      url_password: "{{ grafana_admin_password }}"
+      login: "viewer"
+      state: absent
+
+  - name: "grafana_users.yml: Create viewer user"
+    community.grafana.grafana_user:
+      url: "http://localhost:3000"
+      url_username: "{{ grafana_admin_user }}"
+      url_password: "{{ grafana_admin_password }}"
+      name: "viewer"
+      email: "viewer@localhost"
+      login: "viewer"
+      password: "{{ grafana_viewer_password }}"
+      is_admin: false
+      state: present

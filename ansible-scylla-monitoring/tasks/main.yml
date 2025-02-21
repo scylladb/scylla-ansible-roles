@@ -7,3 +7,6 @@
 
 - name: "main.yml: install dockerized monitoring"
   include_tasks: docker.yml
+
+- name: "main.yml: setup Grafana users"
+  include_tasks: grafana_users.yml
