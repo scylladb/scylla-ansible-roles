@@ -195,8 +195,10 @@ class ActionModule(ActionBase):
             ))
 
             if is_failed(result):
-                result['warning'] = 'The job has failed and was not cleaned up properly. Please, delete job alias ' \
-                                    'manually to restart.'
+                if is_finished(result) or is_killed(result):
+                    result['warning'] = ("The job has failed. Use a 'cleanup: True' (default) option in order to "
+                                         "re-run it.")
+
         elif poll:
             raise AnsibleActionFail("poll is not supported yet")
 
