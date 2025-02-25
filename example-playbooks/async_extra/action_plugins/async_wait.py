@@ -263,18 +263,17 @@ class ActionModule(ActionBase):
         return result
 
 
-def is_started(x):
-    return 'started' in x and x['started']
+def is_started(result):
+    return result.get('started', 0)
+
+def is_finished(result):
+    return result.get('finished', 0)
+
+def is_failed(result):
+    return result.get('failed', False)
+
+def is_killed(result):
+    return result.get('killed', False)
 
 
-def is_finished(x):
-    return 'finished' in x and x['finished']
-
-
-def is_failed(x):
-    return 'failed' in x and x['failed']
-
-
-def is_killed(x):
-    return 'killed' in x and x['killed']
 
