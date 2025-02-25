@@ -58,6 +58,7 @@ notes:
 - By default cleanups the job alias after it self if successful
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
+- Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
 '''
 
 
@@ -108,7 +109,7 @@ class ActionModule(ActionBase):
 
         def wait_until(x):
             if not is_started(x):
-                raise AnsibleActionFail("job did not start")
+                raise AnsibleActionFail(f"job execution failed: {x}")
             return is_finished(x) or is_failed(x) or is_killed(x)
 
         wait_action = self._shared_loader_obj.action_loader.get('async_status_id',
