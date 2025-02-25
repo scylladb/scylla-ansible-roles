@@ -5,7 +5,7 @@
     - name: Long running task
       async_task:
         argv:
-          - /usr/sbin/sleep
+          - sleep
           - 10
         alias: blah
         async: 1000
