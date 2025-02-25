@@ -55,7 +55,7 @@ DOCUMENTATION = r'''
 plugin: async_wait 
 short_description: Awaits for a job to finish
 notes:
-- By default cleanups the job alias after it self if successful
+- By default cleanups the job alias after itself.
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
 - Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
@@ -123,8 +123,8 @@ class ActionModule(ActionBase):
                                  retries=retries, delay=delay,
                                  until=lambda x: wait_until(x)))
 
-        # cleanup
-        if not is_failed(result) and cleanup:
+        # cleanup if tasks succeeded or if it failed and 'cleanup' was requested
+        if (is_finished(result) and not is_failed(result)) or ((is_finished(result) or is_killed(result)) and cleanup):
             cleanup_task = self._task.copy()
             cleanup_task.retries = 0
             cleanup_task.delay = 0
