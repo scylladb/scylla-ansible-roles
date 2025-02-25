@@ -61,6 +61,7 @@ seealso:
   description: Detailed information on how to use asynchronous actions and polling.
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
+- Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
 '''
 
 EXAMPLES = r'''
@@ -184,21 +185,7 @@ def main():
     module.debug("current state %s" % data)
     t.update_state(data)
 
-    if request.mode == 'cleanup':
-        if request.alias:
-            os.unlink(request.alias_path)
-        elif request.jid:
-            os.unlink(request.log_path)
-        module.exit_json(erased=request.log_path, **response.data())
-
-    if request.mode == 'full_cleanup':
-        os.unlink(request.log_path)
-        module.exit_json(erased=request.log_path, **response.data())
-
-    if response.killed:
-        module.exit_json(**response.data())
-
-    if not response.finished:
+    if not response.finished and not response.killed:
         pid = t.get_jid_pid(request.jid)
         if not t.is_pid_alive(pid):
             if not find_pid(request.jid):
@@ -211,6 +198,19 @@ def main():
                                          " probably async_wrapper.py wrapper unexpectedly died." +
                                          " check how " + os.path.join(request.async_dir, request.jid) + " is doing." +
                                          " if it is failed, delete the soft link (alias) to it.", **response.data())
+    else:
+        if request.mode == 'cleanup':
+            if request.alias:
+                os.unlink(request.alias_path)
+            elif request.jid:
+                os.unlink(request.log_path)
+
+        if request.mode == 'full_cleanup':
+            if request.alias:
+                os.unlink(request.alias_path)
+            os.unlink(request.log_path)
+
+        module.exit_json(erased=request.log_path, **response.data())
 
     module.exit_json(**response.data())
 
