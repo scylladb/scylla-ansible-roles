@@ -2,11 +2,15 @@
 ---
 - hosts: localhost
   tasks:
-    - name: Check parent poll timeout
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Long running task
       async_task:
         shell: |
           echo Hello &&
-          sleep 3600
+          sleep 360
         alias: blah
         async: 1000
-        poll: 5
+        retries: 72
+        delay: 5

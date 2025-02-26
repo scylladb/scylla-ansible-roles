@@ -2,12 +2,18 @@
 ---
 - hosts: localhost
   tasks:
-    - name: Failed async job
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Async recoverable job Blah
       async_task:
         shell: |
           echo Hello &&
           sleep 10
         alias: blah
         async: 1000
-        retries: 1
-        delay: 1
+        retries: 100
+        delay: 5
+      register: async_task_obj
+    - debug:
+        msg: "{{async_task_obj}}"
