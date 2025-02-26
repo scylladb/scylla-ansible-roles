@@ -6,8 +6,8 @@
       async_task:
         shell: |
           echo Hello &&
-          sleep 3600
+          sleep 360
         alias: blah
         async: 1000
-        retries: 720
+        retries: 72
         delay: 5
