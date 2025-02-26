@@ -2,6 +2,10 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
+
     - name: Failed async job
       async_task:
         shell: |
@@ -11,3 +15,10 @@
         async: 1
         retries: 100
         delay: 5
+      register: failed_status
+      ignore_errors: true
+
+    - name: Verify that task failed
+      fail:
+        msg: "Task should have failed (Timeout exceeded)!"
+      when: not failed_status.failed or failed_status.msg != "Timeout exceeded"

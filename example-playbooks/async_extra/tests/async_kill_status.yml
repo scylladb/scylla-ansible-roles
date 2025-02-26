@@ -15,3 +15,10 @@
     - name: Status - expect killed eq true
       async_status_id:
         alias: blah
+      ignore_errors: true
+      register: job_status
+    - name: Verify that 'killed' == true
+      fail:
+        msg: "'killed' is not true"
+      when: not job_status.killed
+
