@@ -2,6 +2,9 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
     - name: Async recoverable job Blah
       async_task:
         shell: |

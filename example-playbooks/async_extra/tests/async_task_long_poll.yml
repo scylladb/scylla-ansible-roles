@@ -2,6 +2,9 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
     - name: Check parent poll timeout - poll is not supported
       async_task:
         shell: |
