@@ -2,6 +2,9 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
     - name: Do not wait for the task to finish
       async_task:
         shell: |
