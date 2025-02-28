@@ -1,15 +1,15 @@
 ---
-- name: "grafana_docker.yml: Populate service facts"
+- name: "docker.yml: Populate service facts"
   service_facts:
 
-- name: "grafana_docker.yml: Add custom dockerd config"
+- name: "docker.yml: Add custom dockerd config"
   copy:
     content: "{{ docker_daemon_custom_config }}"
     dest: "/etc/docker/daemon.json"
   become: true
   when: docker_daemon_custom_config is defined
 
-- name: "grafana_docker.yml: Set start command"
+- name: "docker.yml: Set start command"
   set_fact:
     start_command: |
       ./start-all.sh \
@@ -31,7 +31,7 @@
   when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
   loop: "{{ groups['cql_credentials'] }}"
 
-- name: "grafana_docker.yml: restart the docker daemon again"
+- name: "docker.yml: restart the docker daemon again"
   service:
     name: docker
     state: restarted
@@ -39,7 +39,7 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
-- name: "grafana_docker.yml: update docker.sock permissions to work around the restart issue"
+- name: "docker.yml: update docker.sock permissions to work around the restart issue"
   file:
     path: /var/run/docker.sock
     owner: root
@@ -48,13 +48,13 @@
   become: true
   when: ansible_facts.services["docker.service"] is defined
 
-- name: "grafana_docker.yml: Stop monitoring"
+- name: "docker.yml: Stop monitoring"
   shell: |
     cd {{ base_dir }}
     ./kill-all.sh
     sudo ./kill-all.sh
 
-- name: "grafana_docker.yml: start scylla-monitoring"
+- name: "docker.yml: start scylla-monitoring"
   shell: "{{ start_command }}"
   args:
     chdir: "{{ base_dir }}"
