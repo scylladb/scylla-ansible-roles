@@ -1,0 +1,22 @@
+#!/usr/sbin/ansible-playbook ./async_task_script.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
+
+    - name: Async recoverable job with script
+      async_task:
+        script: sleep.sh
+        alias: blah
+        async: 60
+        retries: 10
+        delay: 5
+      register: failed_status
+      ignore_errors: true
+
+    - name: Verify that task failed
+      fail:
+        msg: "Task should have failed!"
+      when: not failed_status.failed

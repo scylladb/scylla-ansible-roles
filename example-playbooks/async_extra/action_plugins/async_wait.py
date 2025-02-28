@@ -55,9 +55,10 @@ DOCUMENTATION = r'''
 plugin: async_wait 
 short_description: Awaits for a job to finish
 notes:
-- By default cleanups the job alias after it self if successful
+- By default cleanups the job alias after itself.
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
+- Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
 '''
 
 
@@ -108,7 +109,7 @@ class ActionModule(ActionBase):
 
         def wait_until(x):
             if not is_started(x):
-                raise AnsibleActionFail("job did not start")
+                raise AnsibleActionFail(f"job execution failed: {x}")
             return is_finished(x) or is_failed(x) or is_killed(x)
 
         wait_action = self._shared_loader_obj.action_loader.get('async_status_id',
@@ -122,8 +123,8 @@ class ActionModule(ActionBase):
                                  retries=retries, delay=delay,
                                  until=lambda x: wait_until(x)))
 
-        # cleanup
-        if not is_failed(result) and cleanup:
+        # cleanup if tasks succeeded or if it failed and 'cleanup' was requested
+        if (is_finished(result) and not is_failed(result)) or ((is_finished(result) or is_killed(result)) and cleanup):
             cleanup_task = self._task.copy()
             cleanup_task.retries = 0
             cleanup_task.delay = 0
@@ -262,18 +263,17 @@ class ActionModule(ActionBase):
         return result
 
 
-def is_started(x):
-    return 'started' in x and x['started']
+def is_started(result):
+    return result.get('started', 0)
+
+def is_finished(result):
+    return result.get('finished', 0)
+
+def is_failed(result):
+    return result.get('failed', False)
+
+def is_killed(result):
+    return result.get('killed', False)
 
 
-def is_finished(x):
-    return 'finished' in x and x['finished']
-
-
-def is_failed(x):
-    return 'failed' in x and x['failed']
-
-
-def is_killed(x):
-    return 'killed' in x and x['killed']
 

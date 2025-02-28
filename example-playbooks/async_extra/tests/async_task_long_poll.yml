@@ -1,0 +1,22 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Check parent poll timeout - poll is not supported
+      async_task:
+        shell: |
+          echo Hello &&
+          sleep 360
+        alias: blah
+        async: 1000
+        poll: 5
+      register: failed_status
+      ignore_errors: true
+
+    - name: Verify that the job has failed
+      fail:
+        msg: "'poll' is not supposed to be supported"
+      when: not failed_status.failed
