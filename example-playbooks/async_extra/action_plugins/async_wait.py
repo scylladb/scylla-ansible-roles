@@ -194,9 +194,7 @@ class ActionModule(ActionBase):
 
     # derived from ansible
     def retry(self, action, vars, retries, delay, until):
-        if retries is None:
-            retries = 3
-        elif retries <= 0:
+        if retries <= 0:
             retries = 1
 
         if delay < 0:
