@@ -251,7 +251,7 @@ class ActionModule(ActionBase):
                 result['attempts'] = retries
                 result['msg'] = "Ran out of attempts."
 
-        if not is_failed(result) and not is_finished(result):
+        if not until(result):
             result['failed'] = True
             result['msg'] = "Job did not finish."
 
