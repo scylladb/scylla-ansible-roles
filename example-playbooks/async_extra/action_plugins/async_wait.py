@@ -85,6 +85,12 @@ class ActionModule(ActionBase):
         if not delay:
             raise AnsibleActionFail("delay is required")
 
+        if retries <= 0:
+            retries = 1
+
+        if delay < 0:
+            delay = 1
+
         if job:
             if job not in task_vars['vars']:
                 raise AnsibleActionFail("no job among facts")
@@ -194,12 +200,6 @@ class ActionModule(ActionBase):
 
     # derived from ansible
     def retry(self, action, vars, retries, delay, until):
-        if retries <= 0:
-            retries = 1
-
-        if delay < 0:
-            delay = 1
-
         self._display.debug("starting attempt loop")
         result = None
         for attempt in xrange(1, retries + 1):
