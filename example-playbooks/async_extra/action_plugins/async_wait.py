@@ -248,7 +248,7 @@ class ActionModule(ActionBase):
             if retries > 1:
                 # we ran out of attempts, so mark the result as failed
                 result['failed'] = True
-                result['attempts'] = retries - 1
+                result['attempts'] = retries
 
         if not is_failed(result) and not until(result):
             result['failed'] = True
