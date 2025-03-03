@@ -233,23 +233,20 @@ class ActionModule(ActionBase):
             if 'changed' not in result:
                 result['changed'] = False
 
-            if retries > 1:
-                if until(result):
-                    break
-                else:
-                    # no conditional check, or it failed, so sleep for the specified time
-                    if attempt < retries:
-                        result['_ansible_retry'] = True
-                        result['retries'] = retries
-                        self._display.debug('Retrying task, attempt %d of %d' % (attempt, retries))
-                        self.v2_runner_retry(result)
-                        time.sleep(delay)
+            if until(result):
+                break
+            else:
+                # no conditional check, or it failed, so sleep for the specified time
+                result['_ansible_retry'] = True
+                result['retries'] = retries
+                self._display.debug('Retrying task, attempt %d of %d' % (attempt, retries))
+                self.v2_runner_retry(result)
+                time.sleep(delay)
         else:
-            if retries > 1:
-                # we ran out of attempts, so mark the result as failed
-                result['failed'] = True
-                result['attempts'] = retries
-                result['msg'] = "Ran out of attempts."
+            # we ran out of attempts, so mark the result as failed
+            result['failed'] = True
+            result['attempts'] = retries
+            result['msg'] = "Ran out of attempts."
 
         if not until(result):
             result['failed'] = True
