@@ -85,11 +85,11 @@ class ActionModule(ActionBase):
         if not delay:
             raise AnsibleActionFail("delay is required")
 
-        if retries <= 0:
+        if retries < 0:
             retries = 1
 
         if delay < 0:
-            delay = 1
+            delay = 0
 
         if job:
             if job not in task_vars['vars']:
