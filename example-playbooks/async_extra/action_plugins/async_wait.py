@@ -249,10 +249,7 @@ class ActionModule(ActionBase):
                 # we ran out of attempts, so mark the result as failed
                 result['failed'] = True
                 result['attempts'] = retries
-
-        if not is_failed(result) and not until(result):
-            result['failed'] = True
-            result['msg'] = "Ran out of attempts."
+                result['msg'] = "Ran out of attempts."
 
         if not is_failed(result) and not is_finished(result):
             result['failed'] = True
