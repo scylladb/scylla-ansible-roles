@@ -2,12 +2,15 @@
 ---
 - hosts: localhost
   tasks:
-    - name: Failed async job
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Async recoverable job Blah
       async_task:
         shell: |
           echo Hello &&
           sleep 10
         alias: blah
-        async: 1
+        async: 1000
         retries: 100
         delay: 5

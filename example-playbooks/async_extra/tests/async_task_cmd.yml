@@ -2,9 +2,12 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
     - name: Async command
       async_task:
-        cmd: /usr/sbin/sleep 10
+        cmd: sleep 10
         alias: blah
         async: 1000
         retries: 720

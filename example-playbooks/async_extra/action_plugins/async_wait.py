@@ -55,9 +55,10 @@ DOCUMENTATION = r'''
 plugin: async_wait 
 short_description: Awaits for a job to finish
 notes:
-- By default cleanups the job alias after it self if successful
+- By default cleanups the job alias after itself.
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
+- Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
 '''
 
 
@@ -84,6 +85,12 @@ class ActionModule(ActionBase):
         if not delay:
             raise AnsibleActionFail("delay is required")
 
+        if retries < 0:
+            retries = 1
+
+        if delay < 0:
+            delay = 0
+
         if job:
             if job not in task_vars['vars']:
                 raise AnsibleActionFail("no job among facts")
@@ -108,7 +115,7 @@ class ActionModule(ActionBase):
 
         def wait_until(x):
             if not is_started(x):
-                raise AnsibleActionFail("job did not start")
+                raise AnsibleActionFail(f"job execution failed: {x}")
             return is_finished(x) or is_failed(x) or is_killed(x)
 
         wait_action = self._shared_loader_obj.action_loader.get('async_status_id',
@@ -122,8 +129,8 @@ class ActionModule(ActionBase):
                                  retries=retries, delay=delay,
                                  until=lambda x: wait_until(x)))
 
-        # cleanup
-        if not is_failed(result) and cleanup:
+        # cleanup if tasks succeeded or if it failed and 'cleanup' was requested
+        if (is_finished(result) and not is_failed(result)) or ((is_finished(result) or is_killed(result)) and cleanup):
             cleanup_task = self._task.copy()
             cleanup_task.retries = 0
             cleanup_task.delay = 0
@@ -193,14 +200,6 @@ class ActionModule(ActionBase):
 
     # derived from ansible
     def retry(self, action, vars, retries, delay, until):
-        if retries is None:
-            retries = 3
-        elif retries <= 0:
-            retries = 1
-
-        if delay < 0:
-            delay = 1
-
         self._display.debug("starting attempt loop")
         result = None
         for attempt in xrange(1, retries + 1):
@@ -234,46 +233,39 @@ class ActionModule(ActionBase):
             if 'changed' not in result:
                 result['changed'] = False
 
-            if retries > 1:
-                if until(result):
-                    break
-                else:
-                    # no conditional check, or it failed, so sleep for the specified time
-                    if attempt < retries:
-                        result['_ansible_retry'] = True
-                        result['retries'] = retries
-                        self._display.debug('Retrying task, attempt %d of %d' % (attempt, retries))
-                        self.v2_runner_retry(result)
-                        time.sleep(delay)
+            if until(result):
+                break
+            else:
+                # no conditional check, or it failed, so sleep for the specified time
+                result['_ansible_retry'] = True
+                result['retries'] = retries
+                self._display.debug('Retrying task, attempt %d of %d' % (attempt, retries))
+                self.v2_runner_retry(result)
+                time.sleep(delay)
         else:
-            if retries > 1:
-                # we ran out of attempts, so mark the result as failed
-                result['failed'] = True
-                result['attempts'] = retries - 1
-
-        if not is_failed(result) and not until(result):
+            # we ran out of attempts, so mark the result as failed
             result['failed'] = True
+            result['attempts'] = retries
             result['msg'] = "Ran out of attempts."
 
-        if not is_failed(result) and not is_finished(result):
+        if not until(result):
             result['failed'] = True
             result['msg'] = "Job did not finish."
 
         return result
 
 
-def is_started(x):
-    return 'started' in x and x['started']
+def is_started(result):
+    return result.get('started', 0)
+
+def is_finished(result):
+    return result.get('finished', 0)
+
+def is_failed(result):
+    return result.get('failed', False)
+
+def is_killed(result):
+    return result.get('killed', False)
 
 
-def is_finished(x):
-    return 'finished' in x and x['finished']
-
-
-def is_failed(x):
-    return 'failed' in x and x['failed']
-
-
-def is_killed(x):
-    return 'killed' in x and x['killed']
 

@@ -62,6 +62,7 @@ description: This is a replacement for:
 
 author:
 - Ivan Prisyazhnyy, ScyllaDB <ivan@scylladb.com>
+- Vlad Zolotarov, ScyllaDB <vladz@scylladb.com>
 '''
 
 EXAMPLES = r'''
@@ -153,14 +154,14 @@ class ActionModule(ActionBase):
             raise AnsibleActionFail("async is required")
 
         running = self.find_running_task(alias, task_vars)
-        if is_failed(running):
+        if is_failed(running) and not self._task.args.get('cleanup', True):
             result.update(running)
             if is_finished(running):
-                result['warning'] = 'The job is finished and was not cleaned up properly. Please, delete job alias ' \
-                                    'manually to restart.'
+                result['warning'] = ("The job is finished and was not cleaned up properly. Please, consider using "
+                                     "'cleanup' option. ")
             return result
 
-        if running['started'] != 1:
+        if is_started(running) != 1 or is_finished(running) or is_killed(running):
             obj = self.run_async_task(task_vars)
             if is_failed(result):
                 result.update(obj)
@@ -194,8 +195,10 @@ class ActionModule(ActionBase):
             ))
 
             if is_failed(result):
-                result['warning'] = 'The job has failed and was not cleaned up properly. Please, delete job alias ' \
-                                    'manually to restart.'
+                if is_finished(result) or is_killed(result):
+                    result['warning'] = ("The job has failed. Use a 'cleanup: True' (default) option in order to "
+                                         "re-run it.")
+
         elif poll:
             raise AnsibleActionFail("poll is not supported yet")
 
@@ -391,10 +394,14 @@ class ActionModule(ActionBase):
 
         return result
 
+def is_killed(result):
+    return result.get('killed', False)
 
 def is_failed(result):
-    return 'failed' in result and result['failed']
+    return result.get('failed', False)
 
+def is_started(result):
+    return result.get('started', 0)
 
-def is_finished(x):
-    return 'finished' in x and x['finished']
+def is_finished(result):
+    return result.get('finished', 0)

@@ -2,9 +2,12 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
     - name: Async recoverable job with script
       async_task:
-        script: sleep.sh
+        script: sleep.sh 10
         alias: blah
         async: 60
         retries: 10

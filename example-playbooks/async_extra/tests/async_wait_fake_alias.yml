@@ -7,3 +7,10 @@
         alias: fake_blah
         retries: 100
         delay: 5
+      register: failed_status
+      ignore_errors: true
+
+    - name: Verify the failure
+      fail:
+        msg: "Waiting for a job with non-existing alias should have failed"
+      when: not failed_status.failed

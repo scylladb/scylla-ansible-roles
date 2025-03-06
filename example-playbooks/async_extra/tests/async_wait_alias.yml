@@ -1,0 +1,21 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Async job Blah
+      shell: |
+        echo Hello &&
+        sleep 10
+      async: 1000
+      poll: 0
+      register: async_task_obj
+    - name: Register task alias
+      async_alias: job=async_task_obj alias=blah
+    - name: Wait for task to finish
+      async_wait:
+        alias: blah
+        retries: 100
+        delay: 5

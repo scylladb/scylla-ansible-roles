@@ -1,0 +1,22 @@
+#!/usr/sbin/ansible-playbook ./async_status_id_recoverable.yml -vvvv
+---
+- hosts: localhost
+  tasks:
+    - name: Kill job
+      async_kill:
+        alias: blah
+    - name: Failed async job
+      async_task:
+        shell: |
+          exit 1
+        alias: blah
+        async: 1000
+        retries: 100
+        delay: 5
+      register: failed_status
+      ignore_errors: true
+
+    - name: Verify that task failed
+      fail:
+        msg: "Task should have failed!"
+      when: not failed_status.failed or not "The job has failed." in failed_status.warning
