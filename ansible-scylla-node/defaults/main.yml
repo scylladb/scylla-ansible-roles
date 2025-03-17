@@ -237,7 +237,7 @@ always_replace_io_conf: False
 always_replace_io_properties: False
 
 # These can be arbitrarily set if scylla_io_probe is set to False
-# io_properties: |
+# io_properties:
 #   disks:
 #     - mountpoint: /var/lib/scylla/data
 #       read_iops: 10962999
@@ -412,10 +412,9 @@ scylla_manager_rpm_repo_url: "{{ scylla_manager_repo_url }}"
 
 scylla_manager_agent_upgrade: true
 
-# Manager Agent Backup configuration - this is a free text which will be inserted into the configuration file
-# Please ensure it is a valid and working configuration. Please refer to the example configuration file and the
-# documentation for detailed instructions
-scylla_manager_agent_config: |
+# Manager Agent Backup configuration - this is a YAML value that will be inserted into the configuration file.
+# Please refer to the example configuration file and the documentation for detailed instructions.
+scylla_manager_agent_config:
   s3:
     access_key_id: 12345678
     secret_access_key: QWerty123456789
