@@ -1,5 +1,5 @@
 auth_token: {{ auth_token }}
 
-{% if scylla_manager_agent_config is defined %}
-{{ scylla_manager_agent_config }}
+{% if scylla_manager_agent_config is defined and scylla_manager_agent_config is not none %}
+{{ scylla_manager_agent_config | to_yaml(indent=2) }}
 {% endif %}

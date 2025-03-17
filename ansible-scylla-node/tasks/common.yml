@@ -120,7 +120,7 @@
       register: _io_properties
 
     - set_fact:
-        io_properties: "{{ _io_properties.stdout }}"
+        io_properties: "{{ _io_properties.stdout | from_yaml }}"
 
     - name: store /etc/scylla.d/io.conf
       shell: |
