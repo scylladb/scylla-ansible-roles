@@ -414,18 +414,18 @@ scylla_manager_agent_upgrade: true
 
 # Manager Agent Backup configuration - this is a YAML value that will be inserted into the configuration file.
 # Please refer to the example configuration file and the documentation for detailed instructions.
-scylla_manager_agent_config:
-  s3:
-    access_key_id: 12345678
-    secret_access_key: QWerty123456789
-    provider: AWS
-    region: us-east-1c
-    endpoint: https://foo.bar.baz
-    server_side_encryption:
-    sse_kms_key_id:
-    upload_concurrency: 2
-    chunk_size: 50M
-    use_accelerate_endpoint: false
+#scylla_manager_agent_config:
+#  s3:
+#    access_key_id: 12345678
+#    secret_access_key: QWerty123456789
+#    provider: AWS
+#    region: us-east-1c
+#    endpoint: https://foo.bar.baz
+#    server_side_encryption:
+#    sse_kms_key_id:
+#    upload_concurrency: 2
+#    chunk_size: 50M
+#    use_accelerate_endpoint: false
 
 # Configure raid disks via scylla_setup. This requires a list of disks to add to the raid
 # scylla_raid_setup:
