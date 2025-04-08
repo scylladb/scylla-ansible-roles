@@ -27,7 +27,6 @@ galaxy_info:
 dependencies:
   - role: "ansible-scylla-node"
     vars:
-      scylla_version: 'latest'
       install_only: true
       scylla_manager_enabled: false
       elrepo_kernel: false

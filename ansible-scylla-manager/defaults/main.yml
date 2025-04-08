@@ -16,6 +16,7 @@ scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb
 # scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
 # scylla_repo_keys:
 #   - 5e08fbd8b5d6ec9c
+scylla_version: 'latest'
 scylla_repo_keyring_dir: /etc/apt/keyrings/
 scylla_repo_keyringfile: "{{ scylla_repo_keyring_dir }}/scylladb.gpg"
 
