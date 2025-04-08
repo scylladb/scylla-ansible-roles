@@ -30,11 +30,7 @@ dependencies:
       scylla_version: 'latest'
       install_only: true
       scylla_manager_enabled: false
-      scylla_edition: "{{ scylla_manager_db_vars.scylla_edition|default('oss') }}"
       elrepo_kernel: false
-      scylla_repo_keyserver: "{{ scylla_manager_db_vars.scylla_repo_keyserver|default('') }}"
-      scylla_repo_keys: "{{ scylla_manager_db_vars.scylla_repo_keys|default([]) }}"
-      scylla_dependencies: "{{ scylla_manager_db_vars.scylla_dependencies|default([]) }}"
       scylla_ssl:
         internode:
           enabled: false
