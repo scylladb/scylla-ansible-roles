@@ -405,8 +405,8 @@ system_info_encryption_kms:
 # If Scylla Manager will be used, set the following variables
 scylla_manager_enabled: true
 
-scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-2.6.list"
-scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-2.6.repo"
+scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.5.list"
+scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.5.repo"
 
 scylla_manager_agent_upgrade: true
 
