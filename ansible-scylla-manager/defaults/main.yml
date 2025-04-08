@@ -5,18 +5,17 @@
 scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.5.list"
 scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.5.repo"
 
-scylla_manager_db_vars:
-  # Repo URLs for the ScyllaDB datastore installation
-  # More information on the variables can be found in the documentation for the scylla-node role and it's heavily
-  # commented `defaults/main.yml` file
-  # scylla_repos:
-  #   - 'https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.6.repo'
+# The manager installs a local ScyllaDB, which is used only by the Manager.
+# Repo URLs for the ScyllaDB datastore installation
+# More information on the variables can be found in the documentation for the scylla-node role and it's heavily
+# commented `defaults/main.yml` file
+# scylla_repos:
+#   - 'https://repositories.scylladb.com/scylla/repo/centos/scylladb-4.6.repo'
 
-  # # Set when relevant (Debian/Ubuntu)
-  # scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
-  # scylla_repo_keys:
-  #   - 5e08fbd8b5d6ec9c
-
+# # Set when relevant (Debian/Ubuntu)
+# scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
+# scylla_repo_keys:
+#   - 5e08fbd8b5d6ec9c
 scylla_repo_keyring_dir: /etc/apt/keyrings/
 scylla_repo_keyringfile: "{{ scylla_repo_keyring_dir }}/scylladb.gpg"
 
