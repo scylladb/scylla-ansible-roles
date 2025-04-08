@@ -57,7 +57,7 @@ provisioner:
     group_vars:
       scylla:
         scylla_edition: "enterprise"
-        scylla_version: "latest"
+        scylla_version: "2024.1.15"
         scylla_io_probe: false
         io_properties:
           disks:
