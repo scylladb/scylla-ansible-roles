@@ -168,7 +168,7 @@
         path: /etc/scylla/scylla.yaml
         regexp: '^(\s+) - seeds:'
         line: |
-          \g<1> - seeds: {{ temporary_seed }}
+          \g<1> - seeds: {{ hostvars[temporary_seed].broadcast_address }}
         backrefs: yes
 
     - name: Check if replace_node_first_boot is available in the current Scylla version
