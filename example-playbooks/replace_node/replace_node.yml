@@ -276,7 +276,7 @@
       wait_for:
         port: "{{ cql_port }}"
         host: "{{ listen_address }}"
-        timeout: "{{ new_node_bootstrap_wait_time_sec }}"
+        timeout: "{{ new_node_bootstrap_wait_time_sec|int }}"
 
     - name: Remove the replace_node_first_boot record
       lineinfile:
