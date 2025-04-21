@@ -139,7 +139,7 @@
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Suspend tasks
+    - name: Suspend SM tasks on all configured clusters
       shell: sctool --cluster="{{ item.cluster_name }}" suspend
       loop: "{{ scylla_clusters }}"
 
@@ -352,7 +352,7 @@
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Suspend tasks
+    - name: Resume SM tasks on all configured clusters
       shell: sctool --cluster="{{ item.cluster_name }}" resume
       loop: "{{ scylla_clusters }}"
 
