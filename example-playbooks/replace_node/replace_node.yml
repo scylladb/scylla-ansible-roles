@@ -139,8 +139,9 @@
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Suspend tasks
-      shell: sctool --cluster="{{ scylla_cluster_name }}" suspend
+    - name: Suspend SM tasks on all configured clusters
+      shell: sctool --cluster="{{ item.cluster_name }}" suspend
+      loop: "{{ scylla_clusters }}"
 
 
 # This play will set the ip/host_id of the replaced node in the scylla.yaml of the new node,
@@ -275,7 +276,7 @@
       wait_for:
         port: "{{ cql_port }}"
         host: "{{ listen_address }}"
-        timeout: "{{ new_node_bootstrap_wait_time_sec }}"
+        timeout: "{{ new_node_bootstrap_wait_time_sec|int }}"
 
     - name: Remove the replace_node_first_boot record
       lineinfile:
@@ -351,8 +352,9 @@
   vars_files:
     - vars/main.yml
   tasks:
-    - name: Suspend tasks
-      shell: sctool --cluster="{{ scylla_cluster_name }}" resume
+    - name: Resume SM tasks on all configured clusters
+      shell: sctool --cluster="{{ item.cluster_name }}" resume
+      loop: "{{ scylla_clusters }}"
 
 
 # This play will repair the new node if RBNO was not used and skip_repair is not set to true
@@ -368,21 +370,33 @@
 
     - name: Get cluster id
       shell: |
-        sctool status | grep 'Cluster: {{ scylla_cluster_name }} ' | awk '{print $3}' | tr -d '()'
+        if sctool status -c "{{ item.cluster_name }}" | grep -w "{{ hostvars[new_node]['broadcast_address'] }}" > /dev/null; then echo "{{ item.cluster_name }}"; else echo ""; fi
+      loop: "{{ scylla_clusters }}"
       register: _cluster_id
 
-    - fail:
-        msg: "Unable to find cluster {{ scylla_cluster_name }} in scylla-manager"
-      when: _cluster_id.stdout|length == 0
+    - name: Count non-empty stdout values in _cluster_id
+      set_fact:
+        cluster_with_new_node: "{{ _cluster_id.results | json_query('[?stdout != ``]') | json_query('[].stdout') }}"
 
+    - name: Check if the new node is managed by any Scylla Manager cluster
+      fail:
+        msg: "Unable to find Scylla Manager cluster managing {{ hostvars[new_node]['broadcast_address'] }} in scylla-manager"
+      when: cluster_with_new_node|length == 0
+
+    - name: Check if the new node is managed by exactly one Scylla Manager cluster
+      fail:
+        msg: "More than a single Scylla Manager cluster managing {{ hostvars[new_node]['broadcast_address'] }} in scylla-manager"
+      when: cluster_with_new_node|length > 1
+
+    # If we've got here, there is exactly one value in a {{ cluster_with_new_node }} list
     - name: Repair the new node
       shell: |
-        sctool repair --cluster "{{ _cluster_id.stdout }}" --host "{{ hostvars[new_node]['broadcast_address'] }}" {{ extra_repair_params }}
+        sctool repair --cluster "{{ cluster_with_new_node[0] }}" --host "{{ hostvars[new_node]['broadcast_address'] }}" {{ extra_repair_params }}
       register: _repair_id
 
     - name: Wait for the repair to finish
       shell:
-        sctool progress "{{ _repair_id.stdout }}" --cluster "{{ _cluster_id.stdout }}" | grep "Status:" | awk '{print $2}'
+        sctool progress "{{ _repair_id.stdout }}" --cluster "{{ cluster_with_new_node[0] }}" | grep "Status:" | awk '{print $2}'
       register: _repair_status
       until: _repair_status.stdout != "RUNNING"
       retries: "{{ new_node_repair_timeout_seconds|int // 30 }}" # retries = new_node_repair_timeout_seconds / delay

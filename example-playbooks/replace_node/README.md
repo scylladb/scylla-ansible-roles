@@ -29,7 +29,7 @@ New inventory:
   10.0.0.3
 ```
 
-2. Run `ansible-playbook -i inventory.ini -e "@nodes_params.yml" -e "@monitor_params.yml" -e "replaced_node=10.0.0.2" -e "replaced_node_broadcast_address=10.0.0.2" -e "new_node=10.0.0.4" replace_node.yml`
+2. Run `ansible-playbook -i inventory.ini -e "@manager_params.yml" -e "@nodes_params.yml" -e "@monitor_params.yml" -e "replaced_node=10.0.0.2" -e "replaced_node_broadcast_address=10.0.0.2" -e "new_node=10.0.0.4" replace_node.yml`
 
 ## Steps:
 
@@ -46,9 +46,11 @@ New inventory:
 
 ## Parameters:
 
-This playbook uses the node role to install and configure Scylla in the new node, so the same parameters
+This playbook uses the node role to install and configure Scylla in the new node, set it up in the Scylla Monitoring
+and use Scylla Manager to issue a repair if needed.
+So the same parameters for all three roles (node, monitoring and manager) that were
 used when the cluster was created should also be passed to the `replace_node.yml` playbook.
-In the `Usage` section of this README, we use `nodes_params.yml` and `monitor_params.yml` files to represent such parameters.
+See the `Usage` section of this README for the way how these parameters are supposed to be passed.
 
 Besides the vars from the node role, this playbook has the following mandatory parameters: `replaced_node`, `replaced_node_broadcast_address` and `new_node`.
 These and the other available parameters are listed and described in `vars/main.yml`.
