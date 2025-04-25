@@ -346,6 +346,15 @@
       when: inventory_hostname == new_node and disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
 
+# If 'nodetool status' is used as a source for the list of nodes, we need to update monitoring again once the node finishes bootstrapping
+- name: Update scylla-monitoring
+  hosts: scylla-monitor
+  any_errors_fatal: true
+  roles:
+    - role: ansible-scylla-monitoring
+      when: use_nodetool_status_with_genconfig is defined and use_nodetool_status_with_genconfig|bool
+
+
 - name: Resume scylla-manager tasks
   hosts: scylla-manager
   any_errors_fatal: true
