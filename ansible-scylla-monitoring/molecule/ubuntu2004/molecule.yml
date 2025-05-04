@@ -27,6 +27,7 @@ provisioner:
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
+    verify: ../shared/verify.yml
 scenario:
   test_sequence:
     - dependency
