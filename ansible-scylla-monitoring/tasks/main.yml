@@ -1,4 +1,9 @@
 ---
+- name: Verify that a scylla_cluster_name is set
+  fail:
+    msg: "scylla_cluster_name must be defined"
+  when: scylla_cluster_name is not defined
+
 - name: "main.yml: os-specific tasks"
   include_tasks: "{{ ansible_os_family }}.yml"
 
