@@ -1,6 +1,10 @@
 ---
 # scylla_cluster_name: 'testcluster123'
 
+# This is the name the cluster is going to be reported by the Alert Manager.
+# Default to a scylla_cluster_name value.
+scylla_cluster_name_for_alerts: "{{ scylla_cluster_name_for_alerts | default(scylla_cluster_name) }}"
+
 # In some rare scenarios, it is impossible to run docker containers as a regular user. Set this to True if you need
 # to use `sudo`
 run_docker_with_sudo: False

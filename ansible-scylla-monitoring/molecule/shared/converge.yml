@@ -7,3 +7,4 @@
         name: ansible-scylla-monitoring
       vars:
         scylla_monitoring_dashboards_versions: ['2022.2']
+        scylla_cluster_name: "testing_monitoring_role_cluster"
