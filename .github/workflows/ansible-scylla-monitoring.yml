@@ -18,6 +18,7 @@ jobs:
       matrix:
         molecule_distro:
           - ubuntu2004
+          - ubuntu2204
     defaults:
       run:
         working-directory: ansible-scylla-monitoring
