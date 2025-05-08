@@ -8,7 +8,7 @@ driver:
   name: docker
 platforms:
   - name: monitoring
-    image: jrei/systemd-ubuntu:20.04
+    image: jrei/systemd-ubuntu:22.04
     privileged: true
     command: /lib/systemd/systemd
     volumes:

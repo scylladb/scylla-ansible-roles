@@ -50,7 +50,7 @@ receivers:
     auth_password: {{ alerts_sender_password }}
     send_resolved: false
     headers:
-      Subject: '[PRODUCTION] {{ '{{ .CommonLabels.alertname }}' }} {{ '{{ .CommonLabels.severity }}' }}: NORMAL Managed-Services - Cluster:{{ scylla_cluster_name }}'
+      Subject: '{{ scylla_cluster_name_for_alerts }}:{{ '{{ .CommonLabels.alertname }}' }} {{ '{{ .CommonLabels.severity }}' }}: NORMAL'
 - name: team-X-mails-urgent
   email_configs:
   - to: {{ alerts_receiver_email }}
@@ -61,7 +61,7 @@ receivers:
     auth_password: {{ alerts_sender_password }}
     send_resolved: false
     headers:
-      Subject: '[PRODUCTION] {{ '{{ .CommonLabels.alertname }}' }} {{ '{{ .CommonLabels.severity }}' }}: URGENT Managed-Services - Cluster:{{ scylla_cluster_name }}'
+      Subject: '{{ scylla_cluster_name_for_alerts }}:{{ '{{ .CommonLabels.alertname }}' }} {{ '{{ .CommonLabels.severity }}' }}: URGENT'
 route:
   group_by: [alertname, 'severity']
   group_interval: 5m
