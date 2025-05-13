@@ -8,16 +8,6 @@
   package_facts:
     manager: auto
 
-- name: Set Scylla package prefix as OSS
-  set_fact:
-    scylla_package_prefix: "scylla"
-  when: scylla_edition == 'oss'
-
-- name: Set Scylla package prefix as Enterprise
-  set_fact:
-    scylla_package_prefix: "scylla-enterprise"
-  when: scylla_edition == 'enterprise'
-
 - name: Check if {{ scylla_package_prefix }} meta-package is installed
   set_fact:
     scylla_is_installed: "{{ true if scylla_package_prefix in ansible_facts.packages else false }}"
