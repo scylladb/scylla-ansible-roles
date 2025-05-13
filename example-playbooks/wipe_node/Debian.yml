@@ -4,3 +4,4 @@
     name: "scylla*"
     state: absent
     purge: true
+    lock_timeout: 1200
