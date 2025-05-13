@@ -1,5 +1,4 @@
 ---
-
 # Facts gathering
 - name: Populate service facts
   service_facts:
@@ -8,23 +7,28 @@
   package_facts:
     manager: auto
 
-- name: "main.yml: include ScyllaDB version check task"
-  include_tasks: version_check.yml
+- block:
+  - name: "main.yml: include ScyllaDB version check task"
+    include_tasks: version_check.yml
 
-- name: Set a repository URL if not explicitly set
-  include_tasks: set_default_repo.yml
+  - name: Set a repository URL if not explicitly set
+    include_tasks: set_default_repo.yml
 
-# Upgrade
-- name: Upgrade Scylla
-  include_tasks: upgrade/main.yml
-  when: upgrade_version
+  # Upgrade
+  - name: Upgrade Scylla
+    include_tasks: upgrade/main.yml
+    when: upgrade_version
 
-# Install
-- name: os-specific tasks
-  include_tasks: "{{ ansible_os_family }}.yml"
-  when: not upgrade_version
+  # Install
+  - name: os-specific tasks
+    include_tasks: "{{ ansible_os_family }}.yml"
+    when: not upgrade_version
 
-- name: common tasks
-  include_tasks: common.yml
-  when: not upgrade_version and install_only|bool == false
+  - name: common tasks
+    include_tasks: common.yml
+    when: not upgrade_version and install_only|bool == false
+  
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"
 

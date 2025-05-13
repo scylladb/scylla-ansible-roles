@@ -98,6 +98,9 @@ prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.3
 # The content of this variable will be coppied to /etc/docker/daemon.json
 # docker_daemon_custom_config: { "bip": "172.17.0.1/24" }
 
+# Default time-out to wait on acquiring an APT lock.
+apt_lock_timeout: 1200
+
 #####################################
 # User configuration
 ####################################
