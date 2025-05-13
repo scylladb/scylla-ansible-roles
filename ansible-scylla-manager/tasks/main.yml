@@ -1,18 +1,21 @@
 ---
-- name: install Scylla Manager
-  include_tasks: "{{ ansible_os_family }}.yml"
+- block:
+  - name: install Scylla Manager
+    include_tasks: "{{ ansible_os_family }}.yml"
 
-- name: run scyllamgr_setup
-  shell: |
-    scyllamgr_setup -y
-  become: true
+  - name: run scyllamgr_setup
+    shell: |
+      scyllamgr_setup -y
+    become: true
 
-- name: start manager
-  include_tasks: start_manager.yml
+  - name: start manager
+    include_tasks: start_manager.yml
 
-- name: add Scylla clusters
-  include_tasks: add_cluster.yml
-  loop: "{{ scylla_clusters }}"
-
+  - name: add Scylla clusters
+    include_tasks: add_cluster.yml
+    loop: "{{ scylla_clusters }}"
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"
 
 

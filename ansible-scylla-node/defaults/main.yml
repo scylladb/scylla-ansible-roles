@@ -529,3 +529,6 @@ sysctl:
 # Scylla Node Exported configuration that will be configured in the corresponding EnvFile. If not defined the default
 # scylla-node-exporter/scylla-enterprise-node-exporter package configuration will be used.
 # scylla_node_exporter_params: "--collector.interrupts --collector.netdev.address-info"
+
+# Default time-out to wait on acquiring an APT lock.
+apt_lock_timeout: 1200

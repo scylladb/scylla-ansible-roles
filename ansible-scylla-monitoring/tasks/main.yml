@@ -4,14 +4,19 @@
     msg: "scylla_cluster_name must be defined"
   when: scylla_cluster_name is not defined
 
-- name: "main.yml: os-specific tasks"
-  include_tasks: "{{ ansible_os_family }}.yml"
+- block:
+  - name: "main.yml: os-specific tasks"
+    include_tasks: "{{ ansible_os_family }}.yml"
 
-- name: "main.yml: common tasks"
-  include_tasks: common.yml
+  - name: "main.yml: common tasks"
+    include_tasks: common.yml
 
-- name: "main.yml: install dockerized monitoring"
-  include_tasks: docker.yml
+  - name: "main.yml: install dockerized monitoring"
+    include_tasks: docker.yml
 
-- name: "main.yml: setup Grafana users"
-  include_tasks: grafana_users.yml
+  - name: "main.yml: setup Grafana users"
+    include_tasks: grafana_users.yml
+  
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"

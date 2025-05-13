@@ -52,3 +52,5 @@ enable_upgrade: false
 #     without_repair: false
 #     host: 1.2.3.4
 
+# Default time-out to wait on acquiring an APT lock.
+apt_lock_timeout: 1200
