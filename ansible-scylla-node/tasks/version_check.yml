@@ -1,0 +1,36 @@
+---
+- name: Check if {{ scylla_package_prefix }} meta-package is installed
+  set_fact:
+    scylla_is_installed: "{{ true if scylla_package_prefix in ansible_facts.packages else false }}"
+
+- name: Get installed scylla version
+  set_fact:
+    installed_scylla_version: "{{ ansible_facts.packages[scylla_package_prefix][0]['version'] }}"
+  when: scylla_is_installed
+
+- name: Initialize scylla_version_to_install to {{ scylla_version }}
+  set_fact:
+    scylla_version_to_install: "{{ scylla_version }}"
+
+- name: Get latest Scylla {{ scylla_package_prefix }} version if needed
+  block:
+    - name: Set latest Scylla version URL optional parameter for Scylla Enterprise version
+      set_fact:
+        scylla_latest_version_url_parameter: "{{ '?system=enterprise' if scylla_edition == 'enterprise' else '' }}"
+
+    - name: Get {{ scylla_package_prefix }} latest version
+      ansible.builtin.uri:
+        url: "https://repositories.scylladb.com/scylla/check_version{{ scylla_latest_version_url_parameter }}"
+        method: GET
+        return_content: true
+      register: scylla_latest_version
+
+    - name: Set scylla_version_to_install to {{ scylla_latest_version.json['version'] }}
+      set_fact:
+        scylla_version_to_install: "{{ scylla_latest_version.json['version'] }}"
+  when: scylla_version == 'latest' and scylla_install_type == 'online'
+
+- name: "Sanity check: latest version requires online installation type"
+  fail:
+    msg: "Latest Scylla version can only be installed with an 'online' installation"
+  when: scylla_version == 'latest' and scylla_install_type != 'online'
