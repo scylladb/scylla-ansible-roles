@@ -1,4 +1,10 @@
 ---
+# Sanity checking
+- name: Verify that 'scylla_version' is defined
+  fail:
+    msg: "scylla_version must be defined!"
+  when: scylla_version is not defined
+
 # Facts gathering
 - name: Populate service facts
   service_facts:
