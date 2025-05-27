@@ -88,9 +88,16 @@
 
 - name: generate scylla_servers.yml for monitoring using nodetool status
   block:
-    - command: nodetool status
-      register: nodetool_status_out
-      delegate_to: "{{ groups['scylla'][0] }}"
+    - name: Save nodetool status for the first alive node
+      include_tasks: run_nodetool_status.yml
+      loop: "{{ groups['scylla'] }}"
+      loop_control:
+        loop_var: scylla_node
+
+    - name: Fail if all nodes are down
+      fail:
+        msg: "Unable to generate scylla_servers.yml because all scylla nodes are down"
+      when: nodetool_status_out is not defined
 
     - shell: "{{ base_dir }}/genconfig.py -c {{ scylla_cluster_name }} -NS -o {{ scylla_monitoring_config_path }}/scylla_servers.yml"
       args:
