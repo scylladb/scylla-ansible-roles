@@ -1,0 +1,13 @@
+---
+- name: Run nodetool status
+  shell: |
+    nodetool status
+  delegate_to: "{{ scylla_node }}"
+  register: _nodetool_status_tmp
+  ignore_errors: true
+  when: nodetool_status_out is not defined
+
+- name: Save nodetool status output
+  set_fact:
+    nodetool_status_out: "{{ _nodetool_status_tmp }}"
+  when: nodetool_status_out is not defined and _nodetool_status_tmp.rc == 0
