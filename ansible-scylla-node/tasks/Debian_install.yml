@@ -4,11 +4,11 @@
   block:
     - name: Get versions of {{ scylla_edition }} package
       # 'apt list -a' output has a package version as a second column and an arch as a third one.
-      # Let's filter by the arch first and then cut the version column.
+      # Let's filter by the arch first and then cut the version column: filter by the arch we are running on or 'all' if the package is architecture independent.
       # Then we will filter out all rows that start with a requested version string followed by a digit to filter out version like 2021.1.11 when 2021.1.1 was requested.
       # Also filter our RCs which versions go like 2021.1.0~rcX.
       # And finally, we are going to get rid of duplications.
-      shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | grep `dpkg --print-architecture` | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789~]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
+      shell: apt list -a {{ scylla_package_prefix }} 2>/dev/null | awk -v arch="$(dpkg --print-architecture)" '$3 == arch || $3 == "all" {print}' | awk '{split($0,a," "); print a[2]}' | egrep -v "^{{ scylla_version_escaped }}[0123456789~]+" | egrep "^{{ scylla_version_escaped }}" | sort | uniq
       register: aptversions
       vars:
         scylla_version_escaped: "{{ scylla_version_to_install | regex_escape }}"
