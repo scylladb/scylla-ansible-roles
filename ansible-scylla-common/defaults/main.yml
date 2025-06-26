@@ -4,3 +4,11 @@
 # Disable firewall (default is true).
 # When the deprecated variable `firewall_enabled` is present, and when this is false, the firewall will be deactivated.
 disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
+
+# A dictionary that defines which TCP ports must be reachable on the node(s) targeted by this role.
+# The dictionary is keyed by the name of the source group.
+# For each source group, the role will test connectivity by attempting to establish a TCP connection
+# from each host in the group to the current host on the listed ports.
+# required_ports_open_to:
+#   group_1: []
+#   group_2: []
