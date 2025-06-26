@@ -1,0 +1,31 @@
+---
+
+- name: Check if there are any scylla services running
+  shell: |
+    systemctl list-units --type=service --state=running 'scylla-*' | grep running
+  ignore_errors: true
+  register: _scylla_services_running_out
+
+- name: Validate that all ports are reachable from other servers
+  block:
+  - name: Create temporary listeners on required ports
+    shell: |
+      timeout 60 socat TCP-LISTEN:{{ item }},fork EXEC:'/bin/true'
+    loop: "{{ scylla_required_ports }}"
+    async: 70
+    poll: 0
+
+  - name: Check if all the necessary ports are open
+    shell:
+      "nc -z -w 2 {{ hostvars[item[0]]['ansible_host'] | default(item[0]) }} {{ item[1] }}"
+    when: item[0] != inventory_hostname
+    with_nested:
+      - "{{ play_hosts }}"
+      - "{{ scylla_required_ports }}"
+
+  - name: Cleanup temporary socat listeners
+    shell: |
+      pkill -9 socat$
+    ignore_errors: true
+    become: true
+  when: _scylla_services_running_out.rc != 0

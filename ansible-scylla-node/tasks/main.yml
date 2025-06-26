@@ -30,10 +30,13 @@
     include_tasks: "{{ ansible_os_family }}.yml"
     when: not upgrade_version
 
+  - name: "Verify if all the required ports are open"
+    include_tasks: check_ports.yml
+
   - name: common tasks
     include_tasks: common.yml
     when: not upgrade_version and install_only|bool == false
-  
+
   module_defaults:
     ansible.builtin.apt:
       lock_timeout: "{{ apt_lock_timeout }}"
