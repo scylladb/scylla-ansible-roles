@@ -122,11 +122,20 @@
   when: use_nodetool_status_with_genconfig|bool == false and scylla_servers_stat.stat.exists|bool == false
   run_once: true
 
+# This loop will set _scylla_manager_target to the ansible_host of the last host in the scylla-manager group
+# or the host name of the last host in the scylla-manager group if ansible_host is not defined.
+# There should be exactly one host in the scylla-manager group.
+- name: Set Scylla Manager target
+  set_fact:
+    _scylla_manager_target: "{{ hostvars[item]['ansible_host'] | default(item) }}"
+  loop: "{{ groups['scylla-manager'] }}"
+  when: "'scylla-manager' in groups"
+
 - name: set up scylla_manager_servers.yml
   copy:
     content: |
       - targets:
-        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:5090
+        - {{ _scylla_manager_target|default('172.17.0.1') }}:5090
     dest: "{{ scylla_monitoring_config_path }}/scylla_manager_servers.yml"
     mode: '0644'
 
