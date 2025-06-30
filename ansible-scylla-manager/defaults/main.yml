@@ -54,3 +54,7 @@ enable_upgrade: false
 
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200
+
+# If set, the role will test the if the manager agent port is reachable for each scylla node
+test_manager_agent_port: true
+scylla_manager_agent_port: 10001

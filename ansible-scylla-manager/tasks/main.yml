@@ -1,5 +1,11 @@
 ---
 - block:
+  - name: Check if scylla-manager-agent port is open on the scylla nodes
+    shell:
+      "nc -z -w 2 {{ hostvars[item]['ansible_host'] | default(item) }} {{ scylla_manager_agent_port }}"
+    loop: "{{ groups['scylla'] }}"
+    when: test_manager_agent_port
+
   - name: install Scylla Manager
     include_tasks: "{{ ansible_os_family }}.yml"
 
