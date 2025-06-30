@@ -129,6 +129,8 @@
 - name: Update scylla-monitoring
   hosts: scylla-monitor
   any_errors_fatal: true
+  vars:
+    test_metrics_endpoint: false
   roles:
     - ansible-scylla-monitoring
 

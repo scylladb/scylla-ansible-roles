@@ -1,4 +1,26 @@
 ---
+- name: Test metrics endpoint for all scylla nodes
+  uri:
+    url: "http://{{ hostvars[item]['ansible_host'] | default(item) }}:{{ scylla_prometheus_metrics_port }}/metrics"
+    method: GET
+  register: _metrics_output
+  until: _metrics_output.status == 200
+  retries: 5
+  delay: 1
+  loop: "{{ groups['scylla'] }}"
+  when: test_metrics_endpoint | bool
+
+- name: Test metrics endpoint for the manager node
+  uri:
+    url: "http://{{ hostvars[item]['ansible_host'] | default(item) }}:{{ manager_prometheus_metrics_port }}/metrics"
+    method: GET
+  register: _metrics_output
+  until: _metrics_output.status == 200
+  retries: 5
+  delay: 1
+  loop: "{{ groups['scylla-manager'] }}"
+  when: test_metrics_endpoint | bool
+
 - name: create the install directory
   file:
     path: "{{ scylla_monitoring_deploy_path }}"
@@ -126,7 +148,7 @@
   copy:
     content: |
       - targets:
-        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:5090
+        - {{ groups['scylla-manager'][0]|default('172.17.0.1') }}:{{ manager_prometheus_metrics_port }}
     dest: "{{ scylla_monitoring_config_path }}/scylla_manager_servers.yml"
     mode: '0644'
 
