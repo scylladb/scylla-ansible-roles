@@ -107,3 +107,8 @@ apt_lock_timeout: 1200
 grafana_admin_user: "admin"
 grafana_admin_password: "admin"
 # grafana_viewer_password (in case a viewer user, with username: 'viewer', should be created)
+
+# If set, the role will test the prometheus metrics endpoint for the manager and scylla nodes before starting the scylla-monitoring installation
+test_metrics_endpoint: true
+scylla_prometheus_metrics_port: 9180
+manager_prometheus_metrics_port: 5090

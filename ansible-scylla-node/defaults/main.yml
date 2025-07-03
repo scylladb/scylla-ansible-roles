@@ -193,6 +193,7 @@ scylla_dependencies:
   - wget
   - python3-yaml # this will fail on non centos systems
   - nvme-cli
+  - socat
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
@@ -531,3 +532,6 @@ sysctl:
 
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200
+
+# The role will check if these ports are reachable on all the scylla nodes before proceeding with Scylla installation
+scylla_required_ports: [9042, 9142, 7000, 7001, 10000, 19042, 19142]
