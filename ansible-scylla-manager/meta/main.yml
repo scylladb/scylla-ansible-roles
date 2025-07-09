@@ -25,6 +25,7 @@ galaxy_info:
     - scylla-manager
 
 dependencies:
+  - role: "ansible-scylla-common"
   - role: "ansible-scylla-node"
     vars:
       install_only: true

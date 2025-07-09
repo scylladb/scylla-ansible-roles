@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Vincent Reniers
+  description: Common tasks and utilities for Scylla Ansible roles
+  company: ScyllaDB
+  license: license (Apache)
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions:
+        - 20.04
+        - 22.04
+        - 24.04
+  galaxy_tags:
+    - scylla
+    - scylladb
+
+dependencies: []

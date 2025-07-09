@@ -1,0 +1,20 @@
+---
+# Disable firewall task
+- name: Disable firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined and ansible_facts.services[item]['status'] != 'not-found'
+      
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
+  become: true
