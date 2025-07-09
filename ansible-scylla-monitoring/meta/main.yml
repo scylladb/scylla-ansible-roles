@@ -26,4 +26,5 @@ galaxy_info:
     - grafana
     - docker
 
-dependencies: []
+dependencies:
+  - role: ansible-scylla-common

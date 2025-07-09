@@ -1,0 +1,13 @@
+---
+# Facts gathering
+- name: Populate service facts
+  service_facts:
+
+- name: Populate package facts
+  package_facts:
+    manager: auto
+
+# Main tasks file for ansible-scylla-common
+- name: "Include disable firewall task"
+  include_tasks: disable_firewall.yml
+  when: disable_firewall

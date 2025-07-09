@@ -1,0 +1,6 @@
+---
+# Default variables for ansible-scylla-common
+
+# Disable firewall (default is true).
+# When the deprecated variable `firewall_enabled` is present, and when this is false, the firewall will be deactivated.
+disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
