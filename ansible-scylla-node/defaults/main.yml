@@ -204,10 +204,26 @@ scylla_dependencies:
 # according to a scylla_edition value.
 # scylla_version: 'latest'
 
+# Starting from version 2025, there is a single ScyllaDB edition.
+# When using 2025, or later, please use the option 'enterprise'.
 # Options are oss|enterprise
 #scylla_edition: oss
 scylla_edition: enterprise
-scylla_package_prefix: "{{ 'scylla-enterprise' if scylla_edition == 'enterprise' else 'scylla' }}"
+
+# Calculate package prefix based on version and edition
+# Starting from version 2025, the 'scylla' or 'scylla-enterprise' package prefix can be used.
+# For versions before 2025: use legacy logic and distinction between 'scylla' and 'scylla-enterprise'
+scylla_legacy_package_prefix: "{{ 'scylla-enterprise' if scylla_edition == 'enterprise' else 'scylla' }}"
+scylla_package_prefix: >-
+  {%- if scylla_version == 'latest' -%}
+    scylla
+  {%- else -%}
+    {%- if scylla_version is version('2025.1.0', '>=') -%}
+      scylla
+    {%- else -%}
+      {{ scylla_legacy_package_prefix }}
+    {%- endif -%}
+  {%- endif -%}
 
 # Set to true if you want to allow a Role to upgrade and already installed Scylla
 skip_installed_scylla_version_check: False
