@@ -1,0 +1,41 @@
+---
+
+- name: Refresh apt cache
+  apt:
+    update_cache: yes
+  become: true
+
+- name: Install task dependencies
+  apt:
+    name:
+      - socat
+      - iproute2
+    state: present
+  become: true
+
+- name: Create temporary listeners on required ports, if needed
+  shell: |
+    if ! ss -ltn | awk '{print $4}' | grep -q ":{{ port }}$"; then
+      timeout 60 socat TCP-LISTEN:{{ port }},fork EXEC:'/bin/true'
+    fi
+  loop: "{{ ports_to_test }}"
+  loop_control:
+    loop_var: port
+  async: 70
+  poll: 0
+
+- name: Check if necessary ports are reachable from host group {{ source_host_group }}
+  wait_for:
+    host: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
+    port: "{{ item[1] }}"
+    timeout: 2
+    state: started
+  when: item[0] != inventory_hostname
+  delegate_to: "{{ item[0] }}"
+  loop: "{{ groups[source_host_group] | default([]) | product(ports_to_test) | list }}"
+
+- name: Cleanup temporary socat listeners
+  shell: |
+    pkill -9 socat$
+  ignore_errors: true
+  become: true
