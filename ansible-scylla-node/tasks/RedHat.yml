@@ -101,7 +101,7 @@
 
 - name: Install Scylla
   block:
-  - name: Install {{ scylla_edition }} Scylla
+  - name: Install {{ scylla_package_prefix }} package
     yum:
       name: "{{ scylla_package_prefix }}-{{ scylla_version_to_install }}"
       state: present
