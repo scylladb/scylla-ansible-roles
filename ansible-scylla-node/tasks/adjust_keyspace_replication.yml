@@ -43,7 +43,7 @@
     cqlsh {{ broadcast_address }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
   run_once: true
 
-- name: Run cleanup
+- name: Run cleanup for keyspace {{ _keyspace }}
   async_task:
     shell: |
       nodetool cleanup {{ _keyspace }}
@@ -56,7 +56,7 @@
 - name: Cleanup logs
   debug: var=_cleanup_output
 
-- name: Run repair
+- name: Run repair for keyspace {{ _keyspace }}
   include_tasks: repair.yml
   vars:
     keyspace: '{{ _keyspace }}'
