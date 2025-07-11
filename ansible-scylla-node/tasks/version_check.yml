@@ -1,12 +1,18 @@
 ---
-- name: Check if {{ scylla_package_prefix }} meta-package is installed
+- name: Check for installed Scylla packages and determine installed package prefix
   set_fact:
-    scylla_is_installed: "{{ true if scylla_package_prefix in ansible_facts.packages else false }}"
+    installed_scylla_package_prefix: "{{ scylla_legacy_package_prefix if scylla_legacy_package_prefix in ansible_facts.packages else scylla_package_prefix }}"
+  when: scylla_legacy_package_prefix in ansible_facts.packages or scylla_package_prefix in ansible_facts.packages
 
-- name: Get installed scylla version
+- name: Set if Scylla is installed
   set_fact:
-    installed_scylla_version: "{{ ansible_facts.packages[scylla_package_prefix][0]['version'] }}"
-  when: scylla_is_installed
+    scylla_is_installed: "{{ installed_scylla_package_prefix is defined and installed_scylla_package_prefix }}"
+
+- name: Set installed scylla version
+  set_fact:
+    installed_scylla_version: "{{ ansible_facts.packages[installed_scylla_package_prefix][0]['version']}}"
+  when:
+    - installed_scylla_package_prefix is defined
 
 - name: Initialize scylla_version_to_install to {{ scylla_version }}
   set_fact:
