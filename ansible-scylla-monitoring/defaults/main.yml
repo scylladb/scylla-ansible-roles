@@ -101,6 +101,18 @@ prometheus_url: 'https://github.com/prometheus/prometheus/releases/download/v2.3
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200
 
+# Set 'grafana_enable_https' to true for enabling HTTPS for Grafana.
+# If the specified certificate and key files are not found on the localhost,
+# a self-signed certificate will be generated at the provided paths.
+# At the end, the certificate and key will be copied to the monitoring instance
+# at the locations specified in 'grafana_cert_path' and 'grafana_cert_key_path'.
+grafana_enable_https: false
+grafana_localhost_cert_path: "{{ inventory_dir }}/ssl/grafana.crt"
+grafana_localhost_cert_key_path: "{{ inventory_dir }}/ssl/grafana.pem"
+grafana_cert_path: "{{ scylla_monitoring_config_path }}/grafana.crt"
+grafana_cert_key_path: "{{ scylla_monitoring_config_path }}/grafana.key"
+grafana_root_url: "{{ 'https://localhost:3000' if grafana_enable_https|bool else 'http://localhost:3000' }}"
+
 #####################################
 # User configuration
 ####################################

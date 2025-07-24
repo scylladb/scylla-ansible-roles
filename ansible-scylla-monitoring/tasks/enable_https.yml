@@ -1,0 +1,56 @@
+---
+- name: Check if crt and key exist in the local node
+  stat:
+    path: "{{ item }}"
+  register: _localhost_crt_and_key_exist
+  delegate_to: localhost
+  loop:
+    - "{{ grafana_localhost_cert_path }}"
+    - "{{ grafana_localhost_cert_key_path }}"
+
+- name: Check if crt and key exist in the target node
+  stat:
+    path: "{{ item }}"
+  register: _crt_and_key_exist
+  loop:
+    - "{{ grafana_cert_path }}"
+    - "{{ grafana_cert_key_path }}"
+
+- name: Fail if a remote crt/key exists but a local doesn't or if both versions exist but are different
+  fail:
+    msg: "Remote crt/key doesn't match a local one"
+  when: (_crt_and_key_exist.results[0].stat.exists and (not _localhost_crt_and_key_exist.results[0].stat.exists or
+                                                        _crt_and_key_exist.results[0].stat.checksum != _localhost_crt_and_key_exist.results[0].stat.checksum))
+        or (_crt_and_key_exist.results[1].stat.exists and (not _localhost_crt_and_key_exist.results[1].stat.exists or
+                                                           _crt_and_key_exist.results[1].stat.checksum != _localhost_crt_and_key_exist.results[1].stat.checksum))
+
+- block:
+    - name: Generate certificate and key
+      include_role:
+        name: ansible-scylla-common
+        tasks_from: generate_certificate_and_key.yml
+      vars:
+        - cert_path: "{{ grafana_localhost_cert_path }}"
+        - cert_key_path: "{{ grafana_localhost_cert_key_path }}"
+        - cert_common_name: "{{ ansible_host | default(inventory_hostname) }}"
+        - cert_basic_constraints: ['CA:FALSE']
+        - cert_key_usage: ['digitalSignature', 'keyEncipherment']
+      when: not (_localhost_crt_and_key_exist.results[0].stat.exists and _localhost_crt_and_key_exist.results[1].stat.exists)
+  delegate_to: localhost
+
+- name: Copy the certificate and key to the monitor node
+  copy:
+    src: "{{ item[0] }}"
+    dest: "{{ item[1] }}"
+    owner: root
+    group: root
+    mode: '0644'
+    force: false
+  become: true
+  loop:
+    - ["{{ grafana_localhost_cert_path }}", "{{ grafana_cert_path }}"]
+    - ["{{ grafana_localhost_cert_key_path }}", "{{ grafana_cert_key_path }}"]
+
+- name: Update monitoring params
+  set_fact:
+    _scylla_monitoring_params: "{{ _scylla_monitoring_params }} -c GF_SERVER_PROTOCOL=https -D \" -v {{ grafana_cert_path }}:{{ grafana_cert_path }} -v {{ grafana_cert_key_path }}:{{ grafana_cert_key_path }}\" -c GF_SERVER_CERT_FILE=\"{{ grafana_cert_path }}\" -c GF_SERVER_CERT_KEY=\"{{ grafana_cert_key_path }}\""

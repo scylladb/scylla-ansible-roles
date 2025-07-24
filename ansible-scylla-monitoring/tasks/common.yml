@@ -282,3 +282,12 @@
         msg: "Can't auto-detect Scylla dashboard version. Either specify it explicitly or install scylla on the first Scylla node."
       when: _scylla_version_out.stdout == ''
   when: (_scylla_monitoring_dashboards_versions|length == 0) and 'scylla' in groups and (groups['scylla']|length > 0)
+
+- name: Enable HTTPs
+  include_tasks: enable_https.yml
+  when: grafana_enable_https is defined and grafana_enable_https|bool
+
+- name: Add grafana URL to monitoring params
+  set_fact:
+    _scylla_monitoring_params: "{{ _scylla_monitoring_params }} -c GF_SERVER_ROOT_URL={{ grafana_root_url }}"
+  when: grafana_root_url is defined
