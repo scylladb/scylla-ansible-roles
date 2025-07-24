@@ -1,0 +1,67 @@
+---
+
+# This task facilitates the generation of SSL certificates.
+# It allows the generation of self-signed certificates or certificates signed with a provided CA.
+#
+# Mandatory params:
+# - cert_path: The path where the certificate should be generated
+# - cert_key_path: The path where the certificate key should be generated
+# - cert_common_name: The common name that should be set in the certificate
+# - cert_basic_constraints: A list with the basic constraints that should be set in the certificate. e.g.: ["CA:TRUE"] -> https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
+# - cert_key_usage: A list with the key usages of the key in the certificate. e.g.: ['digitalSignature', 'keyEncipherment'] -> https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.3
+
+# Optional params:
+# - ca_path: The path to the CA certificate to use for signing the generated certificate. If not provided, the task will generate a self signed certificate.
+# - ca_key_path: The path to the private key corresponding to the CA certificate. This field becomes mandatory if 'ca_path' is defined.
+
+- name: Create cert dir
+  file:
+    path: "{{ cert_path | dirname }}"
+    state: directory
+
+- name: Check if certificate and key already exist
+  stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ cert_path }}"
+    - "{{ cert_key_path }}"
+  register: _cert_and_key_files
+
+- name: Fail if certificate exists but key doesn't
+  fail:
+    msg: "A certificate already exists but a corresponding key doesn't"
+  when: _cert_and_key_files.results[0].stat.exists and not _cert_and_key_files.results[1].stat.exists
+
+- name: Generate an OpenSSL private key
+  openssl_privatekey:
+    path: "{{ cert_key_path }}"
+    regenerate: never
+
+- name: Generate an OpenSSL Certificate Signing Request
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ cert_key_path }}"
+    common_name: "{{ cert_common_name }}"
+    use_common_name_for_san: false
+    basic_constraints: "{{ cert_basic_constraints }}"
+    basic_constraints_critical: yes
+    key_usage: "{{ cert_key_usage }}"
+    key_usage_critical: true
+  register: _csr
+
+- name: Generate a Self Signed OpenSSL certificate
+  community.crypto.x509_certificate:
+    path: "{{ cert_path }}"
+    privatekey_path: "{{ cert_key_path }}"
+    csr_content: "{{ _csr.csr }}"
+    provider: selfsigned
+  when: ca_path is not defined
+
+- name: Generate a OpenSSL certificate signed by a local CA
+  community.crypto.x509_certificate:
+    path: "{{ cert_path }}"
+    privatekey_path: "{{ cert_key_path }}"
+    csr_content: "{{ _csr.csr }}"
+    ownca_path: "{{ ca_path }}"
+    ownca_privatekey_path: "{{ ca_key_path }}"
+    provider: ownca
+  when: ca_path is defined
