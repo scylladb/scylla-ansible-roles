@@ -39,7 +39,7 @@
 
 
 # Unhold Scylla package in case it's marked as 'hold'
-- name: Unhold Scylla package
+- name: Unhold package name {{ scylla_detected['package_name'] }}*
   ansible.builtin.dpkg_selections:
     name: "{{ scylla_detected['package_name'] }}*"
     selection: install
