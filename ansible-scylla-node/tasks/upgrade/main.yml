@@ -112,22 +112,32 @@
 # Scylla information
 - name: Gather information about Scylla installation
   vars:
-    is_oss_installed: "{{ true if 'scylla' in ansible_facts.packages else false }}"
-    is_enterprise_installed: "{{ true if 'scylla-enterprise' in ansible_facts.packages else false }}"
-    is_scylla_installed: "{{ is_oss_installed or is_enterprise_installed }}"
-    edition_installed: "{{ 'oss' if is_oss_installed else 'enterprise' }}"
-    package_installed: "{{ 'scylla' if is_oss_installed else 'scylla-enterprise' }}"
+    has_scylla_package: "{{ 'scylla' in ansible_facts.packages }}"
+    has_scylla_enterprise_package: "{{ 'scylla-enterprise' in ansible_facts.packages }}"
+    # Determine which package to use for version detection
+    package_installed: "{{ 'scylla-enterprise' if has_scylla_enterprise_package else 'scylla' }}"
     full_version: "{{ ansible_facts.packages[package_installed][0].version }}"
     full_version_split: "{{ (full_version.split('-')[0]).split('.') }}"
+    # Determine edition based on package name and version:
+    # - OSS only exists for versions < 2025 and uses 'scylla' package
+    # - Enterprise uses 'scylla-enterprise' for versions < 2025, 'scylla' for versions >= 2025
+    edition_installed: >-
+      {%- if has_scylla_enterprise_package -%}
+        enterprise
+      {%- elif has_scylla_package and (full_version is version('2025', '<')) -%}
+        oss
+      {%- else -%}
+        enterprise
+      {%- endif -%}
   ansible.builtin.set_fact:
     scylla_detected: {
       edition: "{{ edition_installed }}",
-      edition_friendly_name: "{{ 'Open Source' if is_oss_installed else 'Enterprise' }}",
+      edition_friendly_name: "{{ 'Open Source' if edition_installed == 'oss' else 'Enterprise' }}",
       package_name: "{{ package_installed }}",
       version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}.{{ full_version_split[2] }}",
       major_version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}"
     }
-  when: is_scylla_installed
+  when: "{{ has_scylla_package or has_scylla_enterprise_package }}"
 
 - name: Scylla detection problem
   ansible.builtin.fail:
@@ -153,14 +163,13 @@
 # Scylla upgrade information
 - name: Gather information about Scylla upgrade
   vars:
-    is_oss_selected: "{{ true if scylla_edition == 'oss' else false }}"
     final_version: "{{ scylla_version_to_install }}"
     final_version_split: "{{ (final_version.split('-')[0]).split('.') }}"
   ansible.builtin.set_fact:
     # If this fact should be updated later, it should be updated entirely due to its structure
     scylla_upgrade: {
       edition: "{{ scylla_edition }}",
-      edition_friendly_name: "{{ 'Open Source' if is_oss_selected else 'Enterprise' }}",
+      edition_friendly_name: "{{ 'Open Source' if scylla_edition == 'oss' else 'Enterprise' }}",
       full_version: "{{ final_version }}",
       version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}.{{ final_version_split[2] }}",
       major_version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}",
