@@ -168,15 +168,13 @@
       upgrade: true
     }
 
-
-# Scylla version validation
 - name: Check if Scylla version was specified incorrectly
   vars:
     version_format: "{{ 'X.Y.Z' if scylla_upgrade['edition'] == 'oss' else 'UVWX.Y.Z' }}"
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} is incomplete and can't be used for a minor upgrade. Version format is: '{{ version_format }}'."
   when:
-    - scylla_upgrade['version'] == scylla_upgrade['major_version']
+    - scylla_upgrade['major_version'] != scylla_detected['major_version']
     - not upgrade_major
 
 - name: Check if specified Scylla version can not be used as major upgrade
