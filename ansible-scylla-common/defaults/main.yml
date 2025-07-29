@@ -12,3 +12,6 @@ disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
 # required_ports_open_to:
 #   group_1: []
 #   group_2: []
+
+# Default time-out to wait on acquiring an APT lock.
+apt_lock_timeout: 1200
