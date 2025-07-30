@@ -274,28 +274,40 @@ scylla_yaml_params:
   authenticator: PasswordAuthenticator
   internode_compression: all
 
-# SSL configuration for Scylla nodes:
-# localhost_cert_path and localhost_cert_key_path are the paths where the certificates and keys will be stored in the localhost before they're coppied to the nodes.
-# cert_path is the path where the certificates will be placed in the scylla nodes.
-# localhost_truststore_path is the path to the truststore that should be coppied to the nodes. You can remove this variable if you don't want to provide a truststore.
-# If no certificates are present, this playbook will generate a selfsigned CA and node certificates locally and push them out to all the nodes.
-# WARNING: if certs are no given by the user they will be automatically generated if scylla_ssl is enabled and certificates on the nodes can get overwritten
-# To use existing certificates:
-# 1. To use your own CA, place it in ${inventory_dir}/ssl/ca/{{ scylla_cluster_name }}-ca.crt and its respective key in
-# ${inventory_dir}/ssl/ca/{{ scylla_cluster_name }}-ca.pem and derived per-node certificates will be generated from it, if they are not present.
-# 2. To use your own node certificates and keys, just place them in 'localhost_cert_path' and 'localhost_cert_key_path'
-# To skip this configuration entirely, set enabled: false for both options
-scylla_ssl:
-  localhost_cert_path: "{{ inventory_dir }}/ssl/scylla.crt"
-  localhost_cert_key_path: "{{ inventory_dir }}/scylla.pem"
-  localhost_truststore_path: "{{ inventory_dir }}/ssl/scylla.crt"
-  localhost_ca_cert_path: "{{ inventory_dir }}/ssl/ca/"
-  cert_path: /etc/scylla
-  internode:
-    enabled: true
-    internode_encryption: all
-  client:
-    enabled: true
+# The 'scylla_ssl' dict is deprecated and will be removed soon.
+# You should use the 'ssl_*' vars instead.
+#
+# scylla_ssl:
+#   localhost_cert_path: "{{ inventory_dir }}/ssl/scylla.crt"
+#   localhost_cert_key_path: "{{ inventory_dir }}/scylla.pem"
+#   localhost_truststore_path: "{{ inventory_dir }}/ssl/truststore.crt"
+#   localhost_ca_cert_path: "{{ inventory_dir }}/ssl/ca/"
+#   cert_path: /etc/scylla
+#   internode:
+#     enabled: true
+#     internode_encryption: all
+#   client:
+#     enabled: true
+
+ssl_internode_enabled: "{{ (scylla_ssl | default({})).internode.enabled | default(true) }}"
+ssl_internode_encryption: all
+ssl_client_enabled: "{{ (scylla_ssl | default({})).client.enabled | default(true) }}"
+
+# If ssl_internode_enabled and/or ssl_client_enabled are true, these variables define the local paths where
+# certificates and keys will be stored before being copied to the target nodes.
+# The role will automatically generate the certificates and keys and store them at these paths.
+# Alternatively, you can provide your own certificates, and the role will use those instead of generating new ones.
+ssl_localhost_cert_path: "{{ (scylla_ssl | default({})).localhost_cert_path | default(inventory_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.crt') }}"
+ssl_localhost_cert_key_path: "{{ (scylla_ssl | default({})).localhost_cert_key_path | default(inventory_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.pem') }}"
+ssl_localhost_ca_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+ssl_localhost_ca_key_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+ssl_localhost_truststore_path: "{{ (scylla_ssl | default({})).localhost_truststore_path | default(ssl_localhost_ca_path) }}"
+
+# These variables define the remote paths where the certificates and keys will be copied to.
+ssl_cert_dir: "/etc/scylla"
+ssl_cert_path: "{{ (scylla_ssl | default({})).cert_path | default(ssl_cert_dir) }}/{{ ssl_localhost_cert_path | basename }}"
+ssl_cert_key_path: "{{ (scylla_ssl | default({})).cert_path | default(ssl_cert_dir) }}/{{ ssl_localhost_cert_key_path | basename }}"
+ssl_truststore_path: "{{ (scylla_ssl | default({})).cert_path | default (ssl_cert_dir) }}/truststore.crt"
 
 # Two types of encryption keys are available: System Keys and Table Keys.
 
