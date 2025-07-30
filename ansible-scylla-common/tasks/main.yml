@@ -12,12 +12,17 @@
   include_tasks: disable_firewall.yml
   when: disable_firewall
 
-- name: "Include check ports task"
-  include_tasks: check_ports.yml
-  vars:
-    source_host_group: "{{ required_ports_dict_item.key }}"
-    ports_to_test: "{{ required_ports_dict_item.value }}"
-  when: required_ports_open_to is defined
-  loop_control:
-    loop_var: required_ports_dict_item
-  loop: "{{ required_ports_open_to | dict2items }}"
+- block:
+    - name: "Include check ports task"
+      include_tasks: check_ports.yml
+      vars:
+        source_host_group: "{{ required_ports_dict_item.key }}"
+        ports_to_test: "{{ required_ports_dict_item.value }}"
+      when: required_ports_open_to is defined
+      loop_control:
+        loop_var: required_ports_dict_item
+      loop: "{{ required_ports_open_to | dict2items }}"
+
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"
