@@ -16,12 +16,12 @@
 - name: Create temporary listeners on required ports, if needed
   shell: |
     if ! ss -ltn | awk '{print $4}' | grep -q ":{{ port }}$"; then
-      timeout 60 socat TCP-LISTEN:{{ port }},fork EXEC:'/bin/true'
+      timeout {{ check_ports_listener_timeout | int }} socat TCP-LISTEN:{{ port }},fork EXEC:'/bin/true'
     fi
   loop: "{{ ports_to_test }}"
   loop_control:
     loop_var: port
-  async: 70
+  async: "{{ (check_ports_listener_timeout | int) + 10 }}"
   poll: 0
 
 - name: Check if necessary ports are reachable from host group {{ source_host_group }}
