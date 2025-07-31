@@ -119,14 +119,19 @@
     remote_src: yes
   become: true
 
+- name: Find Scylla system-wide configuration files
+  ansible.builtin.find:
+    paths: "/etc/{{ system_config_folder }}"
+    patterns: "scylla*"
+    file_type: file
+  register: scylla_config_files
+  become: true
+
 - name: Backup Scylla system-wide configuration files
   ansible.builtin.copy:
-    src: "/etc/{{ system_config_folder }}/{{ item }}"
-    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/{{ system_config_folder }}/{{ item }}"
-    directory_mode: yes
+    src: "{{ item.path }}"
+    dest: "{{ upgrade_backup_path }}/{{ scylla_upgrade['id'] }}/etc/{{ system_config_folder }}/{{ item.path | basename }}"
     mode: preserve
     remote_src: yes
   become: true
-  loop:
-    - "scylla-server"
-    - "scylla-jmx"
+  loop: "{{ scylla_config_files.files }}"

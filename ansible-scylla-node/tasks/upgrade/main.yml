@@ -15,14 +15,14 @@
         '9': {
           minimum_version: '9.0',
           template: 'redhat',
-          oss: [ '6.1', '6.2' ],
-          enterprise: [ '2025.1', '2024.2', '2024.1' ]
+          oss: [ '6.2', '6.1' ],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1' ]
         },
         '8': {
           minimum_version: '8.0',
           template: 'redhat',
-          oss: ['6.1', '6.2', '4.4','4.3','4.2','4.1'],
-          enterprise: ['2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1','2020.1']
+          oss: ['6.2', '6.1', '4.4','4.3','4.2','4.1'],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1','2020.1']
         },
         '7': {
           minimum_version: '7.3',
@@ -36,8 +36,8 @@
         '11': {
           minimum_version: '11',
           template: 'debian',
-          oss: [ '6.1', '6.2' ],
-          enterprise: [ '2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1','2020.1' ]
+          oss: [ '6.2', '6.1' ],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1','2020.1' ]
         },
         '10': {
           minimum_version: '10',
@@ -57,20 +57,20 @@
         '24': {
           minimum_version: '24.04',
           template: 'ubuntu',
-          oss: [ '6.1', '6.2' ],
-          enterprise: [ '2025.1', '2024.2', '2024.1' ]
+          oss: [ '6.2', '6.1' ],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1' ]
         },
         '22': {
           minimum_version: '22.04',
           template: 'ubuntu',
-          oss: ['6.1', '6.2', '5.4','5.2','5.1','5.0'],
-          enterprise: ['2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1']
+          oss: ['6.2', '6.1', '5.4','5.2','5.1','5.0'],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1']
         },
         '20': {
           minimum_version: '20.04',
           template: 'ubuntu',
-          oss: ['6.1', '6.2', '5.4','5.2','5.1','5.0','4.4','4.3'],
-          enterprise: ['2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1']
+          oss: ['6.2', '6.1', '5.4','5.2','5.1','5.0','4.4','4.3'],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1','2023.1','2022.2','2022.1','2021.1']
         },
         '18': {
           minimum_version: '18.04',
@@ -90,14 +90,14 @@
         '9': {
           minimum_version: '9.0',
           template: 'redhat',
-          oss: [ '6.1', '6.2' ],
-          enterprise: [ '2025.1', '2024.2', '2024.1' ]
+          oss: [ '6.2', '6.1' ],
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1' ]
         },
         '8': {
           minimum_version: '8.0',
           template: 'redhat',
           oss: ['5.4','5.2','5.1','5.0','4.4','4.3','4.2','4.1'],
-          enterprise: ['2025.1', '2024.2', '2024.1','2022.2','2022.1','2021.1','2020.1']
+          enterprise: ['2025.2', '2025.1', '2024.2', '2024.1','2022.2','2022.1','2021.1','2020.1']
         },
         '7': {
           minimum_version: '7.2',
@@ -112,185 +112,123 @@
 # Scylla information
 - name: Gather information about Scylla installation
   vars:
-    is_oss_installed: "{{ true if 'scylla' in ansible_facts.packages else false }}"
-    is_enterprise_installed: "{{ true if 'scylla-enterprise' in ansible_facts.packages else false }}"
-    is_scylla_installed: "{{ is_oss_installed or is_enterprise_installed }}"
-    edition_installed: "{{ 'oss' if is_oss_installed else 'enterprise' }}"
-    package_installed: "{{ 'scylla' if is_oss_installed else 'scylla-enterprise' }}"
+    has_scylla_package: "{{ 'scylla' in ansible_facts.packages }}"
+    has_scylla_enterprise_package: "{{ 'scylla-enterprise' in ansible_facts.packages }}"
+    # Determine which package to use for version detection
+    package_installed: "{{ 'scylla-enterprise' if has_scylla_enterprise_package else 'scylla' }}"
     full_version: "{{ ansible_facts.packages[package_installed][0].version }}"
     full_version_split: "{{ (full_version.split('-')[0]).split('.') }}"
+    # Determine edition based on package name and version:
+    # - OSS only exists for versions < 2025 and uses 'scylla' package
+    # - Enterprise uses 'scylla-enterprise' for versions < 2025, 'scylla' for versions >= 2025
+    edition_installed: >-
+      {%- if has_scylla_enterprise_package -%}
+        enterprise
+      {%- elif has_scylla_package and (full_version is version('2025', '<')) -%}
+        oss
+      {%- else -%}
+        enterprise
+      {%- endif -%}
   ansible.builtin.set_fact:
     scylla_detected: {
       edition: "{{ edition_installed }}",
-      edition_friendly_name: "{{ 'Open Source' if is_oss_installed else 'Enterprise' }}",
+      edition_friendly_name: "{{ 'Open Source' if edition_installed == 'oss' else 'Enterprise' }}",
       package_name: "{{ package_installed }}",
       version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}.{{ full_version_split[2] }}",
       major_version: "{{ full_version_split[0] }}.{{ full_version_split[1] }}"
     }
-  when: is_scylla_installed
+  when: "{{ has_scylla_package or has_scylla_enterprise_package }}"
 
 - name: Scylla detection problem
   ansible.builtin.fail:
     msg: "Scylla was not detected."
   when: scylla_detected is not defined
 
-
-# Scylla installation validation
-- name: Check existing Scylla installation operating system incompatibility
-  ansible.builtin.fail:
-    msg: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} is not supported."  
-  when: >
-      ansible_facts['distribution'] |lower not in scylla_support or
-      scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']] is not defined or
-      ansible_facts['distribution_version'] is version(scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']]['minimum_version'],'<')
-
-- name: Check existing Scylla installation edition and version incompatibility
-  ansible.builtin.fail:
-    msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ scylla_detected['version'] }} is not supported."
-  when: scylla_detected['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_detected['edition']]
-
-
 # Scylla upgrade information
 - name: Gather information about Scylla upgrade
   vars:
-    is_oss_selected: "{{ true if scylla_edition == 'oss' else false }}"
     final_version: "{{ scylla_version_to_install }}"
     final_version_split: "{{ (final_version.split('-')[0]).split('.') }}"
   ansible.builtin.set_fact:
     # If this fact should be updated later, it should be updated entirely due to its structure
     scylla_upgrade: {
       edition: "{{ scylla_edition }}",
-      edition_friendly_name: "{{ 'Open Source' if is_oss_selected else 'Enterprise' }}",
+      edition_friendly_name: "{{ 'Open Source' if scylla_edition == 'oss' else 'Enterprise' }}",
       full_version: "{{ final_version }}",
       version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}.{{ final_version_split[2] }}",
       major_version: "{{ final_version_split[0] }}.{{ final_version_split[1] }}",
       id: "{{ ansible_date_time.epoch }}",
-      upgrade: true
     }
 
-
-# Scylla version validation
 - name: Check if Scylla version was specified incorrectly
   vars:
     version_format: "{{ 'X.Y.Z' if scylla_upgrade['edition'] == 'oss' else 'UVWX.Y.Z' }}"
   ansible.builtin.fail:
     msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} is incomplete and can't be used for a minor upgrade. Version format is: '{{ version_format }}'."
   when:
-    - scylla_upgrade['version'] == scylla_upgrade['major_version']
+    - scylla_upgrade['major_version'] != scylla_detected['major_version']
     - not upgrade_major
 
-- name: Check if specified Scylla version can not be used as major upgrade
+# Verify no downgrade
+- name: Downgrade is not yet supported
   ansible.builtin.fail:
-    msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a major upgrade since version detected is {{ scylla_detected['version'] }}."
-  when: >
-      upgrade_major and not upgrade_force and
-      (scylla_detected['version'] == scylla_upgrade['version'] or
-      scylla_detected['major_version'] == scylla_upgrade['major_version'])
+    msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ scylla_detected['version'] }} is installed and you are trying to downgrade to {{ scylla_upgrade['version'] }}, but downgrading is not allowed."
+  when:
+    - scylla_upgrade['version'] is version(scylla_detected['version'],'<')
+    - not upgrade_allow_user_manual_downgrade
 
-- name: Check if specified Scylla version can not be used as minor upgrade
-  ansible.builtin.fail:
-    msg: "Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} can't be used as a minor upgrade since version detected is {{ scylla_detected['version'] }}."
-  when: >
-      not upgrade_major and not upgrade_force and
-      (scylla_detected['version'] == scylla_upgrade['version'] or
-      scylla_detected['major_version'] != scylla_upgrade['major_version'])
-
-
-# Scylla upgrade validation and downgrade protection
-- name: Check Scylla upgrade validation and downgrade protection
+# Scylla upgrade validation and compatibility checks
+- name: Validate upgrade compatibility
   block:
+    # Scylla installation validation
+    - name: Check existing Scylla installation operating system incompatibility
+      ansible.builtin.fail:
+        msg: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} is not supported."  
+      when: >
+          ansible_facts['distribution'] |lower not in scylla_support or
+          scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']] is not defined or
+          ansible_facts['distribution_version'] is version(scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']]['minimum_version'],'<')
+
+    - name: Check existing Scylla installation edition and version incompatibility
+      ansible.builtin.fail:
+        msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ scylla_detected['version'] }} is not supported."
+      when: scylla_detected['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_detected['edition']]
+
+    - name: Check Scylla cross-edition upgrade validation and downgrade protection
+      ansible.builtin.fail:
+        msg: "Cross-edition downgrade/upgrade is not implemented yet."
+      when:
+        - scylla_upgrade['edition'] != scylla_detected['edition']
+
+    - name: Check if specified Scylla version is invalid for upgrade type
+      ansible.builtin.fail:
+        msg: >-
+          Version {{ scylla_upgrade['version'] }} specified for Scylla {{ scylla_upgrade['edition_friendly_name'] }} 
+          can't be used as a {{ 'major' if upgrade_major else 'minor' }} upgrade since version detected is {{ scylla_detected['version'] }}.
+      when: >
+          scylla_detected['version'] == scylla_upgrade['version'] or 
+          (upgrade_major and scylla_detected['major_version'] == scylla_upgrade['major_version']) or
+          (not upgrade_major and scylla_detected['major_version'] != scylla_upgrade['major_version'])
+
     - name: Check Scylla upgrade edition and version compatibility
       ansible.builtin.fail:
         msg: "Scylla {{ scylla_upgrade['edition_friendly_name'] }} {{ scylla_upgrade['major_version'] }} is not supported, thus it can't be used as upgrade."
       when:
         - scylla_upgrade['major_version'] not in scylla_support[ansible_facts['distribution'] |lower][ansible_facts['distribution_major_version']][scylla_upgrade['edition']]
 
-    - name: Check if selected Scylla version is an upgrade or downgrade
-      vars:
-        detected_version: "{{ scylla_detected['major_version'] if upgrade_major else scylla_detected['version'] }}"
-        upgraded_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
-      ansible.builtin.set_fact:
-        scylla_upgrade: {
-          edition: "{{ scylla_upgrade['edition'] }}",
-          edition_friendly_name: "{{ scylla_upgrade['edition_friendly_name'] }}",
-          version: "{{ scylla_upgrade['version'] }}",
-          major_version: "{{ scylla_upgrade['major_version'] }}",
-          id: "{{ scylla_upgrade['id'] }}",
-          upgrade: false
-        }
-      when: upgraded_version is version(detected_version,'<')
-
-    - name: Check if downgrading is not allowed
-      ansible.builtin.fail:
-        msg: "Downgrade feature it not implemented yet."
-      # vars:
-      #   detected_version: "{{ scylla_detected['major_version'] if upgrade_major else scylla_detected['version'] }}"
-      #   upgraded_version: "{{ scylla_upgrade['major_version'] if upgrade_major else scylla_upgrade['version'] }}"
-      # ansible.builtin.fail:
-      #   msg: "Scylla {{ scylla_detected['edition_friendly_name'] }} {{ detected_version }} is installed and you are trying to downgrade to {{ upgraded_version }}, but downgrading is not allowed."
-      when:
-        - not scylla_upgrade['upgrade']
-        - not upgrade_allow_user_manual_downgrade
-
-    - name: Set baseline about versions
-      ansible.builtin.set_fact:
-        scylla_upgrade_version_fix: false
-    
-    - name: Verify relation between versions
+    # Verify upgrade path
+    - name: Verify upgrade is to the next closest major version
       vars:
         distro_name: "{{ ansible_facts['distribution'] |lower }}"
         distro_version: "{{ ansible_facts['distribution_major_version'] }}"
         detected_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_detected['edition']], 'eq', scylla_detected['major_version']) }}"
         upgrade_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_upgrade['edition']], 'eq', scylla_upgrade['major_version']) }}"
-      ansible.builtin.set_fact:
-        scylla_upgrade_version_fix: true
-      when: (upgrade_version_index |int - detected_version_index|int) |abs > 1
-
-    - name: Check if the upgrade can not be straightly applied
       ansible.builtin.fail:
         msg: "Version {{ scylla_detected['major_version'] }} can't be upgraded straightly to {{ scylla_upgrade['major_version'] }}."
-      when:
-        - scylla_upgrade_version_fix
-        - not upgrade_autocorrect_version
-
-    - name: Check the next available upgrade for existing Scylla installation
-      vars:
-        distro_name: "{{ ansible_facts['distribution'] |lower }}"
-        distro_version: "{{ ansible_facts['distribution_major_version'] }}"
-        index_delta: "{{ -1 if scylla_upgrade['upgrade'] else 1 }}"
-        detected_version_index: "{{ lookup('ansible.utils.index_of', scylla_support[distro_name][distro_version][scylla_detected['edition']], 'eq', scylla_detected['major_version']) }}"
-        next_available_upgrade_version_index: "{{ detected_version_index |int + index_delta |int }}"
-        next_available_upgrade_version: "{{ scylla_support[distro_name][distro_version][scylla_upgrade['edition']][next_available_upgrade_version_index |int:] |first }}"
-      ansible.builtin.set_fact:
-        scylla_upgrade: {
-          edition: "{{ scylla_upgrade['edition'] }}",
-          edition_friendly_name: "{{ scylla_upgrade['edition_friendly_name'] }}",
-          version: "{{ next_available_upgrade_version }}",
-          major_version: "{{ next_available_upgrade_version.split('.')[0] }}.{{ next_available_upgrade_version.split('.')[1] }}",
-          id: "{{ scylla_upgrade['id'] }}",
-          upgrade: "{{ scylla_upgrade['upgrade'] }}"
-        }
-      when:
-        - scylla_upgrade_version_fix
-        - upgrade_autocorrect_version
-        - next_available_upgrade_version_index |int >= 0
-        - next_available_upgrade_version_index |int < (scylla_support[distro_name][distro_version][scylla_upgrade['edition']] | length)
-
-    - name: Check if the upgrade version was automatically modified
-      ansible.builtin.debug:
-        msg: "Scylla upgrade version was modified to {{ scylla_upgrade['version'] }}"
-      when: scylla_upgrade_version_fix
-  when: scylla_upgrade['edition'] == scylla_detected['edition']
-
-
-# ----- TODO: Scylla cross-edition upgrade validation and downgrade protection -----
-- name: Check Scylla cross-edition upgrade validation and downgrade protection
-  ansible.builtin.fail:
-    msg: "Cross-edition downgrade/upgrade is not implemented yet."
-  when:
-    - scylla_upgrade['edition'] != scylla_detected['edition']
-    - upgrade_major
-    - upgrade_cross_edition
+      when: 
+        - (upgrade_version_index |int - detected_version_index|int) |abs > 1
+        - not upgrade_skip_upgrade_path_validation
+  when: not upgrade_skip_validation
 
 
 # Upgrade

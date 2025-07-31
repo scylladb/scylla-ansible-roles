@@ -17,11 +17,21 @@ upgrade_version: false
 #  true: 'major' upgrade
 upgrade_major: false
 
-# Defines if the upgrade process must be forced
+# Define if upgrade validation checks are skipped.
+# - minor or major version upgrade verification
+# - check if upgrade is to the closest subsequent major version
 # Values:
 #  [default] true: always upgrade even if the same version is installed
 #  false: don't do anything
-upgrade_force: true
+upgrade_skip_validation: false
+
+# Skips the specific upgrade path version check. When upgrade_skip_validation is set to true, this validation is skipped as well.
+# This checks if for a major upgrade that if it will upgrade to the next major version.
+# E.g. 2024.1 -> 2024.2
+# Values:
+#  [default] false: Check upgrade path for major upgrades
+#  false: Skip upgrade path check
+upgrade_skip_upgrade_path_validation: false
 
 # Defines if the upgrade process should rollback on failure
 # Values:
@@ -40,12 +50,6 @@ upgrade_cross_edition: false
 #  [default] false: manual downgrade not allowed
 #  true: manual downgrade allowed (FOR EXPERIENCED USERS ONLY!)
 upgrade_allow_user_manual_downgrade: false
-
-# Defines if the version specified should be changed in case a straight upgrade is not possible
-# Values:
-#  [default] true: automatically change the upgrade version
-#  false: keep the specified version
-upgrade_autocorrect_version: true
 
 # Defines if snapshots should be generated before starting the upgrade
 # Values:
@@ -204,10 +208,26 @@ scylla_dependencies:
 # according to a scylla_edition value.
 # scylla_version: 'latest'
 
+# Starting from version 2025, there is a single ScyllaDB edition.
+# When using 2025, or later, please use the option 'enterprise'.
 # Options are oss|enterprise
 #scylla_edition: oss
 scylla_edition: enterprise
-scylla_package_prefix: "{{ 'scylla-enterprise' if scylla_edition == 'enterprise' else 'scylla' }}"
+
+# Calculate package prefix based on version and edition
+# Starting from version 2025, the 'scylla' or 'scylla-enterprise' package prefix can be used.
+# For versions before 2025: use legacy logic and distinction between 'scylla' and 'scylla-enterprise'
+scylla_legacy_package_prefix: "{{ 'scylla-enterprise' if scylla_edition == 'enterprise' else 'scylla' }}"
+scylla_package_prefix: >-
+  {%- if scylla_version == 'latest' -%}
+    scylla
+  {%- else -%}
+    {%- if scylla_version is version('2025.1.0', '>=') -%}
+      scylla
+    {%- else -%}
+      {{ scylla_legacy_package_prefix }}
+    {%- endif -%}
+  {%- endif -%}
 
 # Set to true if you want to allow a Role to upgrade and already installed Scylla
 skip_installed_scylla_version_check: False

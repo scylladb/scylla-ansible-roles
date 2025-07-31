@@ -4,14 +4,12 @@
 #  remote_user: scylla
   gather_facts: yes
   serial: 1
-
   vars:
-    - upgrade_version: true
-    - upgrade_major: true
-    - skip_installed_scylla_version_check: true
-#    - scylla_edition: enterprise
-#    - scylla_version: latest
-
+    upgrade_version: true
+    upgrade_major: true
+    skip_installed_scylla_version_check: true
+#     scylla_edition: enterprise
+#     scylla_version: latest
   roles:
     - ansible-scylla-node
 
