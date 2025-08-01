@@ -43,26 +43,26 @@ murmur3_partitioner_ignore_msb_bits: 12
 api_ui_dir: /opt/scylladb/swagger-ui/dist/
 api_doc_dir: /opt/scylladb/api/api-doc/
 
-{% if scylla_ssl is defined and scylla_ssl.client.enabled %}
+{% if ssl_client_enabled|bool %}
 native_transport_port_ssl: 9142
 native_shard_aware_transport_port_ssl: 19142
 
 client_encryption_options:
     enabled: true
-    certificate: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_path | basename }}
-    keyfile: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_key_path | basename }}
+    certificate: {{ ssl_cert_path }}
+    keyfile: {{ ssl_cert_key_path }}
 {% if _truststore_exists %}
-    truststore: {{ scylla_ssl.cert_path }}/truststore.crt
+    truststore: {{ ssl_truststore_path }}
 {% endif %}
 {% endif %}
 
-{% if scylla_ssl is defined and scylla_ssl.internode.enabled %}
+{% if ssl_internode_enabled|bool %}
 server_encryption_options:
-    internode_encryption: {{ scylla_ssl.internode.internode_encryption }}
-    certificate: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_path | basename }}
-    keyfile: {{ scylla_ssl.cert_path }}/{{ _localhost_cert_key_path | basename }}
+    internode_encryption: {{ ssl_internode_encryption }}
+    certificate: {{ ssl_cert_path }}
+    keyfile: {{ ssl_cert_key_path }}
 {% if _truststore_exists %}
-    truststore: {{ scylla_ssl.cert_path }}/truststore.crt
+    truststore: {{ ssl_truststore_path }}
 {% endif %}
 {% endif %}
 {% if handle_system_keys|bool %}

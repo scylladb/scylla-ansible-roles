@@ -213,10 +213,7 @@
 
 - name: enable ssl options
   include_tasks: ssl.yml
-  when:
-    - scylla_ssl is defined
-    - (scylla_ssl.internode.enabled|bool) or
-      (scylla_ssl.client.enabled|bool)
+  when: ssl_internode_enabled|bool or ssl_client_enabled|bool
 
 - name: configure scylla.yaml
   template:
