@@ -565,5 +565,5 @@ sysctl:
 apt_lock_timeout: 1200
 
 required_ports_open_to:
-  scylla: [9042, 9142, 7000, 7001, 19042, 19142]
+  scylla: [7000, 7001]
   scylla-monitor: [9180]
