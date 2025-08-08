@@ -12,6 +12,12 @@ internal_users:
     superuser: false
     permissions:
       - ['SELECT', 'KEYSPACE SYSTEM']
+  scylla_cql_manager:
+    superuser: false
+    permissions:
+    - ['DESCRIBE', 'ALL ROLES']
+    - ['SELECT', 'KEYSPACE system']
+    - ['SELECT', 'KEYSPACE system_schema']
 
 # Differently from internal users, the password for customer users
 # must be defined only here, and not in the inventory.
