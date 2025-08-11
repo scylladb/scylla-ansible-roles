@@ -18,3 +18,6 @@ check_ports_listener_timeout: 360
 
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200
+
+# Create a /etc/apt/apt.conf.d/99locktimeout file that sets the Dpkg::Lock::Timeout value
+apt_lock_create_config: false
