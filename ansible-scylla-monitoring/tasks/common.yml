@@ -115,13 +115,21 @@
       set_fact:
         dc_to_node_list: {}
 
-    # Resulting map -> {'dc1': [node1:label1, node2:label2, node3:label3], 'dc2': [node4:label4, node5:label5, node6:label6]}
+    - name: Define alias separator for genconfig
+      set_fact:
+        alias_separator: "#"
+
+    - name: Define if an alias should be used for the nodes
+      set_fact:
+        use_alias: "{{ _monitoring_version is version('4.11.1', '>=') }}"
+
+    # Resulting map -> {'dc1': [node1#label1, node2#label2, node3#label3], 'dc2': [node4#label4, node5#label5, node6#label6]}
     - name: Create a map from dc to its list of nodes
       set_fact:
         dc_to_node_list: "{{ dc_to_node_list | combine( {dc_key: dc_to_node_list[dc_key] | default([]) + [node]} ) }}"
       vars:
         dc_key: "{{ hostvars[item]['dc'] }}{{ hostvars[item]['dc_suffix'] | default('') }}"
-        node: "{% if _monitoring_version is version('4.10.0', '>=') and hostvars[item]['ansible_host'] is defined %}{{ hostvars[item]['ansible_host'] }}:{{ item }}{% else %}{{ item }}{% endif %}"
+        node: "{% if use_alias and hostvars[item]['ansible_host'] is defined %}{{ hostvars[item]['ansible_host'] }}{{ alias_separator }}{{ item }}{% else %}{{ item }}{% endif %}"
       loop: "{{ groups['scylla'] }}"
 
     # Resulting str -> "-dc \"dc1:node1:label1,node2:label2,node3:label3\" -dc \"dc2:node4:label4,node5:label5,node6:label6\""
@@ -130,7 +138,7 @@
         dc_to_node_list_str: "{{ dc_to_node_list_str | default('') }} -dc \"{{ item.key }}:{{ item.value | join(',') }}\""
       loop: "{{ dc_to_node_list | dict2items }}"
 
-    - shell: "{{ base_dir }}/genconfig.py -c {{ scylla_cluster_name }} -o {{ scylla_monitoring_config_path }}/scylla_servers.yml {{ dc_to_node_list_str }}"
+    - shell: "{{ base_dir }}/genconfig.py {% if use_alias %} -a \"{{ alias_separator }}\" {% endif %} -c {{ scylla_cluster_name }} -o {{ scylla_monitoring_config_path }}/scylla_servers.yml {{ dc_to_node_list_str }}"
   when: use_nodetool_status_with_genconfig|bool == false and scylla_servers_stat.stat.exists|bool == false
   run_once: true
 
