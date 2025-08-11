@@ -1,0 +1,10 @@
+---
+# Set apt configuration to avoid dpkg lock issues
+- name: Create the DPKG lock timeout configuration
+  copy:
+    content: 'Dpkg::Lock::Timeout "{{ apt_lock_timeout }}";'
+    dest: /etc/apt/apt.conf.d/99locktimeout
+    owner: root
+    group: root
+    mode: '0644'
+  when: apt_lock_create_config is defined and apt_lock_create_config | bool

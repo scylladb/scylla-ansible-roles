@@ -13,6 +13,9 @@
   when: disable_firewall
 
 - block:
+    - name: "Include apt configuration task"
+      include_tasks: set_apt_config.yml
+    
     - name: "Include check ports task"
       include_tasks: check_ports.yml
       vars:
