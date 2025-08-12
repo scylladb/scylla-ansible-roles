@@ -129,7 +129,7 @@
         dc_to_node_list: "{{ dc_to_node_list | combine( {dc_key: dc_to_node_list[dc_key] | default([]) + [node]} ) }}"
       vars:
         dc_key: "{{ hostvars[item]['dc'] }}{{ hostvars[item]['dc_suffix'] | default('') }}"
-        node: "{% if use_alias and hostvars[item]['ansible_host'] is defined %}{{ hostvars[item]['ansible_host'] }}{{ alias_separator }}{{ item }}{% else %}{{ item }}{% endif %}"
+        node: "{% if use_alias and hostvars[item]['ansible_host'] is defined %}{{ hostvars[item]['ansible_host'] }}{{ alias_separator }}{{ item }}({{ hostvars[item]['ansible_host'] }}){% else %}{{ item }}{% endif %}"
       loop: "{{ groups['scylla'] }}"
 
     # Resulting str -> "-dc \"dc1:node1:label1,node2:label2,node3:label3\" -dc \"dc2:node4:label4,node5:label5,node6:label6\""
