@@ -27,7 +27,7 @@
 
     - name: Install the ELRepo kernel
       yum:
-        name: kernel-ml
+        name: kernel-lt
         state: present
         lock_timeout: 60
   when: elrepo_kernel == True and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
@@ -96,4 +96,3 @@
     state: latest
     lock_timeout: 60
   become: true
-
