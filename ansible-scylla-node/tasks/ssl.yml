@@ -84,8 +84,7 @@
       vars:
         cert_path: "{{ ssl_localhost_cert_path }}"
         cert_key_path: "{{ ssl_localhost_cert_key_path }}"
-        cert_san: 
-          - "DNS:{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
+        cert_san: "{{ ssl_cert_san + (['DNS:'] | product(ssl_cert_san_dns) | map('join') | list) }}"
         cert_basic_constraints: ['CA:FALSE']
         cert_key_usage: ['digitalSignature', 'keyEncipherment']
         ca_path: "{{ ssl_localhost_ca_path }}"
