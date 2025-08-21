@@ -30,11 +30,11 @@
         name: ansible-scylla-common
         tasks_from: generate_certificate_and_key.yml
       vars:
-        - cert_path: "{{ grafana_localhost_cert_path }}"
-        - cert_key_path: "{{ grafana_localhost_cert_key_path }}"
-        - cert_common_name: "{{ ansible_host | default(inventory_hostname) }}"
-        - cert_basic_constraints: ['CA:FALSE']
-        - cert_key_usage: ['digitalSignature', 'keyEncipherment']
+        cert_path: "{{ grafana_localhost_cert_path }}"
+        cert_key_path: "{{ grafana_localhost_cert_key_path }}"
+        cert_common_name: "{{ ansible_host | default(inventory_hostname) }}"
+        cert_basic_constraints: ['CA:FALSE']
+        cert_key_usage: ['digitalSignature', 'keyEncipherment']
       when: not (_localhost_crt_and_key_exist.results[0].stat.exists and _localhost_crt_and_key_exist.results[1].stat.exists)
   delegate_to: localhost
 
