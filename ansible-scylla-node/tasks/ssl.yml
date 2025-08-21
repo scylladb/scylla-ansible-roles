@@ -70,7 +70,8 @@
       vars:
         cert_path: "{{ ssl_localhost_ca_path }}"
         cert_key_path: "{{ ssl_localhost_ca_key_path }}"
-        cert_common_name: "{{ scylla_cluster_name }}.internal"
+        cert_san: 
+          - "DNS:{{ scylla_cluster_name }}.internal"
         cert_basic_constraints: ['CA:TRUE']
         cert_key_usage: ['keyCertSign']
       run_once: true
@@ -83,7 +84,8 @@
       vars:
         cert_path: "{{ ssl_localhost_cert_path }}"
         cert_key_path: "{{ ssl_localhost_cert_key_path }}"
-        cert_common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
+        cert_san: 
+          - "DNS:{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
         cert_basic_constraints: ['CA:FALSE']
         cert_key_usage: ['digitalSignature', 'keyEncipherment']
         ca_path: "{{ ssl_localhost_ca_path }}"
