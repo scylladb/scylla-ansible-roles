@@ -16,10 +16,6 @@
       set_fact:
         old_seeds: "{{ _seeds.stdout }}"
 
-#    - name: Let's see our new facts
-#      debug:
-#        msg: "{{ inventory_hostname }} old seeds list is {{ old_seeds }}"
-
     - name: Get listen address
       shell: |
         grep "^\s*listen_address" /etc/scylla/scylla.yaml | cut -d":" -f2 | tr -d ' '
@@ -31,53 +27,17 @@
 
     - name: Get names of the tables in the snapshot {{ snapshot_tag }}
       shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --dry-run | grep "^\s*\-" | cut -d"-" -f2 | cut -d"(" -f1
-      become_user: scylla
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} --dump-manifest 2>/dev/null | jq -r '.index[] | [.keyspace,.table] | join(".")'
       register: _tables_list
+      changed_when: false
 
     - name: Save tables names list as a fact
       set_fact:
-        tables_to_restore: "{{ _tables_list.stdout.split('\n') }}"
+        all_tables: "{{ _tables_list.stdout.split('\n') }}"
 
-    - name: Save system_schema tables names as a fact
+    - name: Save names of tables to restore as a fact
       set_fact:
-        system_schema_tables: "{{ tables_to_restore | select('search', '^\\s*system_schema\\.') | list }}"
-
-
-- name: Restore a token ring - cluster's data is going to be wiped
-  hosts: all
-  become: true
-  gather_facts: false
-  tags:
-    - restore_token_ring
-  tasks:
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: stopped
-
-    - name: Remove Scylla directories
-      file:
-        path: "/var/lib/scylla/{{ item }}"
-        state: absent
-      loop:
-        - data
-        - commitlog
-        - hints
-        - view_hints
-
-    - name: Recreate Scylla directories
-      file:
-        path: "/var/lib/scylla/{{ item }}"
-        state: directory
-        owner: scylla
-        group: scylla
-        mode: 0755
-      loop:
-        - data
-        - commitlog
-        - hints
-        - view_hints
+        tables_to_restore: "{{ all_tables | reject('search', '^system(_|\\.)') | list }}"
 
     - name: Get initial token
       shell: |
@@ -117,6 +77,15 @@
   tags:
     - restore_token_ring
   tasks:
+    - name: Stop all nodes serially
+      tags:
+        - prep_nodes
+      block:
+        - name: Stop Scylla service
+          service:
+            name: scylla-server
+            state: stopped
+
     - name: Start Scylla service on {{ inventory_hostname }}
       service:
         name: scylla-server
@@ -127,6 +96,59 @@
         port: 9042
         host: "{{ listen_address }}"
 
+- name: Restore schema from a backup snapshot {{ snapshot_tag }}
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - restore_schema_from_backup
+  tasks:
+    - name: Restore ScyllaDB schema from backup
+      tags:
+        - restore_schema
+      block:
+      # use ScyllaDB Manager sctool to restore schema from the backup
+        - name: Run sctool restore command to restore schema only
+          ansible.builtin.command:
+            cmd: "sctool restore --cluster {{ cluster_name }} -L {{ backup_location }} --snapshot-tag {{ snapshot_tag }} --restore-schema"
+          delegate_to: "{{ scyllamgr_host | default('localhost') }}"
+          run_once: true
+
+- name: Upload data from a backup snapshot {{ snapshot_tag }}
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - upload_snapshot
+  tasks:
+    - name: Restore
+      tags:
+        - restore_data
+      block:
+        - name: Download data
+          shell: |
+            sudo -u scylla scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d {{ data_dir }} -K '*,!system*' --mode upload
+          async: 604800
+          poll: 5
+
+        - name: Load the rest of tables data from the upload directory
+          shell: |
+            nodetool refresh {{ item.split('.') | join(' ') }} --skip-cleanup --skip-reshape
+          with_items: "{{ tables_to_restore }}"
+
+        - name: Restart Scylla service to force a new schema to be picked up
+          service:
+            name: scylla-server
+            state: restarted
+
+        - name: Wait for CQL port 9042 to be open for the Scylla Seed node
+          ansible.builtin.wait_for:
+            host: "{{ inventory_hostname }}"
+            port: 9042
+            state: started
+            delay: 5
+            timeout: 120
+
 
 - name: Cleanup - restore the original cluster's configuration
   hosts: all
@@ -136,10 +158,11 @@
     - restore_token_ring
   tasks:
     - name: Delete initial_token in scylla.yaml of {{ inventory_hostname }}
+      tags: cleanup
       lineinfile:
         path: /etc/scylla/scylla.yaml
         regexp: '^initial_token:'
-        line: ""
+        state: absent
 
     - name: Restore seeds list
       lineinfile:
@@ -148,39 +171,3 @@
         line: |
           \g<1> - seeds: {{ old_seeds }}
         backrefs: yes
-
-
-- name: Upload data from a backup snapshot {{ snapshot_tag }}
-  hosts: all
-  become: true
-  gather_facts: false
-  tags:
-    - upload_snapshot
-  tasks:
-    - name: Download data from {{ snapshot_tag }}
-      shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --mode upload
-      become_user: scylla
-      async: 604800 # a week 7*24*60*60 seconds
-      poll: 5
-
-    - name: Load system_schema tables data from the upload directory
-      shell: |
-        nodetool refresh {{ item.split('.') | join(' ') }}
-      with_items: "{{ system_schema_tables }}"
-
-    - name: Restart Scylla service to force a new schema to be picked up
-      service:
-        name: scylla-server
-        state: restarted
-
-    - name: Wait for CQL port
-      wait_for:
-        port: 9042
-        host: "{{ listen_address }}"
-
-    - name: Load the rest of tables data from the upload directory
-      shell: |
-        nodetool refresh {{ item.split('.') | join(' ') }}
-      with_items: "{{ tables_to_restore }}"
-      when: item not in system_schema_tables
