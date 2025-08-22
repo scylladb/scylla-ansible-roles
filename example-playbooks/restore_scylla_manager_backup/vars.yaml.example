@@ -1,7 +1,7 @@
 # Cluster name to restore schema to. This is the name of the target cluster which
 # is registered in ScyllaDB Manager
 #
-cluster_name: <target_cluster_name>
+scylla_manager_cluster_name: <target_cluster_name_registered_in_scylla_manager>
 
 # backup_location specifies the location parameter used in Scylla Manager
 # when scheduling a backup of a cluster.

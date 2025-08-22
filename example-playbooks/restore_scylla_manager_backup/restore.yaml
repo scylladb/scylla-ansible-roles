@@ -69,6 +69,18 @@
         backrefs: yes
       when: inventory_hostname != groups.all[0]
 
+- name: Stop all nodes
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - stop_nodes
+  tasks:
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
 - name: Start all nodes serially
   hosts: all
   become: true
@@ -77,15 +89,6 @@
   tags:
     - restore_token_ring
   tasks:
-    - name: Stop all nodes serially
-      tags:
-        - prep_nodes
-      block:
-        - name: Stop Scylla service
-          service:
-            name: scylla-server
-            state: stopped
-
     - name: Start Scylla service on {{ inventory_hostname }}
       service:
         name: scylla-server
@@ -110,7 +113,7 @@
       # use ScyllaDB Manager sctool to restore schema from the backup
         - name: Run sctool restore command to restore schema only
           ansible.builtin.command:
-            cmd: "sctool restore --cluster {{ cluster_name }} -L {{ backup_location }} --snapshot-tag {{ snapshot_tag }} --restore-schema"
+            cmd: "sctool restore --cluster {{ scylla_manager_cluster_name }} -L {{ backup_location }} --snapshot-tag {{ snapshot_tag }} --restore-schema"
           delegate_to: "{{ scyllamgr_host | default('localhost') }}"
           run_once: true
 
@@ -131,12 +134,12 @@
           async: 604800
           poll: 5
 
-        - name: Load the rest of tables data from the upload directory
+        - name: refresh nodes with the restored data
           shell: |
             nodetool refresh {{ item.split('.') | join(' ') }} --skip-cleanup --skip-reshape
           with_items: "{{ tables_to_restore }}"
 
-        - name: Restart Scylla service to force a new schema to be picked up
+        - name: Restart Scylla service to pick up the restored data
           service:
             name: scylla-server
             state: restarted
