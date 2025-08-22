@@ -6,7 +6,7 @@
 # Mandatory params:
 # - cert_path: The path where the certificate should be generated
 # - cert_key_path: The path where the certificate key should be generated
-# - cert_common_name: The common name that should be set in the certificate
+# - cert_san: The subject alternative names that should be set in the certificate
 # - cert_basic_constraints: A list with the basic constraints that should be set in the certificate. e.g.: ["CA:TRUE"] -> https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
 # - cert_key_usage: A list with the key usages of the key in the certificate. e.g.: ['digitalSignature', 'keyEncipherment'] -> https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.3
 
@@ -40,8 +40,8 @@
 - name: Generate an OpenSSL Certificate Signing Request
   community.crypto.openssl_csr_pipe:
     privatekey_path: "{{ cert_key_path }}"
-    common_name: "{{ cert_common_name }}"
     use_common_name_for_san: false
+    subject_alt_name: "{{ cert_san }}"
     basic_constraints: "{{ cert_basic_constraints }}"
     basic_constraints_critical: yes
     key_usage: "{{ cert_key_usage }}"

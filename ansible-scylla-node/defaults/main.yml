@@ -327,6 +327,22 @@ ssl_localhost_truststore_path: "{{ (scylla_ssl | default({})).localhost_truststo
 ssl_cert_dir: "/etc/scylla"
 ssl_cert_path: "{{ (scylla_ssl | default({})).cert_path | default(ssl_cert_dir) }}/{{ ssl_localhost_cert_path | basename }}"
 ssl_cert_key_path: "{{ (scylla_ssl | default({})).cert_path | default(ssl_cert_dir) }}/{{ ssl_localhost_cert_key_path | basename }}"
+
+# Certificate subject alternative names (SAN) that will appear in the certificate of the host.
+# IP or DNS addresses are automatically included based on various Scylla addresses and hostnames
+# The `ssl_cert_san_dns` allows to set DNS entries specifically, while e.g. still preserving the defaults in `ssl_cert_san`.
+# By convenience, it does not require a `DNS:` prefix per entry.
+ssl_cert_san: >- 
+  {{
+    (
+      (['IP:' ~ scylla_rpc_address] if scylla_rpc_address is defined else []) +
+      (['IP:' ~ scylla_broadcast_rpc_address] if scylla_broadcast_rpc_address is defined else []) +
+      (['DNS:' ~ inventory_hostname] if not ansible_host is defined and not (inventory_hostname is ansible.utils.ipv4 or inventory_hostname is ansible.utils.ipv6) else []) +
+      (['DNS:' ~ ansible_hostname] if ansible_hostname is defined else []) +
+      (['DNS:' ~ ansible_fqdn] if ansible_fqdn is defined else [])
+    ) | unique | list
+  }}
+ssl_cert_san_dns: []
 ssl_truststore_path: "{{ (scylla_ssl | default({})).cert_path | default (ssl_cert_dir) }}/truststore.crt"
 
 # Two types of encryption keys are available: System Keys and Table Keys.

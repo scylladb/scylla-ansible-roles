@@ -68,11 +68,12 @@
         name: ansible-scylla-common
         tasks_from: generate_certificate_and_key.yml
       vars:
-        - cert_path: "{{ ssl_localhost_ca_path }}"
-        - cert_key_path: "{{ ssl_localhost_ca_key_path }}"
-        - cert_common_name: "{{ scylla_cluster_name }}.internal"
-        - cert_basic_constraints: ['CA:TRUE']
-        - cert_key_usage: ['keyCertSign']
+        cert_path: "{{ ssl_localhost_ca_path }}"
+        cert_key_path: "{{ ssl_localhost_ca_key_path }}"
+        cert_san: 
+          - "DNS:{{ scylla_cluster_name }}.internal"
+        cert_basic_constraints: ['CA:TRUE']
+        cert_key_usage: ['keyCertSign']
       run_once: true
       when: not _localhost_ca_crt_and_key_exist
 
@@ -81,13 +82,13 @@
         name: ansible-scylla-common
         tasks_from: generate_certificate_and_key.yml
       vars:
-        - cert_path: "{{ ssl_localhost_cert_path }}"
-        - cert_key_path: "{{ ssl_localhost_cert_key_path }}"
-        - cert_common_name: "{{ inventory_hostname }}.{{ scylla_cluster_name }}.internal"
-        - cert_basic_constraints: ['CA:FALSE']
-        - cert_key_usage: ['digitalSignature', 'keyEncipherment']
-        - ca_path: "{{ ssl_localhost_ca_path }}"
-        - ca_key_path: "{{ ssl_localhost_ca_key_path }}"
+        cert_path: "{{ ssl_localhost_cert_path }}"
+        cert_key_path: "{{ ssl_localhost_cert_key_path }}"
+        cert_san: "{{ ssl_cert_san + (['DNS:'] | product(ssl_cert_san_dns) | map('join') | list) }}"
+        cert_basic_constraints: ['CA:FALSE']
+        cert_key_usage: ['digitalSignature', 'keyEncipherment']
+        ca_path: "{{ ssl_localhost_ca_path }}"
+        ca_key_path: "{{ ssl_localhost_ca_key_path }}"
   delegate_to: localhost
   when: _localhost_crt_and_key_exist == False
 
