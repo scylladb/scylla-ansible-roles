@@ -16,6 +16,10 @@
       set_fact:
         old_seeds: "{{ _seeds.stdout }}"
 
+#    - name: Let's see our new facts
+#      debug:
+#        msg: "{{ inventory_hostname }} old seeds list is {{ old_seeds }}"
+
     - name: Get listen address
       shell: |
         grep "^\s*listen_address" /etc/scylla/scylla.yaml | cut -d":" -f2 | tr -d ' '
@@ -28,8 +32,8 @@
     - name: Get names of the tables in the snapshot {{ snapshot_tag }}
       shell: |
         scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} --dump-manifest 2>/dev/null | jq -r '.index[] | [.keyspace,.table] | join(".")'
+      become_user: scylla
       register: _tables_list
-      changed_when: false
 
     - name: Save tables names list as a fact
       set_fact:
@@ -38,6 +42,41 @@
     - name: Save names of tables to restore as a fact
       set_fact:
         tables_to_restore: "{{ all_tables | reject('search', '^system(_|\\.)') | list }}"
+
+- name: Restore a token ring - cluster's data is going to be wiped
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Stop Scylla service
+      service:
+        name: scylla-server
+        state: stopped
+
+    - name: Remove Scylla directories
+      file:
+        path: "/var/lib/scylla/{{ item }}"
+        state: absent
+      loop:
+        - data
+        - commitlog
+        - hints
+        - view_hints
+
+    - name: Recreate Scylla directories
+      file:
+        path: "/var/lib/scylla/{{ item }}"
+        state: directory
+        owner: scylla
+        group: scylla
+        mode: 0755
+      loop:
+        - data
+        - commitlog
+        - hints
+        - view_hints
 
     - name: Get initial token
       shell: |
@@ -69,18 +108,6 @@
         backrefs: yes
       when: inventory_hostname != groups.all[0]
 
-- name: Stop all nodes
-  hosts: all
-  become: true
-  gather_facts: false
-  tags:
-    - stop_nodes
-  tasks:
-    - name: Stop Scylla service
-      service:
-        name: scylla-server
-        state: stopped
-
 - name: Start all nodes serially
   hosts: all
   become: true
@@ -98,6 +125,28 @@
       wait_for:
         port: 9042
         host: "{{ listen_address }}"
+
+- name: Cleanup - restore the original cluster's configuration
+  hosts: all
+  become: true
+  gather_facts: false
+  tags:
+    - restore_token_ring
+  tasks:
+    - name: Delete initial_token in scylla.yaml of {{ inventory_hostname }}
+      tags: cleanup
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^initial_token:'
+        state: absent
+
+    - name: Restore seeds list
+      lineinfile:
+        path: /etc/scylla/scylla.yaml
+        regexp: '^(\s+) - seeds:'
+        line: |
+          \g<1> - seeds: {{ old_seeds }}
+        backrefs: yes
 
 - name: Restore schema from a backup snapshot {{ snapshot_tag }}
   hosts: all
@@ -130,7 +179,8 @@
       block:
         - name: Download data
           shell: |
-            sudo -u scylla scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d {{ data_dir }} -K '*,!system*' --mode upload
+            scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d {{ data_dir }} -K '*,!system*' --mode upload
+          become_user: scylla
           async: 604800
           poll: 5
 
@@ -151,26 +201,3 @@
             state: started
             delay: 5
             timeout: 120
-
-
-- name: Cleanup - restore the original cluster's configuration
-  hosts: all
-  become: true
-  gather_facts: false
-  tags:
-    - restore_token_ring
-  tasks:
-    - name: Delete initial_token in scylla.yaml of {{ inventory_hostname }}
-      tags: cleanup
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^initial_token:'
-        state: absent
-
-    - name: Restore seeds list
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(\s+) - seeds:'
-        line: |
-          \g<1> - seeds: {{ old_seeds }}
-        backrefs: yes
