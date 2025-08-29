@@ -15,6 +15,8 @@ disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
 #
 # Default duration that listeners used for testing required ports should stay alive
 check_ports_listener_timeout: 360
+# Default timeout when trying to reach a port on another node
+check_ports_client_timeout_sec: 120
 
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200

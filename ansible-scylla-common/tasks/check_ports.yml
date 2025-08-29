@@ -28,7 +28,7 @@
   wait_for:
     host: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
     port: "{{ item[1] }}"
-    timeout: 2
+    timeout: "{{ check_ports_client_timeout_sec | int }}"
     state: started
   when: item[0] != inventory_hostname
   delegate_to: "{{ item[0] }}"
