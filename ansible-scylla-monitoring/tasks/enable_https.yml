@@ -32,8 +32,9 @@
       vars:
         cert_path: "{{ grafana_localhost_cert_path }}"
         cert_key_path: "{{ grafana_localhost_cert_key_path }}"
+        cert_common_name: "grafana.{{ scylla_cluster_name }}.internal"
         cert_san:
-          - "DNS:{{ ansible_fqdn }}"
+          - "DNS:grafana.{{ scylla_cluster_name }}.internal"
         cert_basic_constraints: ['CA:FALSE']
         cert_key_usage: ['digitalSignature', 'keyEncipherment']
       when: not (_localhost_crt_and_key_exist.results[0].stat.exists and _localhost_crt_and_key_exist.results[1].stat.exists)
