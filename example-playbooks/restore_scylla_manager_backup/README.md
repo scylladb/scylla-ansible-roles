@@ -8,6 +8,8 @@ It requires Scylla Manager 2.4 or newer.
 1. New cluster with the same number of nodes as the source cluster.
 1. Scylla Manager Agent installed on all the nodes.
 1. Access to the backup location from all the nodes.
+1. New cluster is registered in ScyllaDB Manager.
+
 
 ## Parameters
 
