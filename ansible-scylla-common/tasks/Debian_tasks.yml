@@ -1,0 +1,3 @@
+---
+- name: "Include apt configuration task"
+  include_tasks: set_apt_config.yml
