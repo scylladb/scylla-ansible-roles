@@ -1,18 +1,4 @@
 ---
-
-- name: Refresh apt cache
-  apt:
-    update_cache: yes
-  become: true
-
-- name: Install task dependencies
-  apt:
-    name:
-      - socat
-      - iproute2
-    state: present
-  become: true
-
 - name: Create temporary listeners on required ports, if needed
   shell: |
     if ! ss -ltn | awk '{print $4}' | grep -q ":{{ port }}$"; then

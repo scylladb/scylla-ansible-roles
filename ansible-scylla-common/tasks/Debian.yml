@@ -1,0 +1,17 @@
+---
+- name: "Include apt configuration task"
+  include_tasks: set_apt_config.yml
+
+- name: Refresh apt cache
+  apt:
+    update_cache: yes
+  become: true
+
+- name: Install dependencies for check_ports task
+  apt:
+    name:
+      - socat
+      - iproute2
+    state: present
+  become: true
+  when: required_ports_open_to is defined
