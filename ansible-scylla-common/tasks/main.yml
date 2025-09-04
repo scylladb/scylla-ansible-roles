@@ -13,9 +13,22 @@
   when: disable_firewall
 
 - block:
-    - name: "Include apt configuration task"
-      include_tasks: set_apt_config.yml
-    
+    - name: Check if OS-specific task file exists
+      stat:
+        path: "{{ role_path }}/tasks/{{ ansible_os_family }}.yml"
+      register: os_tasks_file
+      run_once: true
+      delegate_to: localhost
+
+    - name: Fail if OS-specific task file is missing
+      fail:
+        msg: "OS family '{{ ansible_os_family }}' is not supported"
+      when: not os_tasks_file.stat.exists
+      run_once: true
+
+    - name: os-specific tasks
+      include_tasks: "{{ ansible_os_family }}.yml"
+
     - name: "Include check ports task"
       include_tasks: check_ports.yml
       vars:
