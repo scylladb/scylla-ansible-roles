@@ -155,6 +155,38 @@
     - vars/main.yml
   become: true
   tasks:
+    - name: Check if RBNO is available in the current Scylla version
+      shell: |
+        scylla --help | grep enable-repair-based-node-ops
+      register: _enable_rbno_grep
+      ignore_errors: true
+
+    - name: Check if RBNO was enabled for node replacement
+      block:
+        - command: cat /etc/scylla/scylla.yaml
+          ignore_errors: true
+          register: _scylla_yaml_out
+
+        - set_fact:
+            _scylla_yaml_map: "{{ _scylla_yaml_out.stdout | from_yaml }}"
+
+        - set_fact:
+            _rbno_enabled: "{{ _scylla_yaml_map.enable_repair_based_node_ops is not defined or _scylla_yaml_map.enable_repair_based_node_ops }}"
+            _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
+      when: _enable_rbno_grep.failed == false
+
+    - name: Check if scylla is already running in the new node
+      wait_for:
+        port: "{{ cql_port }}"
+        host: "{{ listen_address }}"
+        timeout: 15
+      register: wait_for_cql_port_output
+      ignore_errors: true
+
+    - name: Skip this play if scylla is already running
+      meta: end_play
+      when: not wait_for_cql_port_output.failed
+
     - name: Get current seeds
       shell: |
         grep '\- seeds:' /etc/scylla/scylla.yaml | awk '{ print $NF }'
@@ -237,26 +269,6 @@
         line: "replace_address_first_boot: {{ replaced_node_broadcast_address }}"
         create: yes
       when: _replace_node_first_boot_grep.failed
-
-    - name: Check if RBNO is available in the current Scylla version
-      shell: |
-        scylla --help | grep enable-repair-based-node-ops
-      register: _enable_rbno_grep
-      ignore_errors: true
-
-    - name: Check if RBNO was enabled for node replacement
-      block:
-        - command: cat /etc/scylla/scylla.yaml
-          ignore_errors: true
-          register: _scylla_yaml_out
-
-        - set_fact:
-            _scylla_yaml_map: "{{ _scylla_yaml_out.stdout | from_yaml }}"
-
-        - set_fact:
-            _rbno_enabled: "{{ _scylla_yaml_map.enable_repair_based_node_ops is not defined or _scylla_yaml_map.enable_repair_based_node_ops }}"
-            _rbno_allowed_for_replace: "{{ _scylla_yaml_map.allowed_repair_based_node_ops is not defined or 'replace' in _scylla_yaml_map.allowed_repair_based_node_ops }}"
-      when: _enable_rbno_grep.failed == false
 
     # RBNO will be re-enabled once the replace is finished
     - name: Disable RBNO
