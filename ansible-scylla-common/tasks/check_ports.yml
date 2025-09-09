@@ -22,6 +22,14 @@
   async: "{{ (check_ports_listener_timeout | int) + 10 }}"
   poll: 0
 
+- name: Validate that the listeners are ready to accept connections before testing cross-host connectivity
+  wait_for:
+    host: "{{ inventory_hostname }}"
+    port: "{{ item }}"
+    timeout: "{{ check_ports_client_timeout_sec | int }}"
+    state: started
+  loop: "{{ ports_to_test }}"
+
 - name: Check if necessary ports are reachable from host group {{ source_host_group }}
   wait_for:
     host: "{{ hostvars[inventory_hostname]['ansible_host'] | default(inventory_hostname) }}"
