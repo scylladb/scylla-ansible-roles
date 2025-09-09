@@ -1,0 +1,13 @@
+---
+- name: Refresh apt cache
+  apt:
+    update_cache: yes
+  become: true
+
+- name: Install dependencies for check_ports task
+  apt:
+    name:
+      - socat
+      - iproute2
+    state: present
+  become: true
