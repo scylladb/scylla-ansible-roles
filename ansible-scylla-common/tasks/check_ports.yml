@@ -16,12 +16,12 @@
 - name: Create temporary listeners on required ports, if needed
   shell: |
     if ! ss -ltn | awk '{print $4}' | grep -q ":{{ port }}$"; then
-      timeout {{ check_ports_listener_timeout | int }} socat TCP-LISTEN:{{ port }},fork EXEC:'/bin/true'
+      timeout {{ check_ports_listener_timeout_sec | int }} socat TCP-LISTEN:{{ port }},fork EXEC:'/bin/true'
     fi
   loop: "{{ ports_to_test }}"
   loop_control:
     loop_var: port
-  async: "{{ (check_ports_listener_timeout | int) + 10 }}"
+  async: "{{ (check_ports_listener_timeout_sec | int) + 10 }}"
   poll: 0
 
 - name: Validate that the listeners are ready to accept connections before testing cross-host connectivity
