@@ -111,6 +111,17 @@
       become: true
       when: block_replaced_node|bool
 
+    - name: Get the host id for all nodes
+      uri:
+        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
+        method: GET
+      register: _host_ids
+      until: _host_ids.status == 200
+      retries: 5
+      delay: 1
+      delegate_to: "{{ temporary_seed }}"
+      run_once: true
+
 
 # This play will install Scylla in the new node and update the existing ones.
 # The same variables used when the node role was executed for the replaced node should also
@@ -177,17 +188,6 @@
         scylla --help | grep replace-node-first-boot
       register: _replace_node_first_boot_grep
       ignore_errors: true
-
-    - name: Get the host id for all nodes
-      uri:
-        url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
-        method: GET
-      register: _host_ids
-      until: _host_ids.status == 200
-      retries: 5
-      delay: 1
-      delegate_to: "{{ temporary_seed }}"
-      run_once: true
 
     - name: Set ignore_dead_nodes_for_replace using host ids
       block:
