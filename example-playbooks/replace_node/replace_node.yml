@@ -211,76 +211,76 @@
 
     - name: Update scylla.yaml and start the new node 
       block:
-    - name: Set temporary_seed as seed for the new node
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(\s+) - seeds:'
-        line: |
-          \g<1> - seeds: {{ hostvars[temporary_seed].broadcast_address }}
-        backrefs: yes
+      - name: Set temporary_seed as seed for the new node
+        lineinfile:
+          path: /etc/scylla/scylla.yaml
+          regexp: '^(\s+) - seeds:'
+          line: |
+            \g<1> - seeds: {{ hostvars[temporary_seed].broadcast_address }}
+          backrefs: yes
 
-    - name: Set ignore_dead_nodes_for_replace using host ids
-      block:
-        - name: Set dead nodes host ids
-          set_fact:
-            _dead_nodes_host_ids: "{{ _dead_nodes_host_ids | default([]) + [item.value] }}"
-          when: item.key in dead_nodes_to_ignore
-          loop: "{{ _host_ids.json }}"
+      - name: Set ignore_dead_nodes_for_replace using host ids
+        block:
+          - name: Set dead nodes host ids
+            set_fact:
+              _dead_nodes_host_ids: "{{ _dead_nodes_host_ids | default([]) + [item.value] }}"
+            when: item.key in dead_nodes_to_ignore
+            loop: "{{ _host_ids.json }}"
 
-        - name: Set ignore_dead_nodes_for_replace in scylla.yaml
-          lineinfile:
-            path: /etc/scylla/scylla.yaml
-            regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
-            line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_host_ids | join(',')}}"
-            create: yes
-      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed == false
+          - name: Set ignore_dead_nodes_for_replace in scylla.yaml
+            lineinfile:
+              path: /etc/scylla/scylla.yaml
+              regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+              line: "ignore_dead_nodes_for_replace: {{ _dead_nodes_host_ids | join(',')}}"
+              create: yes
+        when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed == false
 
-    # If the _replace_node_first_boot_grep failed, it means that in this scylla version we are still using
-    # addresses instead of host ids for replace, so let's set broadcast addresses in ignore_dead_nodes_for_replace
-    - name: Set ignore_dead_nodes_for_replace using addresses
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
-        line: "ignore_dead_nodes_for_replace: {{ dead_nodes_to_ignore | join(',')}}"
-        create: yes
-      when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed
+      # If the _replace_node_first_boot_grep failed, it means that in this scylla version we are still using
+      # addresses instead of host ids for replace, so let's set broadcast addresses in ignore_dead_nodes_for_replace
+      - name: Set ignore_dead_nodes_for_replace using addresses
+        lineinfile:
+          path: /etc/scylla/scylla.yaml
+          regexp: '^(#\s*)?ignore_dead_nodes_for_replace:'
+          line: "ignore_dead_nodes_for_replace: {{ dead_nodes_to_ignore | join(',')}}"
+          create: yes
+        when: dead_nodes_to_ignore|length > 0 and _replace_node_first_boot_grep.failed
 
-    - name: Set replace_node_first_boot
-      block:
-        - set_fact:
-            _replaced_node_host_id: "{{ item.value }}"
-          when: item.key == replaced_node or item.key == replaced_node_broadcast_address
-          loop: "{{ _host_ids.json }}"
+      - name: Set replace_node_first_boot
+        block:
+          - set_fact:
+              _replaced_node_host_id: "{{ item.value }}"
+            when: item.key == replaced_node or item.key == replaced_node_broadcast_address
+            loop: "{{ _host_ids.json }}"
 
-        - name: Set replace_node_first_boot
-          lineinfile:
-            path: /etc/scylla/scylla.yaml
-            regexp: '^(#\s*)?replace_node_first_boot:'
-            line: "replace_node_first_boot: {{ _replaced_node_host_id }}"
-            create: yes
-      when: _replace_node_first_boot_grep.failed == false
+          - name: Set replace_node_first_boot
+            lineinfile:
+              path: /etc/scylla/scylla.yaml
+              regexp: '^(#\s*)?replace_node_first_boot:'
+              line: "replace_node_first_boot: {{ _replaced_node_host_id }}"
+              create: yes
+        when: _replace_node_first_boot_grep.failed == false
 
-    - name: Set replace_address_first_boot
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(#\s*)?replace_address_first_boot:'
-        line: "replace_address_first_boot: {{ replaced_node_broadcast_address }}"
-        create: yes
-      when: _replace_node_first_boot_grep.failed
+      - name: Set replace_address_first_boot
+        lineinfile:
+          path: /etc/scylla/scylla.yaml
+          regexp: '^(#\s*)?replace_address_first_boot:'
+          line: "replace_address_first_boot: {{ replaced_node_broadcast_address }}"
+          create: yes
+        when: _replace_node_first_boot_grep.failed
 
-    # RBNO will be re-enabled once the replace is finished
-    - name: Disable RBNO
-      lineinfile:
-        path: /etc/scylla/scylla.yaml
-        regexp: '^(#\s*)?enable_repair_based_node_ops:'
-        line: "enable_repair_based_node_ops: False"
-        create: yes
-      when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
+      # RBNO will be re-enabled once the replace is finished
+      - name: Disable RBNO
+        lineinfile:
+          path: /etc/scylla/scylla.yaml
+          regexp: '^(#\s*)?enable_repair_based_node_ops:'
+          line: "enable_repair_based_node_ops: False"
+          create: yes
+        when: disable_rbno|bool and _rbno_enabled is defined and _rbno_enabled|bool
 
-    - name: Start Scylla
-      service:
-        name: scylla-server
-        state: started
+      - name: Start Scylla
+        service:
+          name: scylla-server
+          state: started
       when: not _scylla_running
 
     - name: Wait for CQL port on {{ listen_address }}
