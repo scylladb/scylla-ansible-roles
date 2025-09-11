@@ -7,6 +7,9 @@
   vars_files:
     - vars/main.yml
   tasks:
+    - name: Populate service facts
+      service_facts:
+
     - name: Resolve a scylla_listen_address as a fact
       set_fact:
         listen_address: "{{ alive_nodes_listen_address }}"
@@ -121,6 +124,11 @@
       delay: 1
       delegate_to: "{{ temporary_seed }}"
       run_once: true
+
+    - name: Check if scylla is already running in the new node
+      set_fact:
+        _scylla_running: "{{ ansible_facts.services['scylla-server.service'] is defined and ansible_facts.services['scylla-server.service']['state'] == 'running' }}"
+      when: inventory_hostname == new_node
 
 
 # This play will install Scylla in the new node and update the existing ones.
