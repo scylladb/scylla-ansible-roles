@@ -14,7 +14,7 @@ disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
 #   group_2: []
 #
 # Default duration that listeners used for testing required ports should stay alive
-check_ports_listener_timeout: 360
+check_ports_listener_timeout_sec: 360
 # Default timeout when trying to reach a port on another node
 check_ports_client_timeout_sec: 120
 
