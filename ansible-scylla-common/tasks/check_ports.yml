@@ -1,17 +1,15 @@
 ---
+- name: Set OS-specific task file path
+  set_fact:
+    check_ports_os_tasks_file: "{{ role_path }}/tasks/check_ports_{{ ansible_os_family }}_tasks.yml"
 
-- name: Refresh apt cache
-  apt:
-    update_cache: yes
-  become: true
+- name: Fail if OS-specific task file is missing
+  fail:
+    msg: "OS family '{{ ansible_os_family }}' is not supported for the port checking feature"
+  when: not check_ports_os_tasks_file is file
 
-- name: Install task dependencies
-  apt:
-    name:
-      - socat
-      - iproute2
-    state: present
-  become: true
+- name: os-specific tasks
+  include_tasks: "{{ check_ports_os_tasks_file }}"
 
 - name: Create temporary listeners on required ports, if needed
   shell: |

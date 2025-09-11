@@ -13,9 +13,12 @@
   when: disable_firewall
 
 - block:
-    - name: "Include apt configuration task"
-      include_tasks: set_apt_config.yml
-    
+    - name: Include OS-specific tasks
+      include_tasks: "{{ os_tasks_file }}"
+      when: os_tasks_file is file
+      vars:
+        os_tasks_file: "{{ role_path }}/tasks/{{ ansible_os_family }}_tasks.yml"
+
     - name: "Include check ports task"
       include_tasks: check_ports.yml
       vars:
