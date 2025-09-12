@@ -111,7 +111,7 @@
       become: true
       when: block_replaced_node|bool
 
-    - name: Get the host id for all nodes
+    - name: Get host ids map on all nodes
       uri:
         url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
         method: GET
