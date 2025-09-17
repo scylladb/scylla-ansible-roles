@@ -378,6 +378,20 @@
       when: token_distributor is defined
   when: start_scylla_service is defined and start_scylla_service|bool
 
+- name: Copy system keys
+  include_tasks: handle_encryption_at_rest_keys.yml
+  vars:
+    localhost_key_path: "{{ localhost_system_key_directory }}"
+    remote_key_path: "{{ system_key_directory }}"
+  when: handle_system_keys|bool
+
+- name: Copy table keys
+  include_tasks: handle_encryption_at_rest_keys.yml
+  vars:
+    localhost_key_path: "{{ localhost_table_key_directory }}"
+    remote_key_path: "{{ table_key_directory }}"
+  when: handle_table_keys|bool
+
 - name: Check if authentication and audit are enabled
   block:
     - command: cat /etc/scylla/scylla.yaml
