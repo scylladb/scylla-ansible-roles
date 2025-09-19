@@ -35,38 +35,38 @@
 
 - name: Generate a new private key and certificate
   block:
-- name: Generate an OpenSSL private key
-  openssl_privatekey:
-    path: "{{ cert_key_path }}"
-    regenerate: never
+    - name: Generate an OpenSSL private key
+      openssl_privatekey:
+        path: "{{ cert_key_path }}"
+        regenerate: never
 
-- name: Generate an OpenSSL Certificate Signing Request
-  community.crypto.openssl_csr_pipe:
-    privatekey_path: "{{ cert_key_path }}"
-    use_common_name_for_san: false
-    common_name: "{{ cert_common_name }}"
-    subject_alt_name: "{{ cert_san }}"
-    basic_constraints: "{{ cert_basic_constraints }}"
-    basic_constraints_critical: yes
-    key_usage: "{{ cert_key_usage }}"
-    key_usage_critical: true
-  register: _csr
+    - name: Generate an OpenSSL Certificate Signing Request
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ cert_key_path }}"
+        use_common_name_for_san: false
+        common_name: "{{ cert_common_name }}"
+        subject_alt_name: "{{ cert_san }}"
+        basic_constraints: "{{ cert_basic_constraints }}"
+        basic_constraints_critical: yes
+        key_usage: "{{ cert_key_usage }}"
+        key_usage_critical: true
+      register: _csr
 
-- name: Generate a Self Signed OpenSSL certificate
-  community.crypto.x509_certificate:
-    path: "{{ cert_path }}"
-    privatekey_path: "{{ cert_key_path }}"
-    csr_content: "{{ _csr.csr }}"
-    provider: selfsigned
-  when: ca_path is not defined
+    - name: Generate a Self Signed OpenSSL certificate
+      community.crypto.x509_certificate:
+        path: "{{ cert_path }}"
+        privatekey_path: "{{ cert_key_path }}"
+        csr_content: "{{ _csr.csr }}"
+        provider: selfsigned
+      when: ca_path is not defined
 
-- name: Generate a OpenSSL certificate signed by a local CA
-  community.crypto.x509_certificate:
-    path: "{{ cert_path }}"
-    privatekey_path: "{{ cert_key_path }}"
-    csr_content: "{{ _csr.csr }}"
-    ownca_path: "{{ ca_path }}"
-    ownca_privatekey_path: "{{ ca_key_path }}"
-    provider: ownca
-  when: ca_path is defined
+    - name: Generate a OpenSSL certificate signed by a local CA
+      community.crypto.x509_certificate:
+        path: "{{ cert_path }}"
+        privatekey_path: "{{ cert_key_path }}"
+        csr_content: "{{ _csr.csr }}"
+        ownca_path: "{{ ca_path }}"
+        ownca_privatekey_path: "{{ ca_key_path }}"
+        provider: ownca
+      when: ca_path is defined
   when: not _cert_and_key_files.results[0].stat.exists
