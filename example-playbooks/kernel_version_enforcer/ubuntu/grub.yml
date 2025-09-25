@@ -1,0 +1,30 @@
+---
+
+- name: Get {{ grub_config_file }} metadata
+  ansible.builtin.stat:
+    path: "{{ grub_config_file }}"
+  register: grub_config
+
+- name: Fail if GRUB config file doesn't exist
+  ansible.builtin.fail:
+    msg: "{{ grub_config_file }} doesn't exist"
+  when: not grub_config.stat.exists
+
+- name: Get GRUB entries
+  ansible.builtin.command: grep -E "^\smenuentry" {{ grub_config_file }}
+  register: grub_entries
+
+- name: Get GRUB index for '{{ image_package_prefix }}-{{ image_version }}'
+  ansible.builtin.set_fact:
+    target_grub_index="{{ grub_index }}"
+  when:
+    - image_version in item
+    - not "recovery mode" in item
+    - target_grub_index is not defined
+  loop: "{{ grub_entries.stdout_lines }}"
+  loop_control:
+    index_var: grub_index
+
+- name: Set index '1>{{ target_grub_index }}' to be used in the next reboot
+  ansible.builtin.command: grub-reboot "1>{{ target_grub_index }}"
+  become: true
