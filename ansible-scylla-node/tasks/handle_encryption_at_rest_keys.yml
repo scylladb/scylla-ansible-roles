@@ -5,7 +5,7 @@
   when: localhost_key_path is not defined or remote_key_path is not defined
 
 - name: Create keys dir if it doesn't already exist
-  file:
+  ansible.builtin.file:
     path: "{{ remote_key_path }}"
     state: directory
     owner: scylla
