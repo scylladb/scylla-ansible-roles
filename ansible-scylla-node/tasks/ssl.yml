@@ -75,6 +75,7 @@
       - "DNS:{{ scylla_cluster_name }}.internal"
     cert_basic_constraints: ['CA:TRUE']
     cert_key_usage: ['keyCertSign']
+    regenerate: false
   run_once: true
   # Generate a CA only if no certificate is provided for any node
   when: not _all_localhost_crt_and_key_exist and not _localhost_ca_crt_and_key_exist
@@ -94,7 +95,8 @@
     cert_key_usage: ['digitalSignature', 'keyEncipherment']
     ca_path: "{{ ssl_localhost_ca_path }}"
     ca_key_path: "{{ ssl_localhost_ca_key_path }}"
-  when: _localhost_node_crt.stat.exists == False
+    regenerate: "{{ ssl_regenerate_node_certs|bool }}"
+  when: _localhost_node_crt.stat.exists == False or ssl_regenerate_node_certs|bool
 
 - name: Copy the certificates and keys into their proper locations
   copy:
@@ -103,7 +105,7 @@
     owner: root
     group: root
     mode: '0644'
-    force: false
+    force: "{{ ssl_regenerate_node_certs }}"
   become: true
   loop:
     - ["{{ ssl_localhost_cert_path }}", "{{ ssl_cert_path }}"]

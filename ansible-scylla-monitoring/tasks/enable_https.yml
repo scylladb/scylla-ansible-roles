@@ -37,6 +37,7 @@
           - "DNS:grafana.{{ scylla_cluster_name }}.internal"
         cert_basic_constraints: ['CA:FALSE']
         cert_key_usage: ['digitalSignature', 'keyEncipherment']
+        regenerate: false
       when: not (_localhost_crt_and_key_exist.results[0].stat.exists and _localhost_crt_and_key_exist.results[1].stat.exists)
   delegate_to: localhost
 
