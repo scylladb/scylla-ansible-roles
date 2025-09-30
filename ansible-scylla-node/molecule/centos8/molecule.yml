@@ -15,6 +15,7 @@ platforms:
     image: jrei/systemd-centos:8
     privileged: true
     command: /usr/sbin/init
+    cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     groups:
