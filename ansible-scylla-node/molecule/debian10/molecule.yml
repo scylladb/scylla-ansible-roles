@@ -24,6 +24,7 @@ platforms:
     image: jrei/systemd-debian:10
     privileged: true
     command: /lib/systemd/systemd
+    cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     groups:
@@ -32,6 +33,7 @@ platforms:
     image: jrei/systemd-debian:10
     privileged: true
     command: /lib/systemd/systemd
+    cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     groups:
