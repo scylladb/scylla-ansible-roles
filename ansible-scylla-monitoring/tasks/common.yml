@@ -308,3 +308,4 @@
   set_fact:
     _scylla_monitoring_params: "{{ _scylla_monitoring_params }} -c GF_SERVER_ROOT_URL={{ grafana_root_url }}"
   when: grafana_root_url is defined
+
