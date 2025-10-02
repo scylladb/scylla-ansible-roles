@@ -1,7 +1,7 @@
 ---
 dependency:
   name: galaxy
-  enabled: true
+  enabled: false
   options:
     role-file: requirements.yml
 driver:
