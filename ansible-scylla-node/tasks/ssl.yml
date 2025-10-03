@@ -14,9 +14,9 @@
 
 - name: Set existence of local crt and key as a single fact
   set_fact:
-    _localhost_crt_and_key_exist: "{{ hostvars[item]['_localhost_node_crt'].stat.exists and hostvars[item]['_localhost_node_key'].stat.exists }}"
+    _all_localhost_crt_and_key_exist: "{{ hostvars[item]['_localhost_node_crt'].stat.exists and hostvars[item]['_localhost_node_key'].stat.exists }}"
   loop: "{{ groups['scylla'] }}"
-  when: _localhost_crt_and_key_exist is not defined or _localhost_crt_and_key_exist == True
+  when: _all_localhost_crt_and_key_exist is not defined or _all_localhost_crt_and_key_exist == True
   run_once: true
 
 - name: Check if at least one local crt was provided
@@ -44,7 +44,7 @@
 - fail:
     msg: "You've provided crts only for a subset of your nodes. Either provide a CA that should be used for generating equivalent certificates for the others or delete the existing crts in order for the role to generate a new self-signed CA and certs for all the nodes"
   run_once: true
-  when: not _localhost_crt_and_key_exist and _some_localhost_crt_and_key_exist and not _localhost_ca_crt_and_key_exist
+  when: not _all_localhost_crt_and_key_exist and _some_localhost_crt_and_key_exist and not _localhost_ca_crt_and_key_exist
 
 - name: Validate if remote and local crt/key are the same
   block:
@@ -61,38 +61,42 @@
         msg: "Remote crt/key doesn't match a local one"
       when: (_crt_and_key_exist.results[0].stat.exists and (not _localhost_node_crt.stat.exists or _crt_and_key_exist.results[0].stat.checksum != _localhost_node_crt.stat.checksum)) or (_crt_and_key_exist.results[1].stat.exists and (not _localhost_node_key.stat.exists or _crt_and_key_exist.results[1].stat.checksum != _localhost_node_key.stat.checksum))
 
-- name: Generate certificates
-  block:
-    - name: Generate self-signed CA
-      include_role:
-        name: ansible-scylla-common
-        tasks_from: generate_certificate_and_key.yml
-      vars:
-        cert_path: "{{ ssl_localhost_ca_path }}"
-        cert_key_path: "{{ ssl_localhost_ca_key_path }}"
-        cert_common_name: "{{ scylla_cluster_name }}.internal"
-        cert_san: 
-          - "DNS:{{ scylla_cluster_name }}.internal"
-        cert_basic_constraints: ['CA:TRUE']
-        cert_key_usage: ['keyCertSign']
-      run_once: true
-      when: not _localhost_ca_crt_and_key_exist
+- name: Generate self-signed CA
+  include_role:
+    name: ansible-scylla-common
+    tasks_from: generate_certificate_and_key.yml
+    apply:
+      delegate_to: localhost
+  vars:
+    cert_path: "{{ ssl_localhost_ca_path }}"
+    cert_key_path: "{{ ssl_localhost_ca_key_path }}"
+    cert_common_name: "{{ scylla_cluster_name }}.internal"
+    cert_san: 
+      - "DNS:{{ scylla_cluster_name }}.internal"
+    cert_basic_constraints: ['CA:TRUE']
+    cert_key_usage: ['keyCertSign']
+    regenerate: false
+  run_once: true
+  # Generate a CA only if no certificate is provided for any node
+  when: not _all_localhost_crt_and_key_exist and not _localhost_ca_crt_and_key_exist
 
-    - name: Generate certificates
-      include_role:
-        name: ansible-scylla-common
-        tasks_from: generate_certificate_and_key.yml
-      vars:
-        cert_path: "{{ ssl_localhost_cert_path }}"
-        cert_key_path: "{{ ssl_localhost_cert_key_path }}"
-        cert_common_name: "{{ scylla_broadcast_rpc_address }}"
-        cert_san: "{{ ssl_cert_san + (['DNS:'] | product(ssl_cert_san_dns) | map('join') | list) }}"
-        cert_basic_constraints: ['CA:FALSE']
-        cert_key_usage: ['digitalSignature', 'keyEncipherment']
-        ca_path: "{{ ssl_localhost_ca_path }}"
-        ca_key_path: "{{ ssl_localhost_ca_key_path }}"
-  delegate_to: localhost
-  when: _localhost_crt_and_key_exist == False
+- name: Generate certificates
+  include_role:
+    name: ansible-scylla-common
+    tasks_from: generate_certificate_and_key.yml
+    apply:
+      delegate_to: localhost
+  vars:
+    cert_path: "{{ ssl_localhost_cert_path }}"
+    cert_key_path: "{{ ssl_localhost_cert_key_path }}"
+    cert_common_name: "{{ scylla_broadcast_rpc_address }}"
+    cert_san: "{{ ssl_cert_san + (['DNS:'] | product(ssl_cert_san_dns) | map('join') | list) }}"
+    cert_basic_constraints: ['CA:FALSE']
+    cert_key_usage: ['digitalSignature', 'keyEncipherment']
+    ca_path: "{{ ssl_localhost_ca_path }}"
+    ca_key_path: "{{ ssl_localhost_ca_key_path }}"
+    regenerate: "{{ ssl_regenerate_node_certs|bool }}"
+  when: _localhost_node_crt.stat.exists == False or ssl_regenerate_node_certs|bool
 
 - name: Copy the certificates and keys into their proper locations
   copy:
@@ -101,7 +105,7 @@
     owner: root
     group: root
     mode: '0644'
-    force: false
+    force: "{{ ssl_regenerate_node_certs }}"
   become: true
   loop:
     - ["{{ ssl_localhost_cert_path }}", "{{ ssl_cert_path }}"]

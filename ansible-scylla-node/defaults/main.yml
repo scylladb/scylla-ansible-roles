@@ -323,6 +323,9 @@ ssl_localhost_ca_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.
 ssl_localhost_ca_key_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
 ssl_localhost_truststore_path: "{{ (scylla_ssl | default({})).localhost_truststore_path | default(ssl_localhost_ca_path) }}"
 
+# Defines whether the node certificates and keys should be regenerated or not
+ssl_regenerate_node_certs: false
+
 # These variables define the remote paths where the certificates and keys will be copied to.
 ssl_cert_dir: "/etc/scylla"
 ssl_cert_path: "{{ (scylla_ssl | default({})).cert_path | default(ssl_cert_dir) }}/{{ ssl_localhost_cert_path | basename }}"
