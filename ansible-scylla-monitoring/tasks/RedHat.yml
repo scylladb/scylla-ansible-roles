@@ -24,8 +24,8 @@
   become: true
 
 - name: install prerequisite python-yaml
-  shell: |
-    for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
+  dnf:
+    name: python3-pyyaml
   become: true
 
 - name: run docker related tasks
