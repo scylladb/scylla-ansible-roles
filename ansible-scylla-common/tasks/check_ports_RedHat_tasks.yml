@@ -1,0 +1,8 @@
+---
+- name: Install dependencies for check_ports task
+  dnf:
+    name:
+      - socat
+      - iproute
+    state: present
+  become: true
