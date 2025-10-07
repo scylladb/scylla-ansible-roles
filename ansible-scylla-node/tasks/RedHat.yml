@@ -99,6 +99,16 @@
       when: result.changed
   when: scylla_is_installed and not skip_installed_scylla_version_check
 
+- name: install systemd-udev
+  dnf:
+    name: systemd-udev
+  become: true
+
+- name: install policycoreutils
+  dnf:
+    name: policycoreutils
+  become: true
+
 - name: Install Scylla
   block:
   - name: Install {{ scylla_package_prefix }} package
