@@ -1,0 +1,102 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: node1
+    # Use a third-party image with systemd enabled, since the official RockyLinux image doesn't have systemd activated by default.
+    # Reference: https://hub.docker.com/r/rockylinux/rockylinux#systemd-integration
+    image: geerlingguy/docker-rockylinux9-ansible
+    privileged: true
+    command: /usr/lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    groups:
+      - scylla
+    docker_networks:
+      - name: scylla
+        ipam_config:
+          - subnet: "10.11.0.0/16"
+            gateway: "10.11.0.254"
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.2"
+  - name: node2
+    image: geerlingguy/docker-rockylinux9-ansible
+    privileged: true
+    command: /usr/lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.3"
+  - name: node3
+    image: geerlingguy/docker-rockylinux9-ansible
+    privileged: true
+    command: /usr/lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.4"
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_LIBRARY: $PWD/../example-playbooks/async_extra/library
+    ANSIBLE_ACTION_PLUGINS: $PWD/../example-playbooks/async_extra/action_plugins
+  log: True
+  options:
+    vvv: True
+  inventory:
+    group_vars:
+      scylla:
+        scylla_edition: "enterprise"
+        scylla_version: "latest"
+        scylla_io_probe: false
+        io_properties:
+          disks:
+            - mountpoint: "/var/lib/scylla/data"
+              read_iops: 2000
+              read_bandwidth: 10000000
+              write_iops: 1000
+              write_bandwidth: 1000000
+        scylla_seeds:
+          - "10.11.0.2"
+        dc: "test_dc"
+        rack: "test_rack"
+        skip_coredump: True
+        skip_sysconfig: True
+        skip_mem_setup: True
+        cpuset_command: "scylla_cpuset_setup --smp 1"
+        skip_swap: True
+        scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.2.repo"
+        scylla_yaml_params:
+          force_schema_commit_log: true
+          consistent_cluster_management: true
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+    verify: ../shared/verify.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+verifier:
+  name: ansible
+

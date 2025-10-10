@@ -27,6 +27,7 @@ jobs:
           #- ubuntu1804
           - ubuntu2004
           - ubuntu2004-enterprise
+          - rockylinux9
     defaults:
       run:
         working-directory: ansible-scylla-node

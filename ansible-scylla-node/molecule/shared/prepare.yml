@@ -6,3 +6,20 @@
         update_cache: true
       become: true
       when: ansible_os_family == "Debian"
+
+    # Workaround for https://github.com/rocky-linux/sig-cloud-instance-images/issues/56
+    - name: Adjust permissions for /etc/shadow
+      block:
+        - name: Get stats for /etc/shadow
+          stat:
+            path: /etc/shadow
+          register: _shadow_stats
+
+        - name: Fix permissions for /etc/shadow
+          file:
+            path: /etc/shadow
+            owner: root
+            group: root
+            mode: '400'
+          when: not _shadow_stats.stat.rusr
+      when: ansible_distribution == 'Rocky'
