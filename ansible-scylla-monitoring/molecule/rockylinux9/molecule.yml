@@ -1,0 +1,44 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: monitoring
+    # Use a third-party image with systemd enabled, since the official RockyLinux image doesn't have systemd activated by default.
+    # Reference: https://hub.docker.com/r/rockylinux/rockylinux#systemd-integration
+    image: geerlingguy/docker-rockylinux9-ansible
+    privileged: true
+    command: /usr/lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+    groups:
+      - scylla-monitor
+provisioner:
+  name: ansible
+  log: True
+  options:
+    vvv: True
+  inventory:
+    group_vars:
+      scylla-monitor:
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+    verify: ../shared/verify.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+verifier:
+  name: ansible
