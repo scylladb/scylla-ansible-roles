@@ -99,14 +99,10 @@
       when: result.changed
   when: scylla_is_installed and not skip_installed_scylla_version_check
 
-- name: install systemd-udev
+- name: Install additional dependencies
   dnf:
-    name: systemd-udev
-  become: true
-
-- name: install policycoreutils
-  dnf:
-    name: policycoreutils
+    name: "{{ scylla_redhat_dependencies }}"
+    state: present
   become: true
 
 - name: Install Scylla
@@ -124,16 +120,6 @@
     scylla_selinux_setup
   become: true
   when: skip_selinux is defined and skip_selinux|bool == false
-
-- name: install prerequisite python-yaml
-  dnf:
-    name: python3-pyyaml
-  become: true
-
-- name: install nvme-cli
-  shell: |
-    yum install -y nvme-cli
-  become: true
 
 - name: install and configure Scylla Manager Agent
   block:
