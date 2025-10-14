@@ -51,7 +51,7 @@ Example Playbook
       - 5e08fbd8b5d6ec9c
       - 6B2BFD3660EF3F5B
       - 17723034C56D4B19
-    scylla_dependencies:
+    scylla_debian_dependencies:
       - curl
       - wget
     scylla_version: latest

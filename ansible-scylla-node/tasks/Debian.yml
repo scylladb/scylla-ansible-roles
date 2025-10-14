@@ -71,10 +71,10 @@
 
   - name: Install additional dependencies
     apt:
-      name: "{{ scylla_dependencies }}"
+      name: "{{ scylla_debian_dependencies }}"
       state: present
       force_apt_get: yes
-    when: scylla_dependencies is defined and (scylla_dependencies|length > 0)
+    when: scylla_debian_dependencies is defined and (scylla_debian_dependencies|length > 0)
 
   - name: Install Java
     apt:

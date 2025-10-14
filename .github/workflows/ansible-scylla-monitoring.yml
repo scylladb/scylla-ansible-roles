@@ -19,6 +19,7 @@ jobs:
         molecule_distro:
           - ubuntu2004
           - ubuntu2204
+          - rockylinux9
     defaults:
       run:
         working-directory: ansible-scylla-monitoring

@@ -99,6 +99,12 @@
       when: result.changed
   when: scylla_is_installed and not skip_installed_scylla_version_check
 
+- name: Install additional dependencies
+  dnf:
+    name: "{{ scylla_redhat_dependencies }}"
+    state: present
+  become: true
+
 - name: Install Scylla
   block:
   - name: Install {{ scylla_package_prefix }} package
@@ -114,16 +120,6 @@
     scylla_selinux_setup
   become: true
   when: skip_selinux is defined and skip_selinux|bool == false
-
-- name: install prerequisite python-yaml
-  shell: |
-    for i in `yum search python3|grep -i pyyaml|awk '{ print $1 }'`; do sudo yum -y install $i; done
-  become: true
-
-- name: install nvme-cli
-  shell: |
-    yum install -y nvme-cli
-  become: true
 
 - name: install and configure Scylla Manager Agent
   block:
