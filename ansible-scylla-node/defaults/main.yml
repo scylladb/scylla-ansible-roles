@@ -191,7 +191,7 @@ scylla_manager_repo_keys:
 #scylla_repo_keyfile_urls:
 #  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
 
-# Configure when additional dependency packages are required (only for some distributions)
+# Deprecated in favor of scylla_debian_dependencies
 scylla_dependencies:
   - curl
   - wget
@@ -201,6 +201,16 @@ scylla_dependencies:
   #- apt-transport-https
   #- gnupg2
   #- dirmngr
+
+# Configure when additional dependency packages are required
+scylla_debian_dependencies: "{{ scylla_dependencies }}"
+
+# Configure when additional dependency packages are required
+scylla_redhat_dependencies:
+  - systemd-udev
+  - policycoreutils
+  - python3-pyyaml
+  - nvme-cli
 
 # Specify a Scylla version here (should be available in repo)
 # ex: scylla_version: 2019.1.9 or 3.2.1
