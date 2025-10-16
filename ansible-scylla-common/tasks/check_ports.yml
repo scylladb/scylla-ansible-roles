@@ -24,7 +24,7 @@
 
 - name: Validate that the listeners are ready to accept connections before testing cross-host connectivity
   wait_for:
-    host: "{{ inventory_hostname }}"
+    host: "{{ ansible_host | default(inventory_hostname) }}"
     port: "{{ item }}"
     timeout: "{{ check_ports_client_timeout_sec | int }}"
     state: started
