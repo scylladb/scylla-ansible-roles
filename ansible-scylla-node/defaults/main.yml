@@ -197,6 +197,7 @@ scylla_dependencies:
   - wget
   - python3-yaml # this will fail on non centos systems
   - nvme-cli
+  - netcat
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
@@ -211,6 +212,7 @@ scylla_redhat_dependencies:
   - policycoreutils
   - python3-pyyaml
   - nvme-cli
+  - nmap-ncat
 
 # Specify a Scylla version here (should be available in repo)
 # ex: scylla_version: 2019.1.9 or 3.2.1
