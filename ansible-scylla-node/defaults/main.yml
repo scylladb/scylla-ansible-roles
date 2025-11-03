@@ -198,6 +198,7 @@ scylla_dependencies:
   - wget
   - python3-yaml # this will fail on non centos systems
   - nvme-cli
+  - netcat
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
@@ -212,6 +213,7 @@ scylla_redhat_dependencies:
   - policycoreutils
   - python3-pyyaml
   - nvme-cli
+  - nmap-ncat
 
 debian_packages_to_remove:
   - google-guest-agent
