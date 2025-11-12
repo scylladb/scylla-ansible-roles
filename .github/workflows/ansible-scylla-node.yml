@@ -40,7 +40,7 @@ jobs:
           python-version: "3.10"
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip pip-tools
+          python -m pip install --upgrade pip==25.2 pip-tools
           pip-sync requirements.txt requirements-dev.txt
           ansible-galaxy collection install community.docker
           ansible --version
