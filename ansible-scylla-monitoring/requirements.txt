@@ -4,11 +4,11 @@
 #
 #    pip-compile --output-file=requirements.txt requirements.in
 #
-ansible==6.7.0
+ansible==10.5.0
     # via -r requirements.in
 ansible-compat==2.2.7
     # via molecule
-ansible-core==2.13.7
+ansible-core==2.17.14
     # via ansible
 arrow==1.2.3
     # via jinja2-time
