@@ -25,6 +25,7 @@ provisioner:
   inventory:
     group_vars:
       scylla-monitor:
+        docker_daemon_custom_config: { "storage-driver": "overlay2" }
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
