@@ -8,6 +8,8 @@ It requires Scylla Manager 2.4 or newer.
 1. New cluster with the same number of nodes as the source cluster.
 1. Scylla Manager Agent installed on all the nodes.
 1. Access to the backup location from all the nodes.
+1. New cluster is registered in ScyllaDB Manager.
+
 
 ## Parameters
 
@@ -62,7 +64,8 @@ The snapshot ID must be put into `snapshot_tag` variable in `vars.yaml` file.
 
 ## Inventory
 
-Put public IP addresses of all nodes to `hosts` file.
+Put public IP addresses of all nodes to scylla_hosts section in `hosts` file.
+Put public IP addresses of Scylla Manager host to scylla_manager section in `hosts` file.
 
 ## Running
 
