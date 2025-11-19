@@ -1,0 +1,5 @@
+blank_issues_enabled: false  # Disables blank issue creation
+contact_links:
+  - name: 🚀 Press to open an issue in the Scylla Ansible Roles project in Jira.
+    url: https://scylladb.atlassian.net/jira/software/c/projects/ANSROLES/summary
+    about: "Opening issues is not allowed in this Github repository."
