@@ -320,7 +320,7 @@ scylla_yaml_params:
 #     enabled: true
 
 ssl_internode_enabled: "{{ (scylla_ssl | default({})).internode.enabled | default(true) }}"
-ssl_internode_encryption: all
+ssl_internode_encryption: "{{ (scylla_ssl | default({})).internode.internode_encryption | default('all') }}"
 ssl_client_enabled: "{{ (scylla_ssl | default({})).client.enabled | default(true) }}"
 
 # If ssl_internode_enabled and/or ssl_client_enabled are true, these variables define the local paths where
