@@ -291,19 +291,8 @@
   become: true
   loop: "{{ lookup('dict', scylla_yaml_params) }}"
 
-- name: Copy system keys
-  include_tasks: handle_encryption_at_rest_keys.yml
-  vars:
-    localhost_key_path: "{{ localhost_system_key_directory }}"
-    remote_key_path: "{{ system_key_directory }}"
-  when: handle_system_keys|bool
-
-- name: Copy table keys
-  include_tasks: handle_encryption_at_rest_keys.yml
-  vars:
-    localhost_key_path: "{{ localhost_table_key_directory }}"
-    remote_key_path: "{{ table_key_directory }}"
-  when: handle_table_keys|bool
+- name: Copy system and table keys
+  include_tasks: copy_system_and_table_keys.yml
 
 # scylla_listen_address is a composite indirect value that depends on another per-host value - scylla_nic.
 # Therefore in order to be able to get the corresponding value via hostvars[item] later in the play we need to
@@ -377,6 +366,9 @@
       become: true
       when: token_distributor is defined
   when: start_scylla_service is defined and start_scylla_service|bool
+
+- name: Copy system and table keys
+  include_tasks: copy_system_and_table_keys.yml
 
 - name: Check if authentication and audit are enabled
   block:
