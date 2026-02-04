@@ -307,6 +307,13 @@
         host: "{{ listen_address }}"
         timeout: "{{ new_node_bootstrap_wait_time_sec|int }}"
 
+    # If encryption at rest is enabled, the key will be generated during startup.
+    # Let's make sure this key is stored locally as part of the metadata.
+    - name: Copy encryption-at-rest keys
+      include_role:
+        name: ansible-scylla-node
+        tasks_from: copy_system_and_table_keys.yml
+
     - name: Remove the replace_node_first_boot record
       lineinfile:
         path: /etc/scylla/scylla.yaml
