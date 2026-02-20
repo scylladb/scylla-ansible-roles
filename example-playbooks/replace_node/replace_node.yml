@@ -313,6 +313,8 @@
       include_role:
         name: ansible-scylla-node
         tasks_from: copy_system_and_table_keys.yml
+      vars:
+        skip_role_deps: true
 
     - name: Remove the replace_node_first_boot record
       lineinfile:
