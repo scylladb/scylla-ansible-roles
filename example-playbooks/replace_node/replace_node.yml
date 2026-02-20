@@ -354,7 +354,7 @@
         nodetool status|grep -E '^UN'|grep -w "{{ hostvars[new_node]['broadcast_address'] }}"| wc -l
       register: node_count
       until: node_count.stdout|int == 1
-      retries: "{{ new_node_bootstrap_wait_time_sec|int }}"
+      retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
 
     - name: start and enable the Manager agent service
