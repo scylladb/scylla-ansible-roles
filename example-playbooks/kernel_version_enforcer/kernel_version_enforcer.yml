@@ -1,0 +1,34 @@
+---
+
+- name: Kernel Version Enforcer
+  hosts: scylla
+  gather_facts: true
+  serial: 1
+  vars:
+    api_address: 127.0.0.1
+    api_delay: 10
+    api_port: 10000
+    api_retries: 360
+    api_timeout: 300
+    cql_timeout: 86400
+    reboot_timeout: 600
+    systemd_unit_retries: 5
+    systemd_unit_delay: 30
+    grub_config_file: /boot/grub/grub.cfg
+    image_package_prefix: linux-image
+    image_version: 5.15.0-1051-gcp
+    kernel_related_packages:
+      - linux-gcp
+      - linux-image-gcp
+      - linux-headers-gcp
+    pid_kill_delay: 12
+    pid_kill_retries: 5
+    pause_time: 15
+    pin_kernel_version: false
+    purge_older_images: false
+    upgrade_all_packages: false
+    upgrade_latest_kernel: false
+  tasks:
+    - name: Enforce kernel version for Ubuntu
+      ansible.builtin.include_tasks: ubuntu/main.yml
+      when: ansible_distribution == "Ubuntu"
