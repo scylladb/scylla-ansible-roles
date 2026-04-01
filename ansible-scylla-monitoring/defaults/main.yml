@@ -18,7 +18,7 @@ scylla_servers_yml_path: scylla_servers.yml
 scylla_manager_ip: '127.0.0.1'
 
 # Download the scylla-monitoring from here
-scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/scylla-monitoring-3.10.1.tar.gz'
+scylla_monitoring_archive_url: 'https://github.com/scylladb/scylla-monitoring/archive/refs/tags/4.12.1.tar.gz'
 
 # The path where the role will look for config files
 scylla_monitoring_role_config_path: "{{ inventory_dir }}"
