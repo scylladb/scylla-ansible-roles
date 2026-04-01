@@ -1,11 +1,5 @@
 ---
 - hosts: scylla-manager
-  vars:
-    scylla_clusters:
-      - cluster_name: "mydemo"
-        host: "{{ groups['scylla'][0]}}"
-        auth_token_file: scyllamgr_auth_token.txt
-        without_repair: false
-
+  any_errors_fatal: true
   roles:
     - role: ansible-scylla-manager
