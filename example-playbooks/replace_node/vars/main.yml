@@ -51,6 +51,9 @@ alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 
 cql_port: 9042
+scylla_nic: "{{ ansible_default_ipv4.interface }}"
+scylla_api_address: '127.0.0.1'
+scylla_api_port: '10000'
 
 # A list with the broadcast addresses of the nodes that are dead and should be ignored during the replace
 # These nodes shouldn't be part of the inventory
