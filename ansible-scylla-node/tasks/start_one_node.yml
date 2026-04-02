@@ -1,15 +1,30 @@
 ---
-- name: start scylla on {{ item }}
+- name: start scylla on {{ node }}
   service:
     name: scylla-server
     state: started
   become: true
-  delegate_to: "{{ item }}"
+  delegate_to: "{{ node }}"
 
 # By default waits at most 7 hours for a node to start - bootstrapping and the corresponding streaming can take quite long
-- name: Wait for CQL port on {{ hostvars[item]['rpc_address'] }}
-  wait_for:
-    port: 9042
-    host: "{{ hostvars[item]['rpc_address'] }}"
-    timeout: "{{ scylla_bootstrap_wait_time_sec }}"
-  delegate_to: "{{ item }}"
+- name: Wait for CQL port on {{ hostvars[node]['rpc_address'] }}
+  shell:
+    executable: /bin/bash
+    cmd: |
+      state=$(systemctl is-active scylla-server)
+
+      if [[ "$state" == "failed" || "$state" == "inactive" ]]; then
+        echo "scylla-server has unexpectedly stopped"
+        exit 1
+      fi
+
+      if nc -z -w 3 "{{ hostvars[node]['rpc_address'] }}" 9042; then
+        exit 0
+      fi
+
+      exit 2
+  register: _result
+  delegate_to: "{{ node }}"
+  until: _result.rc != 2
+  retries: "{{ scylla_bootstrap_wait_time_sec|int // 60 }}" # retries = scylla_bootstrap_wait_time_sec / (delay + nc_connect_timeout)
+  delay: 57

@@ -322,12 +322,16 @@
     - name: Start seeders serially
       run_once: true
       include_tasks: start_one_node.yml
+      vars:
+        node: "{{ item }}"
       loop: "{{ groups['scylla'] }}"
       when: hostvars[item]['broadcast_address'] in scylla_seeds or item in scylla_seeds
 
     - name: Start scylla non-seeds nodes serially
       run_once: true
       include_tasks: start_one_node.yml
+      vars:
+        node: "{{ item }}"
       loop: "{{ groups['scylla'] }}"
       when:
         - item not in scylla_seeds
