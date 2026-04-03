@@ -285,9 +285,14 @@ io_conf: 'SEASTAR_IO="--io-properties-file /etc/scylla.d/io_properties.yaml"'
 #
 # scylla_args_value: "--log-to-syslog 1 --log-to-stdout 0 --default-log-level info --network-stack posix"
 
-# Seeds node list
-scylla_seeds:
-  - "{{ groups['scylla'][0] }}"
+# Seeds node list (mandatory parameter)
+# A seed should be either a DNS resolvable address (e.g. hostname) that is resolvable by all nodes in the cluster, 
+# or an IP address that is accessible by all nodes in the cluster.
+# If the hostname is not resolvable by all nodes, then such an IP address can be set, for example, explicitly or via ansible_host.
+# Do not use the below default example if ansible_host is not specified and the hostname is not resolvable by all nodes.
+#
+#scylla_seeds:
+#  - "{{ hostvars[groups.scylla.0].ansible_host if 'ansible_host' in hostvars[groups.scylla.0] else groups.scylla.0 }}"
 
 scylla_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 scylla_rpc_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
