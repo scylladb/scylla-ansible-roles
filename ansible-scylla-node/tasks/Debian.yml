@@ -1,6 +1,19 @@
 ---
 - name: Add Scylla repos
   block:
+  - name: Find existing Scylla apt source files in sources.list.d
+    ansible.builtin.find:
+      paths: /etc/apt/sources.list.d
+      patterns: 'scylla*'
+      file_type: file
+    register: _scylla_sources_list_cleanup
+
+  - name: Remove existing Scylla apt source files
+    ansible.builtin.file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ _scylla_sources_list_cleanup.files | default([]) }}"
+
   - name: "Purge keyring '{{ scylla_repo_keyringfile }}'"
     ansible.builtin.file:
       path: "{{ scylla_repo_keyringfile }}"
