@@ -81,6 +81,7 @@
       name: openjdk-8-jre-headless
       state: present
       force_apt_get: yes
+    when: ansible_facts['distribution']|lower == 'ubuntu'
 
   - name: Install Scylla packages
     include_tasks: Debian_install.yml
