@@ -213,6 +213,13 @@ scylla_redhat_dependencies:
   - python3-pyyaml
   - nvme-cli
 
+#debian_packages_to_remove:
+#  - google-guest-agent
+
+redhat_packages_to_remove:
+  - abrt
+#  - google-guest-agent
+
 # Specify a Scylla version here (should be available in repo)
 # ex: scylla_version: 2019.1.9 or 3.2.1
 # 'latest' value would resolve to a current latest OSS or Enterprise version
