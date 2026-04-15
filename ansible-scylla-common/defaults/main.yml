@@ -18,6 +18,12 @@ check_ports_listener_timeout_sec: 360
 # Default timeout when trying to reach a port on another node
 check_ports_client_timeout_sec: 120
 
+# Glob patterns (shell-style filenames) for .list files under /etc/apt/sources.list.d.
+# At the start of the Debian path in this role, any file whose name matches a pattern is
+# removed so a later apt update does not hit broken or stale third-party sources;
+# roles that run afterward are expected to recreate the repos and keys they need.
+# repo_pattern_list: []
+
 # Default time-out to wait on acquiring an APT lock.
 apt_lock_timeout: 1200
 
