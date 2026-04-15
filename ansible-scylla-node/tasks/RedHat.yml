@@ -66,11 +66,12 @@
   when: elrepo_kernel|bool and scylla_install_type == 'online' and (ansible_distribution == "CentOS" or ansible_distribution == "RedHat")
   become: true
 
-- name: remove abrt
+- name: Remove conflicting packages
   package:
-    name: abrt
+    name: "{{ redhat_packages_to_remove }}"
     state: absent
   become: true
+  when: redhat_packages_to_remove is defined and redhat_packages_to_remove|length > 0
 
 - name: Install Scylla repo
   get_url:

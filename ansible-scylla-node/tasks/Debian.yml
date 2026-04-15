@@ -82,6 +82,13 @@
       state: present
       force_apt_get: yes
 
+  - name: Remove conflicting packages
+    apt:
+      name: "{{ debian_packages_to_remove }}"
+      state: absent
+      force_apt_get: yes
+    when: debian_packages_to_remove is defined and (debian_packages_to_remove|length > 0)
+
   - name: Install Scylla packages
     include_tasks: Debian_install.yml
   become: true
