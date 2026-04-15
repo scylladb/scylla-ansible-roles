@@ -1,3 +1,7 @@
 ---
+- name: Remove stale apt repositories before refresh
+  ansible.builtin.include_tasks: cleanup_stale_repos.yml
+  when: repo_pattern_list | default([]) | length > 0
+
 - name: "Include apt configuration task"
   include_tasks: set_apt_config.yml

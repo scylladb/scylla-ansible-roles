@@ -1,0 +1,15 @@
+---
+# Debian/Ubuntu only: remove matching files under /etc/apt/sources.list.d before apt update.
+- name: Find matching apt list files under /etc/apt/sources.list.d
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "{{ repo_pattern_list }}"
+    file_type: file
+  register: scylla_stale_apt_repo_files
+
+- name: Remove stale apt source files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  become: true
+  loop: "{{ scylla_stale_apt_repo_files.files }}"
