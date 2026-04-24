@@ -48,6 +48,31 @@ platforms:
     networks:
       - name: "scylla"
         ipv4_address: "10.11.0.4"
+  - name: scylla-monitor-node
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+    groups:
+      - scylla-monitor
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.5"
+  - name: scylla-manager-node
+    image: jrei/systemd-ubuntu:20.04
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla-manager
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.6"
 provisioner:
   name: ansible
   env:
@@ -58,7 +83,17 @@ provisioner:
     vvv: True
   inventory:
     group_vars:
+      scylla-manager:
+        scylla_clusters:
+          - cluster_name: "test-cluster"
+            auth_token_file: "scyllamgr_auth_token.txt"
+            host: "10.11.0.2"
+            without_repair: false
+      scylla-monitor:
+        scylla_cluster_name: "test-cluster"
+        docker_daemon_custom_config: { "storage-driver": "overlay2" }
       scylla:
+        scylla_cluster_name: "test-cluster"
         scylla_edition: "oss"
         scylla_version: "latest"
         scylla_io_probe: false
@@ -81,6 +116,12 @@ provisioner:
         # devmode: True
 #        skip_ntp: True
         skip_swap: True
+        scylla_debian_dependencies:
+          - curl
+          - wget
+          - python3-yaml
+          - nvme-cli
+          - netcat
         scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.2.list"
         scylla_yaml_params:
           force_schema_commit_log: true
