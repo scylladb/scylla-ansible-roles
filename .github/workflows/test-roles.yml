@@ -1,12 +1,17 @@
 ---
-name: Molecule Test for ansible-scylla-monitoring role
+name: Molecule Test for ansible roles
 on:
   push:
     paths:
+      - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
+      - 'ansible-scylla-manager/**'
+      - '.github/workflows/*'
   pull_request:
     paths:
+      - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
+      - 'ansible-scylla-manager/**'
     branches:
       - master
 jobs:
@@ -17,12 +22,12 @@ jobs:
       max-parallel: 4
       matrix:
         molecule_distro:
-          - ubuntu2004
+          - debian11
+          - debian12
           - ubuntu2204
+          - ubuntu2404
           - rockylinux9
-    defaults:
-      run:
-        working-directory: ansible-scylla-monitoring
+          - rockylinux10
     steps:
       - uses: actions/checkout@v2
         with:
