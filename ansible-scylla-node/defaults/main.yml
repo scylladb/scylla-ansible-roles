@@ -193,12 +193,14 @@ scylla_manager_repo_keys:
 #  - https://download.opensuse.org/repositories/home:/scylladb:/scylla-3rdparty-stretch/Debian_9.0/Release.key
 
 # Deprecated in favor of scylla_debian_dependencies
+# The name of the packages can vary depending on the distribution and its version
+# The defaults below are tested on ubuntu24.04
 scylla_dependencies:
   - curl
   - wget
   - python3-yaml # this will fail on non centos systems
   - nvme-cli
-  - netcat
+  - netcat-openbsd
   #- software-properties-common
   #- apt-transport-https
   #- gnupg2
