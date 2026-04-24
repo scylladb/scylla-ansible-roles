@@ -1,0 +1,133 @@
+---
+dependency:
+  name: galaxy
+  enabled: false
+  options:
+    role-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: node1
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    docker_networks:
+      - name: scylla
+        ipam_config:
+          - subnet: "10.11.0.0/16"
+            gateway: "10.11.0.254"
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.2"
+  - name: node2
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.3"
+  - name: node3
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.4"
+  - name: scylla-monitor-node
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+    groups:
+      - scylla-monitor
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.5"
+  - name: scylla-manager-node
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla-manager
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.6"
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_LIBRARY: $PWD/../example-playbooks/async_extra/library
+    ANSIBLE_ACTION_PLUGINS: $PWD/../example-playbooks/async_extra/action_plugins
+  log: True
+  options:
+    vvv: True
+  inventory:
+    group_vars:
+      scylla-manager:
+        scylla_clusters:
+          - cluster_name: "test-cluster"
+            auth_token_file: "scyllamgr_auth_token.txt"
+            host: "10.11.0.2"
+            without_repair: false
+      scylla-monitor:
+        scylla_cluster_name: "test-cluster"
+        docker_daemon_custom_config: { "storage-driver": "overlay2" }
+      scylla:
+        scylla_cluster_name: "test-cluster"
+        scylla_edition: "oss"
+        scylla_version: "latest"
+        scylla_io_probe: false
+        io_properties:
+          disks:
+            - mountpoint: "/var/lib/scylla/data"
+              read_iops: 2000
+              read_bandwidth: 10000000
+              write_iops: 1000
+              write_bandwidth: 1000000
+        scylla_seeds:
+          - "10.11.0.2"
+        dc: "test_dc"
+        rack: "test_rack"
+        skip_coredump: True
+        skip_sysconfig: True
+        skip_mem_setup: True
+        cpuset_command: "scylla_cpuset_setup --smp 1"
+        skip_swap: True
+        scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.2.list"
+        scylla_yaml_params:
+          force_schema_commit_log: true
+          consistent_cluster_management: true
+  playbooks:
+    converge: ../shared/converge.yml
+    prepare: ../shared/prepare.yml
+scenario:
+  test_sequence:
+    - dependency
+    - lint
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+verifier:
+  name: ansible
