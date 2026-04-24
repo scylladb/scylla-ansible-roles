@@ -1,9 +1,18 @@
+# Cluster name to restore schema to. This is the name of the target cluster which
+# is registered in ScyllaDB Manager
+#
+scylla_manager_cluster_name: <target_cluster_name_registered_in_scylla_manager>
+
 # backup_location specifies the location parameter used in Scylla Manager
 # when scheduling a backup of a cluster.
 backup_location: s3:manager-test-demo1
 
 # snapshot_tag specifies the Scylla Manager snapshot tag you want to restore.
 snapshot_tag: sm_20210422133609UTC
+
+# data_dir is the path to dump sstables during scylla-manager-agent download-files 
+#
+data_dir: <scylla_data_dir, e.g. /var/lib/scylla/data/>
 
 # host_id specifies a mapping from the clone cluster node IP to the source
 # cluster host IDs.
@@ -14,3 +23,4 @@ host_id:
   3.125.251.43: 82f0f486-370d-4cfd-90ac-46464c8012cb
   3.66.176.252: 9ee92c19-5f78-4865-a287-980218963d96
   3.66.25.100: aff05f79-7c69-4ecf-a827-5ea790a0fdc6
+  
