@@ -28,7 +28,7 @@ galaxy_info:
     - scylladb
     - scylla-node
     - cassandra
-dependencies:
-  - role: ansible-scylla-common
-    when: not skip_role_deps | default(false)
+#dependencies:
+#  - role: ansible-scylla-common
+#    when: not skip_role_deps | default(false)
 
