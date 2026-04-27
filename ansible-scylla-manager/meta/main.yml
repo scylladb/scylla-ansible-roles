@@ -24,15 +24,15 @@ galaxy_info:
     - scylla
     - scylla-manager
 
-dependencies:
-  - role: "ansible-scylla-common"
-  - role: "ansible-scylla-node"
-    vars:
-      install_only: true
-      scylla_manager_enabled: false
-      elrepo_kernel: false
-      scylla_ssl:
-        internode:
-          enabled: false
-        client:
-          enabled: false
+#dependencies:
+#  - role: "ansible-scylla-common"
+#  - role: "ansible-scylla-node"
+#    vars:
+#      install_only: true
+#      scylla_manager_enabled: false
+#      elrepo_kernel: false
+#      scylla_ssl:
+#        internode:
+#          enabled: false
+#        client:
+#          enabled: false

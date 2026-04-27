@@ -1,0 +1,21 @@
+---
+- name: Deploy scylla nodes
+  hosts: scylla
+  tasks:
+    - name: Include ansible-scylla-node
+      include_role:
+        name: ansible-scylla-node
+
+- name: Deploy manager nodes
+  hosts: scylla-manager
+  tasks:
+    - name: Include ansible-scylla-manager
+      include_role:
+        name: ansible-scylla-manager
+
+- name: Deploy monitor nodes
+  hosts: scylla-monitor
+  tasks:
+    - name: Include ansible-scylla-monitor
+      include_role:
+        name: ansible-scylla-monitor

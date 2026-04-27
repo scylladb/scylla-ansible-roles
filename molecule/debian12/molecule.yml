@@ -8,14 +8,12 @@ driver:
   name: docker
 platforms:
   - name: node1
-    # Use a third-party image with systemd enabled, since the official RockyLinux image doesn't have systemd activated by default.
-    # Reference: https://hub.docker.com/r/rockylinux/rockylinux#systemd-integration
-    image: geerlingguy/docker-rockylinux9-ansible
+    image: jrei/systemd-debian:12
     privileged: true
-    command: /usr/lib/systemd/systemd
+    command: /lib/systemd/systemd
     cgroupns_mode: host
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
     docker_networks:
@@ -27,29 +25,54 @@ platforms:
       - name: "scylla"
         ipv4_address: "10.11.0.2"
   - name: node2
-    image: geerlingguy/docker-rockylinux9-ansible
+    image: jrei/systemd-debian:12
     privileged: true
-    command: /usr/lib/systemd/systemd
+    command: /lib/systemd/systemd
     cgroupns_mode: host
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
     networks:
       - name: "scylla"
         ipv4_address: "10.11.0.3"
   - name: node3
-    image: geerlingguy/docker-rockylinux9-ansible
+    image: jrei/systemd-debian:12
     privileged: true
-    command: /usr/lib/systemd/systemd
+    command: /lib/systemd/systemd
     cgroupns_mode: host
     volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+      - /sys/fs/cgroup:/sys/fs/cgroup
     groups:
       - scylla
     networks:
       - name: "scylla"
         ipv4_address: "10.11.0.4"
+  - name: scylla-monitor-node
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+    groups:
+      - scylla-monitor
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.5"
+  - name: scylla-manager-node
+    image: jrei/systemd-debian:12
+    privileged: true
+    command: /lib/systemd/systemd
+    cgroupns_mode: host
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+    groups:
+      - scylla-manager
+    networks:
+      - name: "scylla"
+        ipv4_address: "10.11.0.6"
 provisioner:
   name: ansible
   env:
@@ -60,8 +83,18 @@ provisioner:
     vvv: True
   inventory:
     group_vars:
+      scylla-manager:
+        scylla_clusters:
+          - cluster_name: "test-cluster"
+            auth_token_file: "scyllamgr_auth_token.txt"
+            host: "10.11.0.2"
+            without_repair: false
+      scylla-monitor:
+        scylla_cluster_name: "test-cluster"
+        docker_daemon_custom_config: { "storage-driver": "overlay2" }
       scylla:
-        scylla_edition: "enterprise"
+        scylla_cluster_name: "test-cluster"
+        scylla_edition: "oss"
         scylla_version: "latest"
         scylla_io_probe: false
         io_properties:
@@ -80,14 +113,13 @@ provisioner:
         skip_mem_setup: True
         cpuset_command: "scylla_cpuset_setup --smp 1"
         skip_swap: True
-        scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.2.repo"
+        scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.2.list"
         scylla_yaml_params:
           force_schema_commit_log: true
           consistent_cluster_management: true
   playbooks:
     converge: ../shared/converge.yml
     prepare: ../shared/prepare.yml
-    verify: ../shared/verify.yml
 scenario:
   test_sequence:
     - dependency
@@ -99,4 +131,3 @@ scenario:
     - verify
 verifier:
   name: ansible
-
