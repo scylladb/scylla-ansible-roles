@@ -118,7 +118,6 @@ provisioner:
         skip_mem_setup: True
         cpuset_command: "scylla_cpuset_setup --smp 1"
         skip_swap: True
-        scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb-manager-3.2.repo"
         scylla_yaml_params:
           force_schema_commit_log: true
           consistent_cluster_management: true

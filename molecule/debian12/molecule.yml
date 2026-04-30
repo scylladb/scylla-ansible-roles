@@ -103,7 +103,7 @@ provisioner:
         alerts_sender_password: "Sender_p@ssw0rd"
       scylla:
         scylla_cluster_name: "test-cluster"
-        scylla_edition: "oss"
+        scylla_edition: "enterprise"
         scylla_version: "latest"
         scylla_io_probe: false
         io_properties:
@@ -128,7 +128,6 @@ provisioner:
           - python3-yaml
           - nvme-cli
           - netcat-openbsd
-        scylla_manager_deb_repo_url: "https://downloads.scylladb.com/deb/ubuntu/scylladb-manager-3.2.list"
         scylla_yaml_params:
           force_schema_commit_log: true
           consistent_cluster_management: true
