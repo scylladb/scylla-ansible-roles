@@ -26,6 +26,13 @@ galaxy_info:
 
 dependencies:
   - role: "ansible-scylla-common"
+    vars:
+      # Default time-out to wait on acquiring an APT lock.
+      apt_lock_timeout: 1200
+      repo_pattern_list:
+        - "scylla*"
+      required_ports_open_to:
+        scylla-monitor: [5090]
   - role: "ansible-scylla-node"
     vars:
       install_only: true
