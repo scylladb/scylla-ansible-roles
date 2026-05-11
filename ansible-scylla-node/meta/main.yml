@@ -36,7 +36,13 @@ dependencies:
       repo_pattern_list:
         - "scylla*"
       required_ports_open_to:
-        scylla: [7000, 7001]
-        scylla-monitor: [9180]
+        scylla:
+          - address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+            port: 7000
+          - address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+            port: 7001
+        scylla-monitor:
+          - address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
+            port: 9180
     when: not skip_role_deps | default(false)
 
