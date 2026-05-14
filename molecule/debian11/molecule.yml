@@ -55,6 +55,7 @@ platforms:
     cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup
+      - /sys/kernel/security:/sys/kernel/security:ro # Prevent container from modifying host AppArmor profile
       - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
     groups:
       - scylla-monitor
