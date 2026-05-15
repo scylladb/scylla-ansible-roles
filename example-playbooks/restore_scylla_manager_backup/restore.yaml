@@ -1,7 +1,7 @@
 ---
 
 - name: Gather important facts about Scylla nodes and a snapshot
-  hosts: all
+  hosts: scylla_hosts
   become: true
   gather_facts: false
   tags:
@@ -31,21 +31,27 @@
 
     - name: Get names of the tables in the snapshot {{ snapshot_tag }}
       shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --dry-run | grep "^\s*\-" | cut -d"-" -f2 | cut -d"(" -f1
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} --dump-manifest
       become_user: scylla
-      register: _tables_list
+      vars:
+        ansible_pipelining: true        
+      register: _manifest_output
+
+    - name: Parse table names from manifest
+      set_fact:
+        _tables_list:
+           stdout_lines: "{{ (_manifest_output.stdout | from_json).index | map(attribute='keyspace') | zip((_manifest_output.stdout | from_json).index | map(attribute='table')) | map('join', '.') | list }}"
 
     - name: Save tables names list as a fact
       set_fact:
-        tables_to_restore: "{{ _tables_list.stdout.split('\n') }}"
+        all_tables: "{{ _tables_list.stdout_lines }}"
 
-    - name: Save system_schema tables names as a fact
+    - name: Save names of tables to restore as a fact
       set_fact:
-        system_schema_tables: "{{ tables_to_restore | select('search', '^\\s*system_schema\\.') | list }}"
-
+        tables_to_restore: "{{ all_tables | reject('search', '^system(_|\\.)') | list }}"
 
 - name: Restore a token ring - cluster's data is going to be wiped
-  hosts: all
+  hosts: scylla_hosts
   become: true
   gather_facts: false
   tags:
@@ -110,7 +116,7 @@
       when: inventory_hostname != groups.all[0]
 
 - name: Start all nodes serially
-  hosts: all
+  hosts: scylla_hosts
   become: true
   gather_facts: false
   serial: 1
@@ -127,9 +133,8 @@
         port: 9042
         host: "{{ listen_address }}"
 
-
 - name: Cleanup - restore the original cluster's configuration
-  hosts: all
+  hosts: scylla_hosts
   become: true
   gather_facts: false
   tags:
@@ -149,38 +154,32 @@
           \g<1> - seeds: {{ old_seeds }}
         backrefs: yes
 
+- name: Restore schema from a backup snapshot {{ snapshot_tag }}
+  hosts: scylla_manager
+  become: true
+  gather_facts: false
+  tags:
+    - restore_schema_from_backup
+  tasks:
+    - name: Run sctool restore command to restore schema only
+      ansible.builtin.command:
+        cmd: "sctool restore --cluster {{ scylla_manager_cluster_name }} -L {{ backup_location }} --snapshot-tag {{ snapshot_tag }} --restore-schema"
 
 - name: Upload data from a backup snapshot {{ snapshot_tag }}
-  hosts: all
+  hosts: scylla_hosts
   become: true
   gather_facts: false
   tags:
     - upload_snapshot
   tasks:
-    - name: Download data from {{ snapshot_tag }}
+    - name: Download data
       shell: |
-        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d /var/lib/scylla/data/ --mode upload
+        scylla-manager-agent download-files -L {{ backup_location }} -n {{ host_id[inventory_hostname] }} -T {{ snapshot_tag }} -d {{ data_dir }} -K '*,!system_*,!!system.*' --mode upload
       become_user: scylla
-      async: 604800 # a week 7*24*60*60 seconds
+      async: 604800
       poll: 5
 
-    - name: Load system_schema tables data from the upload directory
+    - name: refresh nodes with the restored data
       shell: |
-        nodetool refresh {{ item.split('.') | join(' ') }}
-      with_items: "{{ system_schema_tables }}"
-
-    - name: Restart Scylla service to force a new schema to be picked up
-      service:
-        name: scylla-server
-        state: restarted
-
-    - name: Wait for CQL port
-      wait_for:
-        port: 9042
-        host: "{{ listen_address }}"
-
-    - name: Load the rest of tables data from the upload directory
-      shell: |
-        nodetool refresh {{ item.split('.') | join(' ') }}
+        nodetool refresh {{ item.split('.') | join(' ') }} 
       with_items: "{{ tables_to_restore }}"
-      when: item not in system_schema_tables
