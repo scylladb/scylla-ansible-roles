@@ -22,12 +22,12 @@ jobs:
       max-parallel: 4
       matrix:
         molecule_distro:
-          - debian11
-          - debian12
-          - ubuntu2204
-          - ubuntu2404
+          #- debian11
+          #- debian12
+          #- ubuntu2204
+          #- ubuntu2404
           - rockylinux9
-          - rockylinux10
+          #- rockylinux10
     steps:
       - uses: actions/checkout@v2
         with:

@@ -44,5 +44,5 @@ dependencies:
         scylla-monitor:
           - address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"
             port: 9180
-    when: not skip_role_deps | default(false)
+    when: not skip_role_deps | default(true)
 
