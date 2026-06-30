@@ -344,13 +344,28 @@
         timeout: 300
 
     - name: wait for the cluster to become healthy
-      shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+      shell:
+        executable: /bin/bash
+        cmd: |
+          state=$(systemctl is-active scylla-server)
+
+          if [[ "$state" == "failed" || "$state" == "inactive" ]]; then
+            echo "scylla-server has unexpectedly stopped"
+            exit 1
+          fi
+
+          count=$(nodetool status | grep -E '^UN|^UJ|^DN' | wc -l)
+          if [[ "$count" == "{{ ansible_play_batch|length }}" ]]; then
+            exit 0
+          fi
+
+          exit 2
       register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
+      until: node_count.rc != 2
       retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
       when: full_inventory|bool
+      become: true
 
     - name: check API access
       uri:
