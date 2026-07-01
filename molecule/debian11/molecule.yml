@@ -87,7 +87,7 @@ provisioner:
       scylla-manager:
         scylla_clusters:
           - cluster_name: "test-cluster"
-            auth_token_file: "{{ inventory_dir }}/scyllamgr_auth_token.txt"
+            auth_token_file: "{{ playbook_dir }}/scyllamgr_auth_token.txt"
             host: "10.11.0.2"
             without_repair: false
         scylla_debian_dependencies:
