@@ -29,6 +29,7 @@
       vars:
         iv_file: "{{ item }}"
       loop: "{{ ansible_inventory_sources }}"
+  run_once: true
   when: scylla_admin_default_user is defined and 'cql_credentials' in groups
 
 - fail:

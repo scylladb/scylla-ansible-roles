@@ -7,13 +7,19 @@
       register: _scylla_yaml_stat
       delegate_to: "{{ item }}"
       delegate_facts: true
+      ignore_errors: true
+      ignore_unreachable: true
       when: item not in play_hosts
       loop: "{{ groups['scylla'] }}"
 
     - name: Set _scylla_yaml_exists as a fact
       set_fact:
         _scylla_yaml_exists: "{{ item.stat.exists }}"
-      when: item.item not in play_hosts
+      when:
+        - item.item is defined
+        - item.item not in play_hosts
+        - not item.unreachable | default(false)
+        - item.stat is defined
       delegate_to: "{{ item.item }}"
       delegate_facts: true
       loop: "{{ _scylla_yaml_stat.results }}"
@@ -23,7 +29,10 @@
       command: cat /etc/scylla/scylla.yaml
       register: _scylla_yaml_out
       delegate_to: "{{ item }}"
-      when: item not in play_hosts and hostvars[item]['_scylla_yaml_exists']|bool
+      ignore_errors: true
+      ignore_unreachable: true
+      changed_when: false
+      when: item not in play_hosts and hostvars[item]['_scylla_yaml_exists'] | default(false) | bool
       loop: "{{ groups['scylla'] }}"
 
     - name: Set _scylla_yaml_map as a fact
@@ -31,7 +40,9 @@
         _scylla_yaml_map: "{{ item.stdout | from_yaml }}"
       delegate_to: "{{ item.item }}"
       delegate_facts: true
-      when: item.stdout is defined
+      when:
+        - item.stdout is defined
+        - not item.unreachable | default(false)
       loop: "{{ _scylla_yaml_out.results }}"
 
     - name: Set addresses as facts
@@ -40,7 +51,10 @@
         broadcast_address: "{{ hostvars[item]['_scylla_yaml_map'].broadcast_address }}"
       delegate_to: "{{ item }}"
       delegate_facts: true
-      when: item not in play_hosts and hostvars[item]['_scylla_yaml_exists']|bool
+      when:
+        - item not in play_hosts
+        - hostvars[item]['_scylla_yaml_exists'] | default(false) | bool
+        - hostvars[item]['_scylla_yaml_map'] is defined
       loop: "{{ groups['scylla'] }}"
 
 - name: Find the first node which is already bootstrapped, if any

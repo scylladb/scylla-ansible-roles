@@ -70,6 +70,12 @@
           vars:
             iv_file: "{{ item }}"
           loop: "{{ ansible_inventory_sources }}"
+      run_once: true
+
+    - fail:
+        msg: "scylla_admin password not found in any inventory file ([cql_credentials] section)"
+      when: scylla_admin_password is not defined
+      run_once: true
 
     - name: Create scylla_admin user
       import_tasks: create_user.yml

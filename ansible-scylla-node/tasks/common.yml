@@ -360,7 +360,13 @@
             exit 1
           fi
 
-          count=$(nodetool status | grep -E '^UN|^UJ|^DN' | grep -Ew "{{ broadcast_address_list | join('|') }}" | wc -l)
+          status=$(nodetool status)
+          count=0
+          {% for addr in broadcast_address_list %}
+          if echo "$status" | grep -E '^UN|^UJ|^DN' | grep -Fq '{{ addr }}'; then
+            count=$((count + 1))
+          fi
+          {% endfor %}
           if [[ "$count" == "{{ play_hosts|length }}" ]]; then
             exit 0
           fi
@@ -418,6 +424,7 @@
       shell: |
         nodetool status|grep -E '^UJ|^DN' | wc -l
       register: node_count
+      become: true
 
     - name: Set all_nodes_up as a fact
       set_fact:

@@ -93,7 +93,9 @@ install_only: false
 # Change here or override in vars
 scylla_nic: "{{ ansible_default_ipv4.interface }}"
 
-manager_local_files_path: "{{ playbook_dir }}"
+# Deprecated: override manager_local_files_path instead
+cluster_local_files_path: "{{ playbook_dir }}"
+manager_local_files_path: "{{ cluster_local_files_path }}"
 
 # online|offline - offline will disable all the attepts to download packages
 # node_exporter will need to be installed manually
