@@ -349,8 +349,8 @@
         cmd: |
           state=$(systemctl is-active scylla-server)
 
-          if [[ "$state" == "failed" || "$state" == "inactive" ]]; then
-            echo "scylla-server has unexpectedly stopped"
+          if [[ "$state" != "active" && "$state" != "activating" ]]; then
+            echo "scylla-server is not running (state: $state)"
             exit 1
           fi
 
