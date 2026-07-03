@@ -93,7 +93,9 @@ install_only: false
 # Change here or override in vars
 scylla_nic: "{{ ansible_default_ipv4.interface }}"
 
-cluster_local_files_path: "{{ inventory_dir }}"
+# Deprecated: override manager_local_files_path instead
+cluster_local_files_path: "{{ playbook_dir }}"
+manager_local_files_path: "{{ cluster_local_files_path }}"
 
 # online|offline - offline will disable all the attepts to download packages
 # node_exporter will need to be installed manually
@@ -318,10 +320,10 @@ scylla_yaml_params:
 # You should use the 'ssl_*' vars instead.
 #
 # scylla_ssl:
-#   localhost_cert_path: "{{ inventory_dir }}/ssl/scylla.crt"
-#   localhost_cert_key_path: "{{ inventory_dir }}/scylla.pem"
-#   localhost_truststore_path: "{{ inventory_dir }}/ssl/truststore.crt"
-#   localhost_ca_cert_path: "{{ inventory_dir }}/ssl/ca/"
+#   localhost_cert_path: "{{ playbook_dir }}/ssl/scylla.crt"
+#   localhost_cert_key_path: "{{ playbook_dir }}/scylla.pem"
+#   localhost_truststore_path: "{{ playbook_dir }}/ssl/truststore.crt"
+#   localhost_ca_cert_path: "{{ playbook_dir }}/ssl/ca/"
 #   cert_path: /etc/scylla
 #   internode:
 #     enabled: true
@@ -337,10 +339,10 @@ ssl_client_enabled: "{{ (scylla_ssl | default({})).client.enabled | default(true
 # certificates and keys will be stored before being copied to the target nodes.
 # The role will automatically generate the certificates and keys and store them at these paths.
 # Alternatively, you can provide your own certificates, and the role will use those instead of generating new ones.
-ssl_localhost_cert_path: "{{ (scylla_ssl | default({})).localhost_cert_path | default(inventory_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.crt') }}"
-ssl_localhost_cert_key_path: "{{ (scylla_ssl | default({})).localhost_cert_key_path | default(inventory_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.pem') }}"
-ssl_localhost_ca_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
-ssl_localhost_ca_key_path: "{{ inventory_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
+ssl_localhost_cert_path: "{{ (scylla_ssl | default({})).localhost_cert_path | default(playbook_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.crt') }}"
+ssl_localhost_cert_key_path: "{{ (scylla_ssl | default({})).localhost_cert_key_path | default(playbook_dir + '/ssl/' + inventory_hostname + '/' + inventory_hostname + '.pem') }}"
+ssl_localhost_ca_path: "{{ playbook_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.crt"
+ssl_localhost_ca_key_path: "{{ playbook_dir }}/ssl/ca/{{ scylla_cluster_name }}-ca.pem"
 ssl_localhost_truststore_path: "{{ (scylla_ssl | default({})).localhost_truststore_path | default(ssl_localhost_ca_path) }}"
 
 # Defines whether the node certificates and keys should be regenerated or not
@@ -381,7 +383,7 @@ ssl_truststore_path: "{{ (scylla_ssl | default({})).cert_path | default (ssl_cer
 # Note that by default the {{ inventory_hostname }} is part of the localhost_system_key_directory. This allows you to define
 # different keys per host.
 # e.g.:
-# If your localhost_system_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+# If your localhost_system_key_directory is set to "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
 # and you have the following file tree:
 #
 # ├── encryption_at_rest
@@ -401,7 +403,7 @@ ssl_truststore_path: "{{ (scylla_ssl | default({})).cert_path | default (ssl_cer
 # without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
 
 handle_system_keys: false
-localhost_system_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
+localhost_system_key_directory: "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/system_encryption_keys"
 system_key_directory: "/etc/scylla/system_encryption_keys"
 
 # Table keys are used for encrypting SSTables. Depending on your key provider, this key is stored in different locations:
@@ -416,7 +418,7 @@ system_key_directory: "/etc/scylla/system_encryption_keys"
 # Note that by default the {{ inventory_hostname }} is part of the localhost_table_key_directory. This allows you to define
 # different keys per host.
 # e.g.:
-# If your localhost_table_key_directory is set to "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+# If your localhost_table_key_directory is set to "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
 # and you have the following file tree:
 #
 # ├── encryption_at_rest
@@ -436,7 +438,7 @@ system_key_directory: "/etc/scylla/system_encryption_keys"
 # without the {{ inventory_hostname }} in it or simply copy the same key for all the node folders.
 
 handle_table_keys: false
-localhost_table_key_directory: "{{ inventory_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
+localhost_table_key_directory: "{{ playbook_dir }}/encryption_at_rest/{{ inventory_hostname }}/table_encryption_keys"
 table_key_directory: "/etc/scylla/table_encryption_keys"
 
 # Encrypt system resources:

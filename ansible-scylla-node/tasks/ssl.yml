@@ -137,6 +137,6 @@
 - name: Generate cqlshrc
   template:
     src: templates/cqlshrc.j2
-    dest: "{{ inventory_dir }}/cqlshrc"
+    dest: "{{ playbook_dir }}/cqlshrc"
   delegate_to: localhost
   run_once: true
