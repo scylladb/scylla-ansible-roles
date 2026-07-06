@@ -8,6 +8,16 @@
     echo $(sctool status|grep -q "Cluster: {{ item.cluster_name }} " && echo "present")
   register: cluster_already_added
 
+- name: Fetch alternator salted hash for "{{ item.username }}"
+  shell: |
+    cqlsh {{ item.host }} -u '{{ item.username }}' -p '{{ item.password }}' \
+      -e "SELECT salted_hash FROM system.roles WHERE role = '{{ item.username }}';" \
+      | grep -E '^\s+\$' | tr -d ' '
+  register: alternator_salted_hash
+  when:
+    - item.username is defined
+    - item.password is defined
+
 - name: run sctool cluster add for "{{ item.cluster_name }}"
   shell: |
     sctool cluster add \
@@ -19,6 +29,12 @@
       {% if item.username is defined and item.password is defined %}
       --username {{ item.username }} \
       --password {{ item.password }} \
+      {% endif %}
+      {% if alternator_salted_hash is defined
+         and alternator_salted_hash.stdout is defined
+         and alternator_salted_hash.stdout != '' %}
+      --alternator-access-key-id {{ item.username }} \
+      --alternator-secret-access-key '{{ alternator_salted_hash.stdout }}' \
       {% endif %}
   when: cluster_already_added is not defined or cluster_already_added.stdout != "present"
 
@@ -32,6 +48,12 @@
       {% if item.username is defined and item.password is defined %}
       --username {{ item.username }} \
       --password {{ item.password }} \
+      {% endif %}
+      {% if alternator_salted_hash is defined
+         and alternator_salted_hash.stdout is defined
+         and alternator_salted_hash.stdout != '' %}
+      --alternator-access-key-id {{ item.username }} \
+      --alternator-secret-access-key '{{ alternator_salted_hash.stdout }}' \
       {% endif %}
   when: cluster_already_added is defined and cluster_already_added.stdout == "present"
       
