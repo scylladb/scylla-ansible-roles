@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd {{ base_dir }}
+{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}
+export SCYLLA_USER='{{ monitoring_cql_username }}'
+export SCYLLA_PSSWD='{{ monitoring_cql_password }}'
+{% endif %}
+{{ start_command }}
