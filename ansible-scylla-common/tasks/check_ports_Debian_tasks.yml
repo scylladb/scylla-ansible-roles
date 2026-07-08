@@ -9,5 +9,6 @@
     name:
       - socat
       - iproute2
+      - procps
     state: present
   become: true

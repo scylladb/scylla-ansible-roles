@@ -4,5 +4,6 @@
     name:
       - socat
       - iproute
+      - procps-ng
     state: present
   become: true
