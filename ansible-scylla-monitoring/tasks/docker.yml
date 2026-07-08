@@ -38,6 +38,14 @@
     mode: '0750'
     owner: "{{ ansible_user_id }}"
 
+- name: "docker.yml: Write start monitoring env file"
+  template:
+    src: start-monitoring.env.j2
+    dest: "{{ scylla_monitoring_start_env_path }}"
+    mode: '0600'
+    owner: "{{ ansible_user_id }}"
+  when: monitoring_cql_username is defined and monitoring_cql_password is defined
+
 - name: "docker.yml: Write start monitoring wrapper script"
   template:
     src: start-monitoring.sh.j2
@@ -68,3 +76,6 @@
 - name: "docker.yml: start scylla-monitoring"
   command: "{{ scylla_monitoring_start_script_path }}"
   become: "{{ 'true' if run_docker_with_sudo is defined and run_docker_with_sudo|bool == True else 'false' }}"
+  environment:
+    SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
+    SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
