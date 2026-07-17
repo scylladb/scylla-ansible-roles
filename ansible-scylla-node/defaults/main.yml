@@ -102,8 +102,13 @@ scylla_install_type: online
 # Defines if the node firewall should be enabled or not
 # Values:
 #  [default] false: all front-end firewall services will be disabled and iptables rules flushed
-#  true: keep node configuration as is
+#  true: keep front-end firewall services as-is and apply iptables_drop_sources
 firewall_enabled: false
+
+# Source IPs that must have an INPUT DROP rule whenever firewall_enabled is true.
+# Used by Field Cloud replace to prevent a replaced node from re-joining until it is wiped.
+# Empty list means no DROP rules are managed by this role.
+iptables_drop_sources: []
 
 # URL of an RPM .repo file or a DEB .list file
 # deprecated in favour of below, it will be dropped soon, below should be used

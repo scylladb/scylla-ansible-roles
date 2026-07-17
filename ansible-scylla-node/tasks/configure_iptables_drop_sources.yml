@@ -1,0 +1,12 @@
+---
+# Apply persisted INPUT DROP rules for every source in iptables_drop_sources.
+# Only runs when firewall_enabled is true (see main.yml). Idempotent via state=present.
+- name: Ensure iptables INPUT DROP rules for configured sources
+  iptables:
+    chain: INPUT
+    source: "{{ item }}"
+    jump: DROP
+    state: present
+  loop: "{{ iptables_drop_sources }}"
+  become: true
+  when: iptables_drop_sources | length > 0
