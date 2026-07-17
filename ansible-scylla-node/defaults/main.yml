@@ -88,6 +88,12 @@ upgrade_backup_path: /root/scylla-backup
 #  false: skip upgradesstables
 upgrade_sstables: true
 
+# Max wall-clock seconds for nodetool upgradesstables (async timeout).
+# Values:
+#  [default] 36000 (10h), same order as cleanup/repair timeouts
+#  Any positive integer
+upgrade_sstables_timeout_seconds: 36000
+
 # ==============================
 # INSTALL
 # ==============================
