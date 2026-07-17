@@ -13,3 +13,14 @@
     port: 9042
     host: "{{ scylla_listen_address }}"
 
+- name: Upgrade SSTables to current format
+  ansible.builtin.command: nodetool upgradesstables
+  register: upgradesstables_result
+  when: upgrade_sstables | bool
+  changed_when: upgradesstables_result.rc == 0
+
+- name: Upgrade SSTables operation output
+  ansible.builtin.debug:
+    var: upgradesstables_result
+  when: upgrade_sstables | bool
+
