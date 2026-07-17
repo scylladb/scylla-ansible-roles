@@ -13,10 +13,6 @@
   package_facts:
     manager: auto
 
-- name: Configure persisted iptables DROP sources
-  include_tasks: configure_iptables_drop_sources.yml
-  when: firewall_enabled | bool
-
 - block:
   - name: "main.yml: include ScyllaDB version check task"
     include_tasks: version_check.yml

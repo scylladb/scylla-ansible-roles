@@ -4,12 +4,13 @@ A common role providing shared tasks and utilities for all Scylla Ansible roles.
 
 ## Features
 
-- Firewall deactivation (supports firewalld, iptables, ufw)
+- Firewall handling (disable firewalld/iptables/ufw, or apply persisted INPUT DROP sources)
 - Common utilities and tasks used across Scylla roles
 
 ## Variables
 
-- `disable_firewall`: Whether firewall should be disabled. (default: false)
+- `disable_firewall`: Whether firewall should be disabled. (default: true, unless deprecated `firewall_enabled` is true)
+- `iptables_drop_sources`: List of source IPs to DROP on INPUT when `disable_firewall` is false. (default: `[]`)
 
 ## Usage
 

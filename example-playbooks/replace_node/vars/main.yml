@@ -35,10 +35,6 @@ alive_node_replace: false
 # during the replace
 disable_rbno: false
 
-# Deprecated: DROP rules are now driven by ansible-scylla-node's iptables_drop_sources
-# when firewall_enabled is true. Kept for backward compatibility; ignored by this playbook.
-block_replaced_node: true
-
 alive_nodes_listen_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 alive_nodes_broadcast_address: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 

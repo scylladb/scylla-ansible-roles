@@ -1,7 +1,5 @@
 ---
 # This play will make sure that the node being replaced is down.
-# Blocking the replaced node IP is handled by ansible-scylla-node via iptables_drop_sources
-# when firewall_enabled is true (set on the Install/Update play below).
 - name: Prepare nodes before replacement
   hosts: scylla
   any_errors_fatal: true
@@ -151,7 +149,7 @@
   vars_files:
     - vars/main.yml
   vars:
-    firewall_enabled: true
+    disable_firewall: false
   roles:
     - ansible-scylla-node
 
