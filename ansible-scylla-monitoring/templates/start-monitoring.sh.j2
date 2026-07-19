@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd {{ base_dir | quote }}
+ENV_FILE={{ scylla_monitoring_start_env_path | quote }}
+if [ -f "$ENV_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+fi
+{{ start_command }}

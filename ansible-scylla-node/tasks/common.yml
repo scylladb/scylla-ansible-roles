@@ -1,4 +1,15 @@
 ---
+
+# Sanity check: scylla_seeds has no default and is mandatory since there is no
+# hostname/IP that can be safely assumed reachable by all nodes in the cluster.
+- name: "Sanity check: scylla_seeds must be explicitly defined"
+  fail:
+    msg: >-
+      scylla_seeds is not defined or empty. Set it explicitly, e.g. to a DNS resolvable
+      hostname reachable by all nodes, or an IP address (possibly via ansible_host).
+      See defaults/main.yml for an example.
+  when: scylla_seeds is not defined or scylla_seeds | length == 0
+
 - name: General, NIC and CPU settings related tweaking
   block:
     - name: configure Scylla
@@ -341,16 +352,31 @@
       wait_for:
         port: "{{ scylla_api_port }}"
         host: "{{ scylla_api_address }}"
-        timeout: 300
+        timeout: 600
 
     - name: wait for the cluster to become healthy
-      shell: |
-        nodetool status|grep -E '^UN|^UJ|^DN'|wc -l
+      shell:
+        executable: /bin/bash
+        cmd: |
+          state=$(systemctl is-active scylla-server)
+
+          if [[ "$state" != "active" && "$state" != "activating" ]]; then
+            echo "scylla-server is not running (state: $state)"
+            exit 1
+          fi
+
+          count=$(nodetool status | grep -E '^UN|^UJ|^DN' | wc -l)
+          if [[ "$count" == "{{ ansible_play_batch|length }}" ]]; then
+            exit 0
+          fi
+
+          exit 2
       register: node_count
-      until: node_count.stdout|int == ansible_play_batch|length
+      until: node_count.rc != 2
       retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
       when: full_inventory|bool
+      become: true
 
     - name: check API access
       uri:
