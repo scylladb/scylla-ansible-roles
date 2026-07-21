@@ -350,12 +350,29 @@
     - vars/main.yml
   tasks:
     - name: Wait for the added node to become healthy
-      shell: |
-        nodetool status|grep -E '^UN'|grep -w "{{ hostvars[new_node]['broadcast_address'] }}"| wc -l
+      shell:
+        executable: /bin/bash
+        cmd: |
+          state=$(systemctl is-active scylla-server)
+
+          if [[ "$state" != "active" && "$state" != "activating" ]]; then
+            echo "scylla-server is not running (state: $state)"
+            exit 1
+          fi
+
+          count=$(nodetool status | grep -E '^UN' | grep -w "{{ hostvars[new_node]['broadcast_address'] }}" | wc -l)
+          if [[ "$count" == "1" ]]; then
+            exit 0
+          fi
+
+          exit 2
       register: node_count
-      until: node_count.stdout|int == 1
+      delegate_to: "{{ new_node }}"
+      run_once: true
+      until: node_count.rc != 2
       retries: "{{ scylla_bootstrap_wait_time_sec|int }}"
       delay: 1
+      become: true
 
     - name: start and enable the Manager agent service
       service:
