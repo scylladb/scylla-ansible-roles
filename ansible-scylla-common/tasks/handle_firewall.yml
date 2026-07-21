@@ -1,0 +1,35 @@
+---
+# Disable front-end firewall services and flush rules, or apply persisted DROP sources.
+- name: Disable firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined and ansible_facts.services[item]['status'] != 'not-found'
+
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
+  become: true
+  when: disable_firewall | bool
+
+# Apply INPUT DROP rules for every source in iptables_drop_sources.
+# Runs when the firewall is not being disabled. Idempotent via state=present.
+- name: Ensure iptables INPUT DROP rules for configured sources
+  iptables:
+    chain: INPUT
+    source: "{{ item }}"
+    jump: DROP
+    state: present
+  loop: "{{ iptables_drop_sources }}"
+  become: true
+  when:
+    - not (disable_firewall | bool)
+    - iptables_drop_sources | length > 0
