@@ -81,6 +81,19 @@ upgrade_break_before_verification: 90
 #  Any valid folder
 upgrade_backup_path: /root/scylla-backup
 
+# Run nodetool upgradesstables after the node is upgraded and CQL is up.
+# Rewrites SSTables to the current format (e.g. system keyspace format drifts).
+# Values:
+#  [default] true: run upgradesstables after post-upgrade start
+#  false: skip upgradesstables
+upgrade_sstables: true
+
+# Max wall-clock seconds for nodetool upgradesstables (async timeout).
+# Values:
+#  [default] 36000 (10h), same order as cleanup/repair timeouts
+#  Any positive integer
+upgrade_sstables_timeout_seconds: 36000
+
 # ==============================
 # INSTALL
 # ==============================
