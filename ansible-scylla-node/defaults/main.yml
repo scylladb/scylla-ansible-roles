@@ -99,10 +99,10 @@ cluster_local_files_path: "{{ inventory_dir }}"
 # node_exporter will need to be installed manually
 scylla_install_type: online
 
-# Defines if the node firewall should be enabled or not
+# Deprecated: prefer disable_firewall from ansible-scylla-common.
 # Values:
 #  [default] false: all front-end firewall services will be disabled and iptables rules flushed
-#  true: keep node configuration as is
+#  true: keep front-end firewall services as-is and apply iptables_drop_sources (common role)
 firewall_enabled: false
 
 # URL of an RPM .repo file or a DEB .list file
