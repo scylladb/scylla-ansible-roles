@@ -1,6 +1,5 @@
 ---
-# This play will make sure that the node being replaced is down and prevent it from trying to re-join
-# the cluster by blocking its ip via iptables.
+# This play will make sure that the node being replaced is down.
 - name: Prepare nodes before replacement
   hosts: scylla
   any_errors_fatal: true
@@ -106,14 +105,6 @@
         timeout: 60
       when: inventory_hostname != new_node
 
-    - name: Block replaced node's broadcast_address to prevent it from trying to join the cluster again
-      iptables:
-        chain: INPUT
-        source: "{{ replaced_node_broadcast_address }}"
-        jump: DROP
-      become: true
-      when: block_replaced_node|bool
-
     - name: Get host ids map on all nodes
       uri:
         url: "http://{{ scylla_api_address }}:{{ scylla_api_port }}/storage_service/host_id"
@@ -158,7 +149,7 @@
   vars_files:
     - vars/main.yml
   vars:
-    firewall_enabled: true
+    disable_firewall: false
   roles:
     - ansible-scylla-node
 
