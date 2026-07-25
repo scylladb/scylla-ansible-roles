@@ -7,7 +7,6 @@ This playbook will run the replace dead node procedure.
 * A scylla cluster with scylla-manager and scylla-monitoring installed.
 * The inventory file must be updated as described in the Usage section below, ie.: The new node should replace the dead node in the inventory.
 * It's necessary to have files with the same parameters used when the cluster was created, as described in the Parameters section.
-* It's very important to have `start_scylla_service` set to `false`. The replace will not work otherwise.
 
 ## Usage:
 
@@ -50,6 +49,8 @@ This playbook uses the node role to install and configure Scylla in the new node
 and use Scylla Manager to issue a repair if needed.
 So the same parameters for all three roles (node, monitoring and manager) that were
 used when the cluster was created should also be passed to the `replace_node.yml` playbook.
+The playbook suppresses automatic Scylla startup while applying the node role, regardless of the
+`start_scylla_service` value in those reused parameters.
 See the `Usage` section of this README for the way how these parameters are supposed to be passed.
 
 Besides the vars from the node role, this playbook has the following mandatory parameters: `replaced_node`, `replaced_node_broadcast_address` and `new_node`.

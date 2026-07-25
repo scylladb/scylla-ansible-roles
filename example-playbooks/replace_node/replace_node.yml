@@ -151,7 +151,9 @@
   vars:
     disable_firewall: false
   roles:
-    - ansible-scylla-node
+    - role: ansible-scylla-node
+      vars:
+        skip_start_scylla_service: true
 
 
 - name: Update scylla-monitoring

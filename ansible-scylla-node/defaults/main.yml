@@ -167,6 +167,10 @@ cleanup_timeout_seconds: 36000
 # this should be set to false
 start_scylla_service: true
 
+# Let operation playbooks suppress automatic service startup even when reused
+# deployment parameters set start_scylla_service to true.
+skip_start_scylla_service: false
+
 # Only relevant for Debian/Ubuntu
 scylla_repo_keyserver: 'hkp://keyserver.ubuntu.com:80'
 scylla_repo_keys:

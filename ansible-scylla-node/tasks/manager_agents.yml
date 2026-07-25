@@ -60,4 +60,7 @@
     state: restarted
     enabled: yes
   become: true
-  when: manager_agent_config_change.changed and start_scylla_service is defined and start_scylla_service|bool
+  when:
+    - manager_agent_config_change.changed
+    - start_scylla_service is defined and start_scylla_service|bool
+    - not skip_start_scylla_service|bool

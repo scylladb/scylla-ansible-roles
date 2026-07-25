@@ -395,7 +395,9 @@
         line: ""
       become: true
       when: token_distributor is defined
-  when: start_scylla_service is defined and start_scylla_service|bool
+  when:
+    - start_scylla_service is defined and start_scylla_service|bool
+    - not skip_start_scylla_service|bool
 
 - name: Copy system and table keys
   include_tasks: copy_system_and_table_keys.yml
@@ -425,6 +427,7 @@
     _keyspace_rf: "{{ system_auth_rf }}"
   when:
     - start_scylla_service|bool
+    - not skip_start_scylla_service|bool
     - adjust_system_auth_replication is defined and adjust_system_auth_replication|bool
     - _authentication_enabled is defined and _authentication_enabled|bool
     - system_auth_rf is defined and system_auth_replication_strategy is defined
@@ -437,6 +440,7 @@
     _keyspace_rf: "{{ audit_rf }}"
   when:
     - start_scylla_service|bool
+    - not skip_start_scylla_service|bool
     - adjust_audit_replication is defined and adjust_audit_replication|bool
     - _audit_enabled is defined and _audit_enabled|bool
     - audit_rf is defined and audit_replication_strategy is defined
@@ -449,6 +453,7 @@
     _keyspace_rf: "{{ system_distributed_rf }}"
   when:
     - start_scylla_service|bool
+    - not skip_start_scylla_service|bool
     - adjust_system_distributed_replication is defined and adjust_system_distributed_replication|bool
     - system_distributed_rf is defined and system_distributed_replication_strategy is defined
 
@@ -460,6 +465,7 @@
     _keyspace_rf: "{{ system_traces_rf }}"
   when:
     - start_scylla_service|bool
+    - not skip_start_scylla_service|bool
     - adjust_system_traces_replication is defined and adjust_system_traces_replication|bool
     - system_traces_rf is defined and system_traces_replication_strategy is defined
 

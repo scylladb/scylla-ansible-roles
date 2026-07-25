@@ -9,12 +9,6 @@
 # scylla_seeds:
 #   - "{{ groups['scylla'][0] }}"
 
-# This should always be set to False, since it'll be passed to the node role
-# and we don't want the node role to start the new node automatically.
-# If you're reusing (as expected) the parameters you used to deploy the other nodes,
-# make sure that you set this specific value to false
-start_scylla_service: false
-
 # By default, the playbook will repair the new node only if RBNO was not used
 # during the replacement.
 # If you set this to true, the repair will be skipped even in such case.
