@@ -91,9 +91,30 @@
   when: install_scylla_monitoring_service | bool
 
 - name: "docker.yml: Enable scylla-monitoring at boot"
-  ansible.builtin.systemd:
+  systemd:
     name: scylla-monitoring.service
     enabled: true
+    state: started
     daemon_reload: true
   become: true
   when: install_scylla_monitoring_service | bool
+
+# When the flag is turned back off, disable and remove the unit so it no longer
+# fires on reboot. The running stack is left untouched (it was (re)started above
+# via the start wrapper), so monitoring stays up on a normal deploy.
+- name: "docker.yml: Disable scylla-monitoring at boot"
+  systemd:
+    name: scylla-monitoring.service
+    enabled: false
+  become: true
+  when:
+    - not install_scylla_monitoring_service | bool
+    - ansible_facts.services["scylla-monitoring.service"] is defined
+
+- name: "docker.yml: Remove scylla-monitoring systemd unit"
+  file:
+    path: /etc/systemd/system/scylla-monitoring.service
+    state: absent
+  become: true
+  when: not install_scylla_monitoring_service | bool
+  notify: reload systemd
