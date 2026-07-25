@@ -83,10 +83,12 @@ upgrade_backup_path: /root/scylla-backup
 
 # Run nodetool upgradesstables after the node is upgraded and CQL is up.
 # Rewrites SSTables to the current format (e.g. system keyspace format drifts).
+# Defaults to the upgrade type: skipped on minor upgrades, run on major upgrades.
 # Values:
-#  [default] true: run upgradesstables after post-upgrade start
+#  [default] {{ upgrade_major }}: true for major upgrades, false for minor
+#  true: always run upgradesstables after post-upgrade start
 #  false: skip upgradesstables
-upgrade_sstables: true
+upgrade_sstables: "{{ upgrade_major }}"
 
 # Max wall-clock seconds for nodetool upgradesstables (async timeout).
 # Values:
