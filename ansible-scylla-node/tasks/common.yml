@@ -426,7 +426,7 @@
     _keyspace_replication_strategy: "{{ system_auth_replication_strategy }}"
     _keyspace_rf: "{{ system_auth_rf }}"
   when:
-    - start_scylla_service|bool
+    - start_scylla_service is defined and start_scylla_service|bool
     - not skip_start_scylla_service|bool
     - adjust_system_auth_replication is defined and adjust_system_auth_replication|bool
     - _authentication_enabled is defined and _authentication_enabled|bool
@@ -439,7 +439,7 @@
     _keyspace_replication_strategy: "{{ audit_replication_strategy }}"
     _keyspace_rf: "{{ audit_rf }}"
   when:
-    - start_scylla_service|bool
+    - start_scylla_service is defined and start_scylla_service|bool
     - not skip_start_scylla_service|bool
     - adjust_audit_replication is defined and adjust_audit_replication|bool
     - _audit_enabled is defined and _audit_enabled|bool
@@ -452,7 +452,7 @@
     _keyspace_replication_strategy: "{{ system_distributed_replication_strategy }}"
     _keyspace_rf: "{{ system_distributed_rf }}"
   when:
-    - start_scylla_service|bool
+    - start_scylla_service is defined and start_scylla_service|bool
     - not skip_start_scylla_service|bool
     - adjust_system_distributed_replication is defined and adjust_system_distributed_replication|bool
     - system_distributed_rf is defined and system_distributed_replication_strategy is defined
@@ -464,7 +464,7 @@
     _keyspace_replication_strategy: "{{ system_traces_replication_strategy }}"
     _keyspace_rf: "{{ system_traces_rf }}"
   when:
-    - start_scylla_service|bool
+    - start_scylla_service is defined and start_scylla_service|bool
     - not skip_start_scylla_service|bool
     - adjust_system_traces_replication is defined and adjust_system_traces_replication|bool
     - system_traces_rf is defined and system_traces_replication_strategy is defined
