@@ -11,9 +11,15 @@
 - name: Fetch alternator salted hash for "{{ item.username }}"
   shell: |
     cqlsh {{ item.host }} -u '{{ item.username }}' -p '{{ item.password }}' \
+      {% if item.ssl is defined and item.ssl|bool %}--ssl{% endif %} \
       -e "SELECT salted_hash FROM system.roles WHERE role = '{{ item.username }}';" \
       | grep -E '^\s+\$' | tr -d ' '
   register: alternator_salted_hash
+  # Alternator creds are best-effort: TLS-only clusters, transient network/auth
+  # failures, or missing SELECT on system.roles must not abort the cluster add/update.
+  failed_when: false
+  # stdout is a credential-equivalent secret; keep it out of Ansible logs/-vvv output.
+  no_log: true
   when:
     - item.username is defined
     - item.password is defined
@@ -36,6 +42,8 @@
       --alternator-access-key-id {{ item.username }} \
       --alternator-secret-access-key '{{ alternator_salted_hash.stdout }}' \
       {% endif %}
+  # Command line embeds username/password and the alternator secret; suppress logging.
+  no_log: true
   when: cluster_already_added is not defined or cluster_already_added.stdout != "present"
 
 - name: Enforce configuration for existing cluster "{{ item.cluster_name }}"
@@ -55,5 +63,7 @@
       --alternator-access-key-id {{ item.username }} \
       --alternator-secret-access-key '{{ alternator_salted_hash.stdout }}' \
       {% endif %}
+  # Command line embeds username/password and the alternator secret; suppress logging.
+  no_log: true
   when: cluster_already_added is defined and cluster_already_added.stdout == "present"
       
