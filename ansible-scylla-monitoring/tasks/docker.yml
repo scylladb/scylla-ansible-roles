@@ -31,12 +31,17 @@
   when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
   loop: "{{ groups['cql_credentials'] }}"
 
+# When docker runs as root (run_docker_with_sudo), the wrapper is executed as
+# root (manual start below and the systemd unit). Own it root:root so a non-root
+# deploy user cannot edit a script that root executes (privilege escalation).
 - name: "docker.yml: Write stop monitoring wrapper script"
   template:
     src: stop-monitoring.sh.j2
     dest: "{{ scylla_monitoring_stop_script_path }}"
     mode: '0750'
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ 'root' if run_docker_with_sudo | default(false) | bool else ansible_user_id }}"
+    group: "{{ 'root' if run_docker_with_sudo | default(false) | bool else ansible_user_id }}"
+  become: "{{ run_docker_with_sudo | default(false) | bool }}"
 
 - name: "docker.yml: Write start monitoring env file"
   template:
@@ -51,7 +56,9 @@
     src: start-monitoring.sh.j2
     dest: "{{ scylla_monitoring_start_script_path }}"
     mode: '0750'
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ 'root' if run_docker_with_sudo | default(false) | bool else ansible_user_id }}"
+    group: "{{ 'root' if run_docker_with_sudo | default(false) | bool else ansible_user_id }}"
+  become: "{{ run_docker_with_sudo | default(false) | bool }}"
 
 - name: "docker.yml: restart the docker daemon again"
   service:
