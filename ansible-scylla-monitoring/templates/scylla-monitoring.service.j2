@@ -1,0 +1,15 @@
+[Unit]
+Description=Scylla Monitoring Stack
+Requires=docker.service
+PartOf=docker.service
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart={{ scylla_monitoring_start_script_path }}
+ExecStop={{ scylla_monitoring_stop_script_path }}
+
+[Install]
+WantedBy=multi-user.target

@@ -79,3 +79,21 @@
   environment:
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
+
+- name: "docker.yml: Install scylla-monitoring systemd unit"
+  template:
+    src: scylla-monitoring.service.j2
+    dest: /etc/systemd/system/scylla-monitoring.service
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  when: install_scylla_monitoring_service | bool
+
+- name: "docker.yml: Enable scylla-monitoring at boot"
+  ansible.builtin.systemd:
+    name: scylla-monitoring.service
+    enabled: true
+    daemon_reload: true
+  become: true
+  when: install_scylla_monitoring_service | bool
