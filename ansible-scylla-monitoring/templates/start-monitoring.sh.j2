@@ -6,4 +6,9 @@ if [ -f "$ENV_FILE" ]; then
   # shellcheck disable=SC1090
   . "$ENV_FILE"
 fi
+# Tear down any already-running stack first so this script is safe to run
+# more than once in a row (e.g. once from the deploy task, then again when
+# the systemd unit is started right after) instead of failing on container
+# name conflicts left over from the previous run.
+{{ scylla_monitoring_stop_script_path | quote }} || true
 {{ start_command }}
