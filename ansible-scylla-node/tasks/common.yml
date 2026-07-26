@@ -352,7 +352,7 @@
       wait_for:
         port: "{{ scylla_api_port }}"
         host: "{{ scylla_api_address }}"
-        timeout: 600
+        timeout: "{{ scylla_bootstrap_wait_time_sec | int }}"
 
     - name: wait for the cluster to become healthy
       shell:
