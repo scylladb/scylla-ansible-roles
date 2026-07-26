@@ -80,12 +80,18 @@
 - name: "docker.yml: Stop monitoring"
   command: "{{ scylla_monitoring_stop_script_path }}"
 
+# Skipped when install_scylla_monitoring_service is set: the systemd unit below
+# (state: started) runs this same wrapper script. Running it here too would
+# start-all.sh a second time against containers that are already up, and
+# docker run --name fails with "Conflict. The container name ... is already
+# in use" since start-all.sh does not remove/replace existing containers.
 - name: "docker.yml: start scylla-monitoring"
   command: "{{ scylla_monitoring_start_script_path }}"
   become: "{{ 'true' if run_docker_with_sudo is defined and run_docker_with_sudo|bool == True else 'false' }}"
   environment:
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
+  when: not install_scylla_monitoring_service | bool
 
 - name: "docker.yml: Install scylla-monitoring systemd unit"
   template:
