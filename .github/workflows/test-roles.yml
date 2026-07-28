@@ -6,14 +6,18 @@ on:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
       - 'ansible-scylla-manager/**'
-      - '.github/workflows/*'
+      - 'molecule/**'
+      - '.github/workflows/test-roles.yml'
   pull_request:
     paths:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
       - 'ansible-scylla-manager/**'
+      - 'molecule/**'
+      - '.github/workflows/test-roles.yml'
     branches:
       - master
+      - dev
 jobs:
   build:
     runs-on: self-hosted
