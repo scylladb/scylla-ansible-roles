@@ -55,7 +55,10 @@ platforms:
     cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup
-      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+      # DinD: nested dockerd needs /var/lib/docker on a volume (overlay cannot sit on
+      # the container rootfs). See https://github.com/docker/for-linux/issues/1138
+      # Named (not anonymous) so CI can docker volume rm after destroy — ANSROLES-20.
+      - molecule-dind-ubuntu2204:/var/lib/docker
     groups:
       - scylla-monitor
     networks:

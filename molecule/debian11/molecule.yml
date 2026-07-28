@@ -56,7 +56,10 @@ platforms:
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup
       - /sys/kernel/security:/sys/kernel/security:ro # Prevent container from modifying host AppArmor profile
-      - /var/lib/docker # https://github.com/docker/for-linux/issues/1138
+      # DinD: nested dockerd needs /var/lib/docker on a volume (overlay cannot sit on
+      # the container rootfs). See https://github.com/docker/for-linux/issues/1138
+      # Named (not anonymous) so CI can docker volume rm after destroy — ANSROLES-20.
+      - molecule-dind-debian11:/var/lib/docker
     groups:
       - scylla-monitor
     networks:
