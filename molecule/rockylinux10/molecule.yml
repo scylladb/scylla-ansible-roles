@@ -59,8 +59,9 @@ platforms:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
       # DinD: nested dockerd needs /var/lib/docker on a volume (overlay cannot sit on
       # the container rootfs). See https://github.com/docker/for-linux/issues/1138
-      # Named (not anonymous) so CI can docker volume rm after destroy — ANSROLES-20.
-      - molecule-dind-rockylinux10:/var/lib/docker
+      # Named + per-run (run_id) so CI can docker volume rm after destroy while staying
+      # unique across concurrent same-distro runs; defaults to "local" outside CI — ANSROLES-20.
+      - molecule-dind-rockylinux10-${GITHUB_RUN_ID:-local}:/var/lib/docker
     groups:
       - scylla-monitor
     networks:
