@@ -79,3 +79,15 @@
   environment:
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
+
+# start-all.sh returns before Grafana is ready to serve API requests.
+# Wait here so subsequent tasks (e.g. grafana_users) do not hit a dead endpoint.
+- name: "docker.yml: Wait for Grafana API"
+  uri:
+    url: "{{ grafana_root_url }}/api/health"
+    validate_certs: false
+    status_code: 200
+  register: _grafana_health
+  until: _grafana_health.status == 200
+  retries: 30
+  delay: 10
