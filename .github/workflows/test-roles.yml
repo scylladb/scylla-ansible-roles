@@ -6,14 +6,18 @@ on:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
       - 'ansible-scylla-manager/**'
-      - '.github/workflows/*'
+      - 'molecule/**'
+      - '.github/workflows/test-roles.yml'
   pull_request:
     paths:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
       - 'ansible-scylla-manager/**'
+      - 'molecule/**'
+      - '.github/workflows/test-roles.yml'
     branches:
       - master
+      - dev
 jobs:
   build:
     runs-on: self-hosted
@@ -46,3 +50,11 @@ jobs:
       - name: Test with molecule
         run: |
           molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}
+      # ANSROLES-20: molecule destroy drops scylla-monitor-node but keeps its named
+      # DinD volume (molecule-dind-<distro>-<run_id>). Remove explicitly so runner disk
+      # does not fill. Warn (do not swallow) if removal fails for a real reason.
+      - name: Remove molecule DinD volume
+        if: always()
+        run: |
+          volume="molecule-dind-${{ matrix.molecule_distro }}-${{ github.run_id }}"
+          docker volume rm -f "$volume" || echo "::warning::failed to remove volume $volume"
