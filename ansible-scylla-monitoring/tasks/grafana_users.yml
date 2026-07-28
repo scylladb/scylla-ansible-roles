@@ -12,6 +12,7 @@
       url: "{{ grafana_root_url }}"
       url_username: "admin"
       url_password: "{{ grafana_admin_password }}"
+      validate_certs: false
       name: "{{ grafana_admin_user }}"
       email: "{{ grafana_admin_user }}@localhost"
       login: "{{ grafana_admin_user }}"
@@ -21,9 +22,10 @@
 
   - name: "grafana_users.yml: Drop default admin"
     community.grafana.grafana_user:
-      url: "http://localhost:3000"
+      url: "{{ grafana_root_url }}"
       url_username: "{{ grafana_admin_user }}"
       url_password: "{{ grafana_admin_password }}"
+      validate_certs: false
       login: "admin"
       state: absent
 
