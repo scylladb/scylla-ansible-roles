@@ -51,7 +51,10 @@ jobs:
         run: |
           molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}
       # ANSROLES-20: molecule destroy drops scylla-monitor-node but keeps its named
-      # DinD volume (molecule-dind-<distro>). Remove explicitly so runner disk does not fill.
+      # DinD volume (molecule-dind-<distro>-<run_id>). Remove explicitly so runner disk
+      # does not fill. Warn (do not swallow) if removal fails for a real reason.
       - name: Remove molecule DinD volume
         if: always()
-        run: docker volume rm -f "molecule-dind-${{ matrix.molecule_distro }}" || true
+        run: |
+          volume="molecule-dind-${{ matrix.molecule_distro }}-${{ github.run_id }}"
+          docker volume rm -f "$volume" || echo "::warning::failed to remove volume $volume"
