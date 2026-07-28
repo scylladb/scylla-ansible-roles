@@ -7,3 +7,21 @@
   - name: Example assertion
     assert:
       that: true
+
+- name: Verify monitoring systemd unit
+  hosts: scylla-monitor
+  tasks:
+  - name: Stat scylla-monitoring unit file
+    stat:
+      path: /etc/systemd/system/scylla-monitoring.service
+    register: monitoring_unit
+
+  - name: Collect service facts
+    service_facts:
+
+  - name: Assert unit installed and enabled
+    assert:
+      that:
+        - monitoring_unit.stat.exists
+        - ansible_facts.services["scylla-monitoring.service"].status == "enabled"
+      fail_msg: "scylla-monitoring.service missing or not enabled"

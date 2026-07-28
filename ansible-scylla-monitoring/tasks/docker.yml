@@ -31,19 +31,27 @@
   when: "'cql_credentials' in groups and item.split('=')[0] == scylla_monitoring_cql_default_user | default('scylla_cql_monitor')"
   loop: "{{ groups['cql_credentials'] }}"
 
+# When docker runs as root (run_docker_with_sudo), the wrappers are executed as
+# root (manual start below and the systemd unit) and the start wrapper sources the
+# env file. Own them root:root so a non-root deploy user cannot edit content that
+# root executes (privilege escalation).
 - name: "docker.yml: Write stop monitoring wrapper script"
   template:
     src: stop-monitoring.sh.j2
     dest: "{{ scylla_monitoring_stop_script_path }}"
     mode: '0750'
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+    group: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+  become: "{{ run_docker_with_sudo | bool }}"
 
 - name: "docker.yml: Write start monitoring env file"
   template:
     src: start-monitoring.env.j2
     dest: "{{ scylla_monitoring_start_env_path }}"
     mode: '0600'
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+    group: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+  become: "{{ run_docker_with_sudo | bool }}"
   when: monitoring_cql_username is defined and monitoring_cql_password is defined
 
 - name: "docker.yml: Write start monitoring wrapper script"
@@ -51,7 +59,9 @@
     src: start-monitoring.sh.j2
     dest: "{{ scylla_monitoring_start_script_path }}"
     mode: '0750'
-    owner: "{{ ansible_user_id }}"
+    owner: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+    group: "{{ 'root' if run_docker_with_sudo | bool else ansible_user_id }}"
+  become: "{{ run_docker_with_sudo | bool }}"
 
 - name: "docker.yml: restart the docker daemon again"
   service:
@@ -79,3 +89,43 @@
   environment:
     SCYLLA_USER: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_username }}{% endif %}"
     SCYLLA_PSSWD: "{% if monitoring_cql_username is defined and monitoring_cql_password is defined %}{{ monitoring_cql_password }}{% endif %}"
+
+# The unit is only enabled, not started: the stack is already running from the
+# start wrapper above, and start-all.sh is not idempotent, so letting systemd run
+# ExecStart again in the same play conflicts with the running containers.
+- name: "docker.yml: Install and enable scylla-monitoring at boot"
+  become: true
+  when: install_scylla_monitoring_service | bool
+  block:
+    - name: "docker.yml: Install scylla-monitoring systemd unit"
+      template:
+        src: scylla-monitoring.service.j2
+        dest: /etc/systemd/system/scylla-monitoring.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: "docker.yml: Enable scylla-monitoring at boot"
+      systemd:
+        name: scylla-monitoring.service
+        enabled: true
+        daemon_reload: true
+
+# When the flag is turned back off, disable and remove the unit so it no longer
+# fires on reboot. The running stack is left untouched (it was (re)started above
+# via the start wrapper), so monitoring stays up on a normal deploy.
+- name: "docker.yml: Disable and remove scylla-monitoring boot service"
+  become: true
+  when: not install_scylla_monitoring_service | bool
+  block:
+    - name: "docker.yml: Disable scylla-monitoring at boot"
+      systemd:
+        name: scylla-monitoring.service
+        enabled: false
+        daemon_reload: true
+      when: ansible_facts.services["scylla-monitoring.service"] is defined
+
+    - name: "docker.yml: Remove scylla-monitoring systemd unit"
+      file:
+        path: /etc/systemd/system/scylla-monitoring.service
+        state: absent
