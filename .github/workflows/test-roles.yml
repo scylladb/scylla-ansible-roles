@@ -22,19 +22,29 @@ on:
       - master
       - dev
 jobs:
+  # Full matrix on master; reduced set on dev to cut runner load.
+  select-distros:
+    runs-on: self-hosted
+    outputs:
+      molecule_distro: ${{ steps.set.outputs.molecule_distro }}
+    steps:
+      - id: set
+        run: |
+          # PR → base_ref; push → ref_name
+          target="${{ github.base_ref || github.ref_name }}"
+          if [ "$target" = "master" ]; then
+            echo 'molecule_distro=["debian11","debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'molecule_distro=["debian12","ubuntu2404","rockylinux10"]' >> "$GITHUB_OUTPUT"
+          fi
   build:
+    needs: select-distros
     runs-on: self-hosted
     strategy:
       fail-fast: false
       max-parallel: 4
       matrix:
-        molecule_distro:
-          - debian11
-          - debian12
-          - ubuntu2204
-          - ubuntu2404
-          - rockylinux9
-          - rockylinux10
+        molecule_distro: ${{ fromJson(needs.select-distros.outputs.molecule_distro) }}
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
