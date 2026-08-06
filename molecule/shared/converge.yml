@@ -19,3 +19,5 @@
     - name: Include ansible-scylla-monitor
       include_role:
         name: ansible-scylla-monitoring
+      vars:
+        install_scylla_monitoring_service: true

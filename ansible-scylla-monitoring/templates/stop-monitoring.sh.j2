@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd {{ base_dir | quote }}
+./kill-all.sh || sudo ./kill-all.sh || true
