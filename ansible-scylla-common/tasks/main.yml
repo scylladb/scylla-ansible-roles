@@ -8,9 +8,8 @@
     manager: auto
 
 # Main tasks file for ansible-scylla-common
-- name: "Include disable firewall task"
-  include_tasks: disable_firewall.yml
-  when: disable_firewall
+- name: "Include handle firewall task"
+  include_tasks: handle_firewall.yml
 
 - block:
     - name: Include OS-specific tasks
