@@ -41,6 +41,7 @@
   command: iptables -S INPUT
   register: _current_input_rules
   changed_when: false
+  check_mode: false
   become: true
   when: not (disable_firewall | bool)
 
