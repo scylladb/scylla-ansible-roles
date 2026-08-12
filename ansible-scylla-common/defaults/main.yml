@@ -7,6 +7,9 @@ disable_firewall: "{{ not (firewall_enabled | default(false)) }}"
 
 # Source IPs that must have an INPUT DROP rule when disable_firewall is false.
 # Empty list means no DROP rules are managed by this role.
+# Entries must be bare IPv4 addresses (no /mask) — stale-rule reconciliation
+# compares against iptables' normalized "-S INPUT" output, which drops /32
+# and won't match a masked or subnet entry.
 iptables_drop_sources: []
 
 # A dictionary that defines which TCP addresses (IP or DNS) and ports must be reachable on the node(s) targeted by this role.
