@@ -11,6 +11,8 @@ A common role providing shared tasks and utilities for all Scylla Ansible roles.
 
 - `disable_firewall`: Whether firewall should be disabled. (default: true, unless deprecated `firewall_enabled` is true)
 - `iptables_drop_sources`: List of source IPs to DROP on INPUT when `disable_firewall` is false. (default: `[]`)
+  Each run reconciles the INPUT chain to match this list exactly: sources present are
+  added, and any previously-applied DROP source no longer in the list is removed.
 
 ## Usage
 
