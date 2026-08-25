@@ -148,3 +148,5 @@
 
   become: true
   when: scylla_manager_enabled|bool
+  tags:
+    - manager_agent_upgrade
