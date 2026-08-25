@@ -143,6 +143,8 @@
 
   become: true
   when: scylla_manager_enabled|bool == true
+  tags:
+    - manager_agent_upgrade
 
 - name: install XFSprogs
   apt:

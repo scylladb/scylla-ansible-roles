@@ -1,0 +1,131 @@
+---
+# Upgrade Scylla Manager server and scylla-manager-agent on all scylla nodes.
+#
+# Extra-vars scylla_manager_{deb,rpm}_repo_url should point at the target series.
+# Default (no --tags): full ansible-scylla-node. Optional: --tags manager_agent_upgrade
+# limits the node role to its manager-agent tasks; the other plays are tagged always,
+# so they keep running under any --tags selection.
+
+- name: Suspend Scylla Manager tasks
+  hosts: scylla-manager
+  gather_facts: no
+  tags:
+    - always
+  tasks:
+    - name: Require scylla_clusters with cluster_name on every entry
+      ansible.builtin.assert:
+        that:
+          - scylla_clusters is defined
+          - scylla_clusters | length > 0
+          - scylla_clusters | map(attribute='cluster_name') | select('defined') | list | length
+              == (scylla_clusters | length)
+        fail_msg: >-
+          scylla_clusters must be a non-empty list and every entry must have cluster_name for sctool.
+
+    - name: Manager unit state
+      ansible.builtin.command: systemctl is-active scylla-manager
+      register: manager_active
+      changed_when: false
+      failed_when: false
+
+    - name: Suspend tasks
+      ansible.builtin.shell: sctool --cluster="{{ item.cluster_name }}" suspend
+      loop: "{{ scylla_clusters }}"
+      loop_control:
+        label: "{{ item.cluster_name }}"
+      register: suspend_tasks
+      when: manager_active.stdout == "active"
+
+    - name: Suspend tasks operation output
+      ansible.builtin.debug:
+        var: suspend_tasks
+
+- name: Stop Scylla Manager server
+  hosts: scylla-manager
+  gather_facts: no
+  become: true
+  tags:
+    - always
+  tasks:
+    - name: Stop scylla-manager
+      ansible.builtin.systemd:
+        name: scylla-manager
+        state: stopped
+
+- name: Stop Scylla Manager agents
+  hosts: scylla
+  gather_facts: no
+  become: true
+  tags:
+    - always
+  tasks:
+    - name: Stop scylla-manager-agent
+      ansible.builtin.systemd:
+        name: scylla-manager-agent
+        state: stopped
+
+- name: Upgrade Scylla Manager via ansible-scylla-manager
+  hosts: scylla-manager
+  tags:
+    - always
+  vars:
+    enable_upgrade: true
+  roles:
+    - ansible-scylla-manager
+
+# No play-level tags here: they are inherited by every task of the role and would
+# defeat the manager_agent_upgrade tags inside it.
+- name: Upgrade manager agents via ansible-scylla-node
+  hosts: scylla
+  any_errors_fatal: true
+  vars:
+    scylla_manager_agent_upgrade: true
+    start_scylla_service: false
+  roles:
+    - ansible-scylla-node
+
+- name: Setup and start Scylla Manager agents
+  hosts: scylla
+  gather_facts: no
+  become: true
+  tags:
+    - always
+  tasks:
+    - name: scyllamgr_agent_setup -y
+      ansible.builtin.command: scyllamgr_agent_setup -y
+
+    - name: Start scylla-manager-agent
+      ansible.builtin.systemd:
+        name: scylla-manager-agent
+        state: started
+        enabled: true
+
+- name: Start Scylla Manager server
+  hosts: scylla-manager
+  gather_facts: no
+  become: true
+  tags:
+    - always
+  tasks:
+    - name: Start scylla-manager
+      ansible.builtin.systemd:
+        name: scylla-manager
+        state: started
+        enabled: true
+
+- name: Resume Scylla Manager tasks
+  hosts: scylla-manager
+  gather_facts: no
+  tags:
+    - always
+  tasks:
+    - name: Resume tasks
+      ansible.builtin.shell: sctool --cluster="{{ item.cluster_name }}" resume
+      loop: "{{ scylla_clusters }}"
+      loop_control:
+        label: "{{ item.cluster_name }}"
+      register: resume_tasks
+
+    - name: Resume tasks operation output
+      ansible.builtin.debug:
+        var: resume_tasks
