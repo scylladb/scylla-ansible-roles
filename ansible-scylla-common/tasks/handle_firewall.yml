@@ -1,0 +1,64 @@
+---
+# Disable front-end firewall services and flush rules, or apply persisted DROP sources.
+- name: Disable firewall
+  block:
+    - name: Deactivate front-end firewall services
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      loop:
+        - firewalld.service
+        - iptables_services.service
+        - ufw.service
+      when: ansible_facts.services[item] is defined and ansible_facts.services[item]['status'] != 'not-found'
+
+    - name: Flush all iptables rules
+      iptables:
+        flush: yes
+      when: "'iptables' in ansible_facts.packages"
+  become: true
+  when: disable_firewall | bool
+
+# Apply INPUT DROP rules for every source in iptables_drop_sources.
+# Runs when the firewall is not being disabled. Idempotent via state=present.
+- name: Ensure iptables INPUT DROP rules for configured sources
+  iptables:
+    chain: INPUT
+    source: "{{ item }}"
+    jump: DROP
+    state: present
+  loop: "{{ iptables_drop_sources }}"
+  become: true
+  when:
+    - not (disable_firewall | bool)
+    - iptables_drop_sources | length > 0
+
+# Remove any previously-applied INPUT DROP rule whose source is no longer listed in
+# iptables_drop_sources, so a source dropped by a prior run (e.g. a replace-node
+# temporary block) doesn't linger once the role's default (empty list) applies again.
+- name: Find existing simple INPUT DROP rules
+  command: iptables -S INPUT
+  register: _current_input_rules
+  changed_when: false
+  check_mode: false
+  become: true
+  when: not (disable_firewall | bool)
+
+- name: Remove stale INPUT DROP rules not in iptables_drop_sources
+  iptables:
+    chain: INPUT
+    source: "{{ item }}"
+    jump: DROP
+    state: absent
+  loop: "{{ _current_drop_sources | difference(iptables_drop_sources) }}"
+  become: true
+  vars:
+    _current_drop_sources: >-
+      {{
+        _current_input_rules.stdout_lines
+        | select('match', '^-A INPUT -s [0-9.]+(/[0-9]+)? -j DROP$')
+        | map('regex_replace', '^-A INPUT -s ([0-9.]+)(?:/[0-9]+)? -j DROP$', '\1')
+        | list
+      }}
+  when: not (disable_firewall | bool)
