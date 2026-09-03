@@ -29,6 +29,8 @@
   - name: os-specific tasks
     include_tasks: "{{ ansible_os_family }}.yml"
     when: not upgrade_version
+    tags:
+      - manager_agent_upgrade
 
   - name: common tasks
     include_tasks: common.yml
