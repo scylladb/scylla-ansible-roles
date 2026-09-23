@@ -33,15 +33,36 @@
     msg: "Make sure that {{ scylla_admin_default_user }} is defined in the 'cql_credentials' section"
   when: scylla_admin_default_user is defined and scylla_admin_password is not defined
 
-- set_fact:
-    scylla_admin_username: "cassandra"
-    scylla_admin_password: "cassandra"
+# Without 'scylla_admin_default_user' there are no credentials to log in with: starting from
+# ScyllaDB 2026.2 enabling authentication no longer creates a default 'cassandra' superuser, so we
+# fall back to the maintenance socket, which accepts CQL locally with full permissions.
+# See https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html
+- name: Look for the maintenance socket
+  stat:
+    path: "{{ scylla_maintenance_socket_path }}"
+  become: true
+  register: _maintenance_socket_stat
   when: scylla_admin_default_user is not defined
+  run_once: true
+
+- fail:
+    msg: >-
+      No way to run CQL as a superuser on this cluster: either define 'scylla_admin_default_user'
+      together with a matching entry in the 'cql_credentials' inventory section, or enable the
+      maintenance socket through 'scylla_maintenance_socket' (currently
+      '{{ scylla_maintenance_socket }}') and restart the node.
+  when:
+    - scylla_admin_default_user is not defined
+    - not _maintenance_socket_stat.stat.exists
+  run_once: true
 
 - name: Adjust replication for {{ _keyspace }} keyspace
   shell: |
-    cqlsh {{ broadcast_address }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+    cqlsh {{ _cqlsh_admin_target }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+  become: true
   run_once: true
+  vars:
+    _cqlsh_admin_target: "{% if scylla_admin_default_user is defined %}{{ broadcast_address }} -u '{{ scylla_admin_username }}' -p '{{ scylla_admin_password }}'{% else %}{{ scylla_maintenance_socket_path }}{% endif %}"
 
 - name: Run cleanup for keyspace {{ _keyspace }}
   async_task:
