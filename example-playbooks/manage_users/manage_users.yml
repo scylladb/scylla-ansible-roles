@@ -1,7 +1,7 @@
 ---
 
-#     This playbook allows the creation of cql users and deletes the default cassandra user as recommended in scylla's
-#     documentation -> {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
+#     This playbook allows the creation of cql users, as recommended in scylla's documentation ->
+#     {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
 #     By default this playbook will add the internal users scylla_admin (superuser) and scylla_cql_monitor,
 #     but you can change the list of internal users and permissions by overriding the variable internal_users.
 #     Besides the internal users, you can also pass a list of customer_users to this playbook.
@@ -19,6 +19,15 @@
 #     For customer users it's not necessary to define the password in the inventory. You should define it in the customer_users
 #     variable itself. Check 'vars/main.yml' for an example.
 #
+#     The first superuser is created over the ScyllaDB maintenance socket, which accepts CQL locally
+#     without authentication and with full permissions. Starting from ScyllaDB 2026.2 enabling
+#     authentication no longer creates a default 'cassandra' superuser, so the socket has to be
+#     enabled ('maintenance_socket' in scylla.yaml) for this playbook to be able to bootstrap
+#     scylla_admin. On older clusters that still have the 'cassandra' user and no maintenance
+#     socket, the playbook falls back to logging in as 'cassandra'.
+#     See {https://docs.scylladb.com/manual/stable/operating-scylla/security/create-superuser.html}
+#     and {https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html}.
+#
 #     Operations allowed:
 #       * Addition of users
 #       * Addition of permissions for any user (Removing permissions isn't supported)
@@ -27,7 +36,7 @@
 #     Usage:
 #       ansible-playbook -i inventory.ini manage_users.yaml [-e "@users.yml"]
 
-- name: Add users from inventory and delete cassandra user
+- name: Add users from inventory
   hosts: scylla
   vars_files:
     - vars/main.yml
@@ -58,32 +67,72 @@
               {% if (_scylla_yaml_map.authenticator is defined and (_scylla_yaml_map.authenticator == 'TransitionalAuthenticator' or _scylla_yaml_map.authenticator == 'PasswordAuthenticator')) or
               (_scylla_yaml_map.authorizer is defined and (_scylla_yaml_map.authorizer == 'TransitionalAuthorizer' or _scylla_yaml_map.authorizer == 'CassandraAuthorizer')) %}True{% else %}False{% endif %}
 
+        # 'maintenance_socket' is either 'ignore' (no socket is created), 'workdir' (the socket is
+        # created at '<workdir>/cql.m') or an absolute path to the socket. ScyllaDB 2026.2 defaults
+        # it to 'workdir' when it is not set in scylla.yaml, so that is what an absent option means
+        # here. Older versions default it to 'ignore', and the socket the path below points at then
+        # does not exist, which the stat further down turns into the 'cassandra' fallback.
+        # '<workdir>' is the 'workdir' option of this very scylla.yaml, which ScyllaDB defaults to
+        # /var/lib/scylla when it is not set.
+        - set_fact:
+            _maintenance_socket: "{{ _scylla_yaml_map.maintenance_socket|default('workdir') }}"
+            _workdir: "{{ _scylla_yaml_map.workdir|default('/var/lib/scylla') }}"
+
+        - set_fact:
+            _maintenance_socket_path: "{{ '' if _maintenance_socket == 'ignore' else (_workdir ~ '/cql.m' if _maintenance_socket == 'workdir' else _maintenance_socket) }}"
+
     - fail:
         msg: "Authentication is not enabled!"
       when: _authentication_enabled|bool == false
+      run_once: true
+
+    - name: Look for the maintenance socket
+      stat:
+        path: "{{ _maintenance_socket_path }}"
+      become: true
+      register: _maintenance_socket_stat
+      when: _maintenance_socket_path != ""
+      run_once: true
+
+    - set_fact:
+        _bootstrap_via_maintenance_socket: "{{ _maintenance_socket_path != '' and _maintenance_socket_stat.stat.exists }}"
+      run_once: true
+
+    - name: Warn that the legacy 'cassandra' superuser is being used
+      debug:
+        msg: >-
+          No maintenance socket on this cluster, falling back to logging in as the default
+          'cassandra' superuser to create {{ scylla_admin_username }}. That user is not created
+          anymore starting from ScyllaDB 2026.2: set 'maintenance_socket' in scylla.yaml and
+          restart the nodes so that this playbook keeps working. See
+          https://docs.scylladb.com/manual/stable/operating-scylla/security/create-superuser.html
+      when: not _bootstrap_via_maintenance_socket|bool
       run_once: true
 
     - name: Set password for scylla_admin
       set_fact:
         scylla_admin_password: "{{ lookup('ini', scylla_admin_username, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
 
+    - set_fact:
+        _bootstrap_cqlsh_cmd: "{% if _bootstrap_via_maintenance_socket|bool %}cqlsh {{ _maintenance_socket_path }}{% else %}cqlsh {{ cql_address }} {{ cql_port }} -u 'cassandra' -p 'cassandra'{% endif %}"
+        _admin_cqlsh_cmd: "cqlsh {{ cql_address }} {{ cql_port }} -u '{{ scylla_admin_username }}' -p '{{ scylla_admin_password }}'"
+
     - name: Create scylla_admin user
       import_tasks: create_user.yml
       vars:
         superuser: true
-        admin_username: "cassandra"
-        admin_password: "cassandra"
+        cqlsh_admin_cmd: "{{ _bootstrap_cqlsh_cmd }}"
         username: "{{ scylla_admin_username }}"
         password: "{{ scylla_admin_password }}"
-      ignore_errors: true
+      # The 'cassandra' fallback is expected to fail once it has been dropped by an earlier run.
+      ignore_errors: "{{ not _bootstrap_via_maintenance_socket|bool }}"
       run_once: true
 
     - name: Create internal users
       include_tasks: create_user.yml
       vars:
         superuser: "{{ item.value.superuser|default(false) }}"
-        admin_username: "{{ scylla_admin_username }}"
-        admin_password: "{{ scylla_admin_password }}"
+        cqlsh_admin_cmd: "{{ _admin_cqlsh_cmd }}"
         username: "{{ item.key }}"
         password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
         permissions: "{{ item.value.permissions }}"
@@ -94,8 +143,7 @@
       include_tasks: create_user.yml
       vars:
         superuser: "{{ item.value.superuser|default(false) }}"
-        admin_username: "{{ scylla_admin_username }}"
-        admin_password: "{{ scylla_admin_password }}"
+        cqlsh_admin_cmd: "{{ _admin_cqlsh_cmd }}"
         username: "{{ item.key }}"
         password: "{{ item.value.password }}"
         permissions: "{{ item.value.permissions }}"
@@ -103,8 +151,10 @@
       when: customer_users is defined
       run_once: true
 
+    # A no-op on clusters created with ScyllaDB 2026.2 or later, which never had a 'cassandra' user.
     - name: Delete cassandra user
       shell: |
-        cqlsh {{ cql_address }} {{ cql_port }} -u '{{ scylla_admin_username }}' -p '{{ scylla_admin_password }}' -e "DROP ROLE IF EXISTS 'cassandra';"
+        {{ _admin_cqlsh_cmd }} -e "DROP ROLE IF EXISTS 'cassandra';"
+      become: true
       run_once: true
       when: delete_cassandra_user|bool
