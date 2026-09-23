@@ -13,6 +13,9 @@ authenticator: PasswordAuthenticator
 authorizer: CassandraAuthorizer
 {% endif %}
 
+workdir: {{ scylla_workdir }}
+maintenance_socket: {{ scylla_maintenance_socket }}
+
 num_tokens: 256
 commitlog_sync: periodic
 commitlog_sync_period_in_ms: 10000
