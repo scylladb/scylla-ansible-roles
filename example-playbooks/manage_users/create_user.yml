@@ -1,18 +1,30 @@
 ---
+# Creates a CQL user, (re)sets its password and grants it permissions.
+#
+# Expects the following variables to be set by the caller:
+#   * cqlsh_admin_cmd: a 'cqlsh' invocation, including both how to reach a node and how to
+#                      authenticate, that runs statements with superuser privileges.
+#   * username: the name of the user to create.
+#   * password: the password to set for the user, both on creation and on every later run.
+#   * superuser: a boolean telling whether the user gets the SUPERUSER role attribute.
+#   * permissions: an optional list of '[permission, resource]' pairs to grant to the user.
 - name: Create user {{ username }}
   block:
   - set_fact:
       superuser_str: "{% if superuser|bool %}SUPERUSER{% else %}NOSUPERUSER{% endif %}"
 
   - shell: |
-      cqlsh {{ cql_address }} {{ cql_port }} -u '{{ admin_username }}' -p '{{ admin_password }}' -e "CREATE USER IF NOT EXISTS '{{ username }}' WITH PASSWORD '{{ password }}' {{ superuser_str }};"
+      {{ cqlsh_admin_cmd }} -e "CREATE USER IF NOT EXISTS '{{ username }}' WITH PASSWORD '{{ password }}' {{ superuser_str }};"
+    become: true
 
   - shell: |
-      cqlsh {{ cql_address }} {{ cql_port }} -u '{{ admin_username }}' -p '{{ admin_password }}' -e "ALTER ROLE '{{ username }}' WITH PASSWORD = '{{ password }}'"
+      {{ cqlsh_admin_cmd }} -e "ALTER ROLE '{{ username }}' WITH PASSWORD = '{{ password }}'"
+    become: true
 
 - name: Grant permissions
   shell: |
-    cqlsh {{ cql_address }} {{ cql_port }} -u '{{ admin_username }}' -p '{{ admin_password }}' -e "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to '{{ username }}';"
+    {{ cqlsh_admin_cmd }} -e "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to '{{ username }}';"
+  become: true
   loop: "{{ permissions | list }}"
   loop_control:
     loop_var: outer_item
