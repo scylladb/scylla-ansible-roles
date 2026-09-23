@@ -149,6 +149,26 @@ full_inventory: true
 # !!! also make sure you override scylla_yaml_params and remove authorization from there !!!
 scylla_authentication: True
 
+# Value of the 'maintenance_socket' scylla.yaml option: a Unix domain socket on the node that
+# accepts CQL without authentication and with full permissions. Starting from ScyllaDB 2026.2
+# enabling authentication no longer creates a default 'cassandra' superuser, so the socket is how
+# the very first superuser gets created. Accepted values are 'ignore' (no socket), 'workdir'
+# (the socket is created at '<scylla_workdir>/cql.m') or an absolute path for the socket.
+# See https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html
+scylla_maintenance_socket: workdir
+
+# Value of the 'workdir' scylla.yaml option: the directory ScyllaDB puts its subdirectories in unless
+# a '*_directory' option says otherwise. It is written to scylla.yaml so that the path
+# 'scylla_maintenance_socket: workdir' resolves to is the one used here, not a guess about what the
+# node would have picked.
+scylla_workdir: /var/lib/scylla
+
+# Absolute path of the maintenance socket, or an empty string when no socket is configured.
+scylla_maintenance_socket_path: >-
+  {{ '' if scylla_maintenance_socket == 'ignore'
+     else (scylla_workdir ~ '/cql.m' if scylla_maintenance_socket == 'workdir'
+           else scylla_maintenance_socket) }}
+
 # Set this to false to disable automatic adjustment of system_auth keyspace replication
 adjust_system_auth_replication: False
 
