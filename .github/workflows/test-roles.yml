@@ -69,5 +69,7 @@ jobs:
       - name: Remove molecule DinD volume
         if: always()
         run: |
+          # test_sequence ends at verify, so the instances still hold the volume here.
+          molecule destroy --scenario-name ${{ matrix.molecule_distro }} || echo "::warning::failed to destroy molecule scenario ${{ matrix.molecule_distro }}"
           volume="molecule-dind-${{ matrix.molecule_distro }}-${{ github.run_id }}"
           docker volume rm -f "$volume" || echo "::warning::failed to remove volume $volume"
