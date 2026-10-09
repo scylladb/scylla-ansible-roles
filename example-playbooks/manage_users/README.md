@@ -1,17 +1,27 @@
 # Manage users
 
-This is an ansible playbook that allows the creation of cql users and deletes the default cassandra user.
+This is an ansible playbook that allows the creation of cql users.
 
 ## Prerequisites
 
 * A scylla cluster with authentication enabled.
+* The [maintenance socket](https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html)
+  enabled on the nodes (`maintenance_socket` in `scylla.yaml`). ScyllaDB has no default superuser,
+  so the socket, which serves CQL locally without authentication and with full permissions, is how
+  the first superuser gets created. See
+  [Creating a Superuser](https://docs.scylladb.com/manual/stable/operating-scylla/security/create-superuser.html).
+  When `maintenance_socket` is set to `workdir`, the socket is looked for at `<workdir>/cql.m`, with
+  `workdir` taken from the node's `scylla.yaml` (ScyllaDB's own default, `/var/lib/scylla`, if unset).
+  Clusters older than 2026.2 that still have the default `cassandra` user and no maintenance socket
+  keep working: the playbook falls back to logging in as `cassandra`.
 
 ## Parameters / Default Behavior
 
 * `scylla_nic`: The network interface being used by scylla.
 * `scylla_nic_ipv4_addr`: IPv4 address for the network interface being used by scylla.
-* `delete_cassandra_user`: A boolean indicating if the default cassandra user must be deleted or not.
-* `scylla_admin_username`: The username of the superuser which will be replacing the default cassandra user.
+* `delete_cassandra_user`: A boolean indicating if the legacy `cassandra` user must be deleted or not.
+                           It is a no-op on clusters that never had one.
+* `scylla_admin_username`: The username of the superuser created over the maintenance socket.
 * `users`: A map with the users (besides `scylla_admin_username`) which are going to be added.
            Every user is a map containing the following entries:
     * `superuser` -> a boolean indicating if the new user is a superuser
