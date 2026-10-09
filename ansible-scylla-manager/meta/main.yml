@@ -40,6 +40,7 @@ dependencies:
             port: 7000
           - address: "127.0.0.1"
             port: 9042
+    when: not skip_role_deps | default(false)
   - role: "ansible-scylla-node"
     vars:
       install_only: true
@@ -50,3 +51,4 @@ dependencies:
           enabled: false
         client:
           enabled: false
+    when: not skip_role_deps | default(false)
