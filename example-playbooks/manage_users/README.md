@@ -30,6 +30,9 @@ This is an ansible playbook that allows the creation of cql users.
                                   and the second position is the resource for which this permission is being added.
                                   A list with the available permissions can be found in {https://docs.scylladb.com/stable/operating-scylla/security/authorization.html#permissions}.
 
+The statements are run by the `scylla_cqlsh` module of `ansible-scylla-common`, which the `library` link in this
+directory points to.
+
 In order to connect via cqlsh and update the credentials, this playbook will try to get the `rpc_address` on scylla.yaml.
 If this value is not set, then it'll be assumed that localhost is being used, since this is the default value on scylla and the
 playbook will try to find out the IP address by getting the IPv4 for the default network interface.

@@ -163,12 +163,6 @@ scylla_maintenance_socket: workdir
 # node would have picked.
 scylla_workdir: /var/lib/scylla
 
-# Absolute path of the maintenance socket, or an empty string when no socket is configured.
-scylla_maintenance_socket_path: >-
-  {{ '' if scylla_maintenance_socket == 'ignore'
-     else (scylla_workdir ~ '/cql.m' if scylla_maintenance_socket == 'workdir'
-           else scylla_maintenance_socket) }}
-
 # Set this to false to disable automatic adjustment of system_auth keyspace replication
 adjust_system_auth_replication: False
 

@@ -2,28 +2,39 @@
 # Creates a CQL user, (re)sets its password and grants it permissions.
 #
 # Expects the following variables to be set by the caller:
-#   * cqlsh_admin_cmd: a 'cqlsh' invocation, including both how to reach a node and how to
-#                      authenticate, that runs statements with superuser privileges.
+#   * cql_address, cql_port: where to reach a node when logging in with credentials.
+#   * admin_login: how to log in as a superuser, 'credentials' or 'auto'. See the scylla_cqlsh module.
+#   * admin_username, admin_password: the credentials of that superuser, when there are any.
+#   * ignore_credentials_failure: optional. If true, failing to log in with credentials is not an error.
 #   * username: the name of the user to create.
 #   * password: the password to set for the user, both on creation and on every later run.
 #   * superuser: a boolean telling whether the user gets the SUPERUSER role attribute.
 #   * permissions: an optional list of '[permission, resource]' pairs to grant to the user.
 - name: Create user {{ username }}
-  block:
-  - set_fact:
-      superuser_str: "{% if superuser|bool %}SUPERUSER{% else %}NOSUPERUSER{% endif %}"
-
-  - shell: |
-      {{ cqlsh_admin_cmd }} -e "CREATE USER IF NOT EXISTS '{{ username }}' WITH PASSWORD '{{ password }}' {{ superuser_str }};"
-    become: true
-
-  - shell: |
-      {{ cqlsh_admin_cmd }} -e "ALTER ROLE '{{ username }}' WITH PASSWORD = '{{ password }}'"
-    become: true
+  scylla_cqlsh:
+    login: "{{ admin_login }}"
+    host: "{{ cql_address }}"
+    port: "{{ cql_port }}"
+    username: "{{ admin_username | default(omit) }}"
+    password: "{{ admin_password | default(omit) }}"
+    statements:
+      - "CREATE USER IF NOT EXISTS '{{ username }}' WITH PASSWORD '{{ password }}' {{ 'SUPERUSER' if superuser|bool else 'NOSUPERUSER' }};"
+      - "ALTER ROLE '{{ username }}' WITH PASSWORD = '{{ password }}';"
+  become: true
+  register: _created
+  failed_when:
+    - _created.failed | default(false)
+    - not (ignore_credentials_failure | default(false) and _created.login | default('') == 'credentials')
 
 - name: Grant permissions
-  shell: |
-    {{ cqlsh_admin_cmd }} -e "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to '{{ username }}';"
+  scylla_cqlsh:
+    login: "{{ admin_login }}"
+    host: "{{ cql_address }}"
+    port: "{{ cql_port }}"
+    username: "{{ admin_username | default(omit) }}"
+    password: "{{ admin_password | default(omit) }}"
+    statements:
+      - "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to '{{ username }}';"
   become: true
   loop: "{{ permissions | list }}"
   loop_control:
