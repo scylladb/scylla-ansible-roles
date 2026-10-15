@@ -293,6 +293,12 @@
   become: true
   when: (devmode is defined) and (devmode|bool)
 
+# Only edits the existing file in place and depends on nothing set earlier
+# in this role, so it's safe to run on its own via --tags scylla_yaml_params
+# to update scylla_yaml_params on an already-configured node without paying
+# for the rest of the role (scylla_setup, RAID/IO tuning, NTP, node exporter,
+# coredump/swap/cpu-scaling/fstrim setup, etc). Not meant for a node whose
+# scylla.yaml doesn't exist yet -- that still needs the full role.
 - name: configure custom scylla.yaml paramaters
   lineinfile:
     path: /etc/scylla/scylla.yaml
@@ -301,6 +307,7 @@
     create: yes
   become: true
   loop: "{{ lookup('dict', scylla_yaml_params) }}"
+  tags: [scylla_yaml_params]
 
 - name: Copy system and table keys
   include_tasks: copy_system_and_table_keys.yml
