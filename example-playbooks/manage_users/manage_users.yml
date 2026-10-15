@@ -1,7 +1,7 @@
 ---
 
-#     This playbook allows the creation of cql users, as recommended in scylla's documentation ->
-#     {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
+#     This playbook allows the creation of cql users and optionally deletes the default cassandra user as recommended in
+#     scylla's documentation -> {https://docs.scylladb.com/stable/operating-scylla/security/enable-authorization.html#enabling-authorization}.
 #     By default this playbook will add the internal users scylla_admin (superuser) and scylla_cql_monitor,
 #     but you can change the list of internal users and permissions by overriding the variable internal_users.
 #     Besides the internal users, you can also pass a list of customer_users to this playbook.
@@ -36,7 +36,7 @@
 #     Usage:
 #       ansible-playbook -i inventory.ini manage_users.yaml [-e "@users.yml"]
 
-- name: Add users from inventory
+- name: Add users from inventory and optionally delete the cassandra user
   hosts: scylla
   vars_files:
     - vars/main.yml
@@ -113,15 +113,13 @@
       set_fact:
         scylla_admin_password: "{{ lookup('ini', scylla_admin_username, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
 
-    - set_fact:
-        _bootstrap_cqlsh_cmd: "{% if _bootstrap_via_maintenance_socket|bool %}cqlsh {{ _maintenance_socket_path }}{% else %}cqlsh {{ cql_address }} {{ cql_port }} -u 'cassandra' -p 'cassandra'{% endif %}"
-        _admin_cqlsh_cmd: "cqlsh {{ cql_address }} {{ cql_port }} -u '{{ scylla_admin_username }}' -p '{{ scylla_admin_password }}'"
-
     - name: Create scylla_admin user
       import_tasks: create_user.yml
       vars:
         superuser: true
-        cqlsh_admin_cmd: "{{ _bootstrap_cqlsh_cmd }}"
+        cql_username: "{{ '' if _bootstrap_via_maintenance_socket|bool else 'cassandra' }}"
+        cql_password: cassandra
+        cql_maintenance_socket: "{{ _maintenance_socket_path }}"
         username: "{{ scylla_admin_username }}"
         password: "{{ scylla_admin_password }}"
       # The 'cassandra' fallback is expected to fail once it has been dropped by an earlier run.
@@ -132,7 +130,8 @@
       include_tasks: create_user.yml
       vars:
         superuser: "{{ item.value.superuser|default(false) }}"
-        cqlsh_admin_cmd: "{{ _admin_cqlsh_cmd }}"
+        cql_username: "{{ scylla_admin_username }}"
+        cql_password: "{{ scylla_admin_password }}"
         username: "{{ item.key }}"
         password: "{{ lookup('ini', item.key, section='cql_credentials', allow_no_value=true, default=omit, file=inventory_file) }}"
         permissions: "{{ item.value.permissions }}"
@@ -143,7 +142,8 @@
       include_tasks: create_user.yml
       vars:
         superuser: "{{ item.value.superuser|default(false) }}"
-        cqlsh_admin_cmd: "{{ _admin_cqlsh_cmd }}"
+        cql_username: "{{ scylla_admin_username }}"
+        cql_password: "{{ scylla_admin_password }}"
         username: "{{ item.key }}"
         password: "{{ item.value.password }}"
         permissions: "{{ item.value.permissions }}"
@@ -153,8 +153,13 @@
 
     # A no-op on clusters created with ScyllaDB 2026.2 or later, which never had a 'cassandra' user.
     - name: Delete cassandra user
-      shell: |
-        {{ _admin_cqlsh_cmd }} -e "DROP ROLE IF EXISTS 'cassandra';"
-      become: true
+      import_role:
+        name: ansible-scylla-common
+        tasks_from: run_cqlsh.yml
+      vars:
+        cql_statement: "DROP ROLE IF EXISTS 'cassandra';"
+        cql_host: "{{ cql_address }}"
+        cql_username: "{{ scylla_admin_username }}"
+        cql_password: "{{ scylla_admin_password }}"
       run_once: true
       when: delete_cassandra_user|bool
