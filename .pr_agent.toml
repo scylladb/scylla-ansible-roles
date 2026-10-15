@@ -1,0 +1,23 @@
+# Qodo is not used on this repository: no automatic reviews, descriptions or comments.
+# This file is read from the default branch.
+
+[config]
+# Skip this repository, and every pull request that reaches the pull request level filters.
+ignore_repositories = ["^scylladb/scylla-ansible-roles$"]
+ignore_pr_title = [".*"]
+ignore_pr_source_branches = [".*"]
+ignore_pr_target_branches = [".*"]
+ignore_pr_authors = [".*"]
+disable_auto_feedback = true
+
+[chat_agent]
+# The agent that answers questions and runs commands typed in pull request comments.
+enabled = false
+
+[github_app]
+handle_pr_actions = []
+pr_commands = []
+handle_push_trigger = false
+push_commands = []
+review_commands = []
+feedback_on_draft_pr = false
