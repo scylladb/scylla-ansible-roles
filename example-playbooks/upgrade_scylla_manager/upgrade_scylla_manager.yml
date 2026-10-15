@@ -7,8 +7,9 @@
 # tasks; the other plays are tagged always, so they keep running under any --tags selection.
 # Default (no --tags): full ansible-scylla-node.
 
-- name: Suspend Scylla Manager tasks
+- name: Suspend Scylla Manager tasks and stop the server
   hosts: scylla-manager
+  any_errors_fatal: true
   gather_facts: no
   tags:
     - always
@@ -34,27 +35,17 @@
       loop: "{{ scylla_clusters }}"
       loop_control:
         label: "{{ item.cluster_name }}"
-      register: suspend_tasks
       when: manager_active.stdout == "active"
 
-    - name: Suspend tasks operation output
-      ansible.builtin.debug:
-        var: suspend_tasks
-
-- name: Stop Scylla Manager server
-  hosts: scylla-manager
-  gather_facts: no
-  become: true
-  tags:
-    - always
-  tasks:
     - name: Stop scylla-manager
       ansible.builtin.systemd:
         name: scylla-manager
         state: stopped
+      become: true
 
 - name: Stop Scylla Manager agents
   hosts: scylla
+  any_errors_fatal: true
   gather_facts: no
   become: true
   tags:
@@ -65,14 +56,21 @@
         name: scylla-manager-agent
         state: stopped
 
-- name: Upgrade Scylla Manager via ansible-scylla-manager
+# Package upgrade only, through the role's OS tasks file. The role's main.yml would also
+# restart scylla-manager and run sctool cluster add/update while every agent is stopped.
+- name: Upgrade Scylla Manager server and client
   hosts: scylla-manager
+  any_errors_fatal: true
   tags:
     - always
-  vars:
-    enable_upgrade: true
-  roles:
-    - ansible-scylla-manager
+  tasks:
+    - name: Upgrade scylla-manager-server and scylla-manager-client
+      ansible.builtin.include_role:
+        name: ansible-scylla-manager
+        tasks_from: "{{ ansible_os_family }}.yml"
+      vars:
+        enable_upgrade: true
+        skip_role_deps: true
 
 # No play-level tags here: they are inherited by every task of the role and would
 # defeat the manager_agent_upgrade tags inside it.
@@ -87,6 +85,7 @@
 
 - name: Setup and start Scylla Manager agents
   hosts: scylla
+  any_errors_fatal: true
   gather_facts: no
   become: true
   tags:
@@ -103,6 +102,7 @@
 
 - name: Start Scylla Manager server
   hosts: scylla-manager
+  any_errors_fatal: true
   gather_facts: no
   become: true
   tags:
@@ -119,17 +119,13 @@
 
 - name: Resume Scylla Manager tasks
   hosts: scylla-manager
+  any_errors_fatal: true
   gather_facts: no
   tags:
     - always
   tasks:
     - name: Resume tasks
-      ansible.builtin.shell: sctool --cluster="{{ item.cluster_name }}" resume
+      ansible.builtin.shell: sctool --cluster="{{ item.cluster_name }}" resume --start-tasks --start-tasks-missed-activation
       loop: "{{ scylla_clusters }}"
       loop_control:
         label: "{{ item.cluster_name }}"
-      register: resume_tasks
-
-    - name: Resume tasks operation output
-      ansible.builtin.debug:
-        var: resume_tasks
