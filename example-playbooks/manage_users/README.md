@@ -1,6 +1,6 @@
 # Manage users
 
-This is an ansible playbook that allows the creation of cql users.
+This is an ansible playbook that allows the creation of cql users and optionally deletes the default cassandra user.
 
 ## Prerequisites
 
