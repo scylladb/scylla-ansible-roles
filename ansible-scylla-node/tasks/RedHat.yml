@@ -123,30 +123,4 @@
   when: skip_selinux is defined and skip_selinux|bool == false
 
 - name: install and configure Scylla Manager Agent
-  block:
-    - name: add Scylla Manager repo
-      get_url:
-        url: "{{ scylla_manager_rpm_repo_url }}"
-        dest: '/etc/yum.repos.d/{{ scylla_manager_rpm_repo_url.split("/")[-1] | lower }}'
-        mode: '0644'
-        owner: root
-      when: scylla_manager_rpm_repo_url.split(".")[-1] == "repo"
-
-    - name: install the manager agent
-      yum:
-        name: scylla-manager-agent
-        state: present
-        lock_timeout: 60
-      when: scylla_manager_agent_upgrade is not defined or scylla_manager_agent_upgrade|bool == False
-
-    - name: install the latest manager agent
-      yum:
-        name: scylla-manager-agent
-        state: latest
-        lock_timeout: 60
-      when: scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade|bool
-
-  become: true
-  when: scylla_manager_enabled|bool
-  tags:
-    - manager_agent_upgrade
+  include_tasks: manager_agent_RedHat.yml

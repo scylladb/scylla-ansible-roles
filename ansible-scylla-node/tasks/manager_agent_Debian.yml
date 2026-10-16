@@ -1,0 +1,49 @@
+---
+# Installs or upgrades scylla-manager-agent on a Debian-family node. Included by Debian.yml as
+# part of the full role, and usable on its own through include_role with tasks_from, which is
+# why the apt lock timeout is set here rather than relied upon from main.yml.
+- name: install and configure Scylla Manager Agent
+  block:
+    - name: Add an apt key by id from a keyserver
+      apt_key:
+        keyserver: "{{ scylla_repo_keyserver }}"
+        id: "{{ item }}"
+        state: present
+      with_items: "{{ scylla_manager_repo_keys }}"
+      when: (scylla_install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
+      become: true
+
+    - name: Add an apt key by id from a keyserver to {{ scylla_repo_keyringfile }}
+      apt_key:
+        keyserver: "{{ scylla_repo_keyserver }}"
+        keyring: "{{ scylla_repo_keyringfile }}"
+        id: "{{ item }}"
+        state: present
+      with_items: "{{ scylla_manager_repo_keys }}"
+      when: (scylla_install_type == 'online') and (scylla_repo_keyserver is defined) and (scylla_manager_repo_keys is defined) and (scylla_manager_repo_keys|length > 0)
+      become: true
+
+    - name: add Scylla Manager repo
+      get_url:
+        url: "{{ scylla_manager_deb_repo_url }}"
+        dest: '/etc/apt/sources.list.d/{{ scylla_manager_deb_repo_url.split("/")[-1] | lower }}'
+        mode: '0644'
+        owner: root
+      when: scylla_manager_deb_repo_url.split(".")[-1] == "list"
+
+    - name: Run "apt-get update"
+      apt:
+        update_cache: yes
+
+    - name: Install Scylla Manager Agent
+      vars:
+        scylla_manager_agent_state: "{{ 'latest' if scylla_manager_agent_upgrade is defined and scylla_manager_agent_upgrade | bool else 'present' }}"
+      ansible.builtin.apt:
+        name: scylla-manager-agent
+        state: "{{ scylla_manager_agent_state }}"
+
+  become: true
+  when: scylla_manager_enabled|bool == true
+  module_defaults:
+    ansible.builtin.apt:
+      lock_timeout: "{{ apt_lock_timeout }}"

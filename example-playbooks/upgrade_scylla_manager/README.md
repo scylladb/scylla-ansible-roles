@@ -18,13 +18,11 @@ scylla_manager_rpm_repo_url: "https://downloads.scylladb.com/rpm/centos/scylladb
 
 ## Trigger Upgrade
 
-Recommended: limit `ansible-scylla-node` to its manager-agent install tasks with `--tags manager_agent_upgrade`. The other plays are tagged `always`, so they still run:
-
 ```bash
-ANSIBLE_ROLES_PATH=$PATH_TO_YOUR_CLONED_REPO ansible-playbook -i inventory.ini --tags manager_agent_upgrade $PATH_TO_YOUR_CLONED_REPO/example-playbooks/upgrade_scylla_manager/upgrade_scylla_manager.yml
+ANSIBLE_ROLES_PATH=$PATH_TO_YOUR_CLONED_REPO ansible-playbook -i inventory.ini $PATH_TO_YOUR_CLONED_REPO/example-playbooks/upgrade_scylla_manager/upgrade_scylla_manager.yml
 ```
 
-Without `--tags`, the playbook runs `ansible-scylla-node` in full on every `scylla` host while Scylla Manager and its agents are stopped. That is a complete node-role converge, not just a Manager upgrade, so only do it if you intend that.
+On the Scylla nodes only the manager-agent tasks of `ansible-scylla-node` run (`tasks/manager_agent_<OS family>.yml`); the rest of the node role is not touched. On the manager host only the package upgrade and the restart from `ansible-scylla-manager` run.
 
 ## Suspend and Resume
 
