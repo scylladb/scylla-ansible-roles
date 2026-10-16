@@ -95,7 +95,7 @@
       run_once: true
 
     - set_fact:
-        _bootstrap_via_maintenance_socket: "{{ _maintenance_socket_path != '' and _maintenance_socket_stat.stat.exists }}"
+        _bootstrap_via_maintenance_socket: "{{ _maintenance_socket_path != '' and (_maintenance_socket_stat.stat.issock | default(false)) }}"
       run_once: true
 
     - name: Warn that the legacy 'cassandra' superuser is being used
@@ -154,7 +154,7 @@
     # A no-op on clusters created with ScyllaDB 2026.2 or later, which never had a 'cassandra' user.
     - name: Delete cassandra user
       import_role:
-        name: ansible-scylla-common
+        name: ../../ansible-scylla-common
         tasks_from: run_cqlsh.yml
       vars:
         cql_statement: "DROP ROLE IF EXISTS 'cassandra';"

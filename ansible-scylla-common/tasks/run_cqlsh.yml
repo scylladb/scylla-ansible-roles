@@ -17,9 +17,21 @@
 # Param to use the maintenance socket:
 # - cql_maintenance_socket: The path of the maintenance socket, or empty if the node has none.
 
+# cqlsh is run without a shell, and without expanding variables in its arguments, so that nothing in a statement or
+# a password is interpreted.
 - name: Run CQL as {{ cql_username | default('') }}
-  shell: |
-    cqlsh {{ cql_host }} {{ cql_port | default(9042) }} -u '{{ cql_username }}' -p '{{ cql_password }}' -e "{{ cql_statement }}"
+  command:
+    expand_argument_vars: false
+    argv:
+      - cqlsh
+      - "{{ cql_host }}"
+      - "{{ cql_port | default(9042) }}"
+      - -u
+      - "{{ cql_username }}"
+      - -p
+      - "{{ cql_password }}"
+      - -e
+      - "{{ cql_statement }}"
   when: cql_username | default('') != ''
 
 - name: Look for the maintenance socket
@@ -41,7 +53,12 @@
     - not (_cql_maintenance_socket_stat.stat.issock | default(false))
 
 - name: Run CQL over the maintenance socket
-  shell: |
-    cqlsh {{ cql_maintenance_socket }} -e "{{ cql_statement }}"
+  command:
+    expand_argument_vars: false
+    argv:
+      - cqlsh
+      - "{{ cql_maintenance_socket }}"
+      - -e
+      - "{{ cql_statement }}"
   become: true
   when: cql_username | default('') == ''

@@ -1,5 +1,7 @@
 ---
 # Creates a CQL user, (re)sets its password and grants it permissions.
+# ansible-scylla-common is referenced by path, so that this runs from a checkout of the repository without a roles
+# path being configured.
 #
 # Expects the following variables to be set by the caller:
 #   * cql_address, cql_port: where to reach a node when logging in as a user.
@@ -13,14 +15,14 @@
   block:
   - name: Create the user
     import_role:
-      name: ansible-scylla-common
+      name: ../../ansible-scylla-common
       tasks_from: run_cqlsh.yml
     vars:
       cql_statement: "CREATE USER IF NOT EXISTS '{{ username }}' WITH PASSWORD '{{ password }}' {{ 'SUPERUSER' if superuser|bool else 'NOSUPERUSER' }};"
 
   - name: Set the password of the user
     import_role:
-      name: ansible-scylla-common
+      name: ../../ansible-scylla-common
       tasks_from: run_cqlsh.yml
     vars:
       cql_statement: "ALTER ROLE '{{ username }}' WITH PASSWORD = '{{ password }}'"
@@ -29,7 +31,7 @@
 
 - name: Grant permissions
   include_role:
-    name: ansible-scylla-common
+    name: ../../ansible-scylla-common
     tasks_from: run_cqlsh.yml
   vars:
     cql_statement: "GRANT {{ outer_item[0] }} on {{ outer_item[1] }} to '{{ username }}';"
