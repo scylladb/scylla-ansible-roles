@@ -80,6 +80,17 @@ Example Playbook
     - ../ansible-scylla-node
 ```
 
+### Maintenance socket
+Starting from ScyllaDB 2026.2 enabling authentication no longer creates a default superuser. When
+`scylla_admin_default_user` is not set, the role adjusts the replication of keyspaces over the node's
+[maintenance socket](https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html),
+which it configures in `scylla.yaml` with `scylla_maintenance_socket` and `scylla_workdir`.
+
+* The role does not restart a running node when it changes `scylla.yaml`, so a node that was started before these
+  settings were written has to be restarted to open the socket. Until then, set `scylla_admin_default_user`.
+* Change these settings through the two variables and not through `scylla_yaml_params`: the role looks for the
+  socket where the variables say it is.
+
 ### `scylla_version` format
 `scylla-version` can be either a string 'latest' or an explicit version that needs to be installed.
 If 'latest' is requested a corresponding (OSS or Enterprise) most recent official version is going to be
