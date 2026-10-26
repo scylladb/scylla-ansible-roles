@@ -1,8 +1,11 @@
 ---
 - hosts: all
   tasks:
-    - name: Update Apt Cache
+    # Minimal systemd images (e.g. jrei/systemd-debian:12) lack procps, which
+    # check_ports needs for pkill.
+    - name: Update Apt Cache and install procps
       apt:
+        name: procps
         update_cache: true
       become: true
       when: ansible_os_family == "Debian"
