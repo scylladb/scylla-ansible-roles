@@ -80,6 +80,11 @@ jobs:
           ansible-galaxy collection install community.docker
           ansible --version
           molecule --version
+      # The runner's chrony AppArmor profile attaches by path, so it also confines
+      # chronyd inside the privileged containers and blocks systemd's notify socket
+      # (EL10 chronyd is Type=notify), failing scylla_ntp_setup.
+      - name: Unload host chronyd AppArmor profile
+        run: sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.chronyd
       - name: Test with molecule
         run: |
           molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}
