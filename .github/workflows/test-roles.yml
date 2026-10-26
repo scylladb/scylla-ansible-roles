@@ -12,6 +12,8 @@ on:
       - 'molecule/**'
       - '.github/workflows/test-roles.yml'
   pull_request:
+    # labeled: adding ci:full-matrix re-runs with the 3-distro set.
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
@@ -22,8 +24,11 @@ on:
       - master
       - dev
 jobs:
-  # Full matrix on master; reduced set on dev to cut runner load.
+  # Full matrix on master; reduced set on dev push; ubuntu only on dev PRs
+  # unless the PR carries the ci:full-matrix label.
   select-distros:
+    # Ignore unrelated label events.
+    if: github.event.action != 'labeled' || github.event.label.name == 'ci:full-matrix'
     runs-on: self-hosted
     outputs:
       molecule_distro: ${{ steps.set.outputs.molecule_distro }}
@@ -34,6 +39,8 @@ jobs:
           target="${{ github.base_ref || github.ref_name }}"
           if [ "$target" = "master" ]; then
             echo 'molecule_distro=["debian11","debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ contains(github.event.pull_request.labels.*.name, 'ci:full-matrix') }}" != "true" ]; then
+            echo 'molecule_distro=["ubuntu2404"]' >> "$GITHUB_OUTPUT"
           else
             echo 'molecule_distro=["debian12","ubuntu2404","rockylinux10"]' >> "$GITHUB_OUTPUT"
           fi
