@@ -50,7 +50,6 @@
   pip:
     name:
       - scylla-driver
-      - scylla-driver[graph]
       - lz4
       - python-snappy
       - scales
