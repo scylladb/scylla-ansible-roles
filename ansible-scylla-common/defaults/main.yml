@@ -26,6 +26,10 @@ iptables_drop_sources: []
 #     - address: 1.2.3.5
 #       port: 8002
 #
+# Set to false to skip these connectivity checks even when required_ports_open_to is set, for a run that
+# only installs packages (ansible-scylla-node with install_only, as ansible-scylla-manager uses it).
+check_required_ports: true
+
 # Default duration that listeners used for testing required ports should stay alive
 check_ports_listener_timeout_sec: 360
 # Default timeout when trying to reach a port on another node
