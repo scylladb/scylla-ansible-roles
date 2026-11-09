@@ -35,9 +35,6 @@ dependencies:
       apt_lock_timeout: 1200
       repo_pattern_list:
         - "scylla*"
-      # An install-only run (how ansible-scylla-manager installs its local backend Scylla) is not a cluster
-      # node: nothing needs to reach it on these ports, so skip the checks below.
-      check_required_ports: "{{ not (install_only | default(false) | bool) }}"
       required_ports_open_to:
         scylla:
           - address: "{{ ansible_host | default(ansible_default_ipv4.address) }}"

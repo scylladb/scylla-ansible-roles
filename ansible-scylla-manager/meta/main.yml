@@ -44,6 +44,9 @@ dependencies:
   - role: "ansible-scylla-node"
     vars:
       install_only: true
+      # This Scylla is the manager's local backend, not a cluster node: nothing needs to reach it on the
+      # inter-node ports, so the node role's ansible-scylla-common pass skips its connectivity checks.
+      check_required_ports: false
       scylla_manager_enabled: false
       elrepo_kernel: false
       scylla_ssl:
