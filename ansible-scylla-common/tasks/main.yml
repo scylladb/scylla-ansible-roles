@@ -23,7 +23,9 @@
       vars:
         source_host_group: "{{ required_ports_dict_item.key }}"
         ports_to_test: "{{ required_ports_dict_item.value }}"
-      when: required_ports_open_to is defined
+      when:
+        - required_ports_open_to is defined
+        - check_required_ports | bool
       loop_control:
         loop_var: required_ports_dict_item
       loop: "{{ required_ports_open_to | dict2items }}"
