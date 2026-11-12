@@ -33,6 +33,11 @@
   - name: common tasks
     include_tasks: common.yml
     when: not upgrade_version and install_only|bool == false
+    # scylla_yaml_params also has to be on this include itself, not just on
+    # the task inside common.yml -- a dynamic include's own tags gate whether
+    # Ansible descends into it at all, so an untagged include here would cut
+    # --tags scylla_yaml_params off before it ever reaches that task.
+    tags: [scylla_yaml_params]
   
   module_defaults:
     ansible.builtin.apt:
