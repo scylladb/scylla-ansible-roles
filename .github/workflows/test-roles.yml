@@ -51,7 +51,7 @@ jobs:
           # PR → base_ref; push → ref_name
           target="${{ github.base_ref || github.ref_name }}"
           if [ "$target" = "master" ]; then
-            echo 'molecule_distro=["debian11","debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
+            echo 'molecule_distro=["debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
           elif [ "$full" = "true" ]; then
             echo 'molecule_distro=["debian12","ubuntu2404","rockylinux10"]' >> "$GITHUB_OUTPUT"
           else
