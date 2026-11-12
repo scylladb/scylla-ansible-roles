@@ -41,5 +41,7 @@
 - name: Cleanup temporary socat listeners
   shell: |
     pkill -9 socat$
-  ignore_errors: true
+  register: _socat_cleanup
+  # pkill exits 1 when nothing matched; anything else leaves the listeners holding the ports
+  failed_when: _socat_cleanup.rc > 1
   become: true

@@ -1,0 +1,62 @@
+---
+
+# This task runs a CQL statement with cqlsh, either logging in as a user or over the maintenance socket of the node.
+# The maintenance socket accepts CQL without authentication and with full permissions, which is how the first superuser
+# gets created now that ScyllaDB has no default one (starting from 2026.2).
+# https://docs.scylladb.com/manual/stable/operating-scylla/admin-tools/maintenance-socket.html
+#
+# Mandatory params:
+# - cql_statement: The CQL statement to run.
+#
+# Params to log in as a user. When cql_username is empty or not set, the maintenance socket is used instead:
+# - cql_username: The user to log in as.
+# - cql_password: The password of the user.
+# - cql_host: The address to connect to.
+# - cql_port: The port to connect to. (default: 9042)
+#
+# Param to use the maintenance socket:
+# - cql_maintenance_socket: The path of the maintenance socket, or empty if the node has none.
+
+# cqlsh is run without a shell, and without expanding variables in its arguments, so that nothing in a statement or
+# a password is interpreted.
+- name: Run CQL as {{ cql_username | default('') }}
+  command:
+    expand_argument_vars: false
+    argv:
+      - cqlsh
+      - "{{ cql_host }}"
+      - "{{ cql_port | default(9042) }}"
+      - -u
+      - "{{ cql_username }}"
+      - -p
+      - "{{ cql_password }}"
+      - -e
+      - "{{ cql_statement }}"
+  when: cql_username | default('') != ''
+
+- name: Use the maintenance socket
+  when: cql_username | default('') == ''
+  block:
+    - name: Look for the maintenance socket
+      stat:
+        path: "{{ cql_maintenance_socket }}"
+      become: true
+      register: _cql_maintenance_socket_stat
+      when: cql_maintenance_socket | default('') != ''
+
+    - name: Fail if there is no maintenance socket to use
+      fail:
+        msg: "No user to log in as was given, and {{ _reason }}. Enable 'maintenance_socket' in scylla.yaml and restart the node."
+      vars:
+        _reason: "{{ 'no maintenance socket is configured' if cql_maintenance_socket | default('') == '' else 'there is no maintenance socket at ' ~ cql_maintenance_socket }}"
+      when: not (_cql_maintenance_socket_stat.stat.issock | default(false))
+
+    - name: Run CQL over the maintenance socket
+      command:
+        expand_argument_vars: false
+        argv:
+          - cqlsh
+          - "{{ cql_maintenance_socket }}"
+          - -e
+          - "{{ cql_statement }}"
+      become: true

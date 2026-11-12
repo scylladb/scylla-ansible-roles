@@ -33,14 +33,16 @@
     msg: "Make sure that {{ scylla_admin_default_user }} is defined in the 'cql_credentials' section"
   when: scylla_admin_default_user is defined and scylla_admin_password is not defined
 
-- set_fact:
-    scylla_admin_username: "cassandra"
-    scylla_admin_password: "cassandra"
-  when: scylla_admin_default_user is not defined
-
 - name: Adjust replication for {{ _keyspace }} keyspace
-  shell: |
-    cqlsh {{ broadcast_address }} -u {{ scylla_admin_username }} -p {{ scylla_admin_password }} -e "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+  import_role:
+    name: ansible-scylla-common
+    tasks_from: run_cqlsh.yml
+  vars:
+    cql_statement: "ALTER KEYSPACE {{ _keyspace }} WITH replication = {'class': '{{ _keyspace_replication_strategy }}', {{ dcs_to_rf | unique | join(',') }}};"
+    cql_host: "{{ broadcast_address }}"
+    cql_username: "{{ scylla_admin_username if scylla_admin_default_user is defined else '' }}"
+    cql_password: "{{ scylla_admin_password if scylla_admin_default_user is defined else '' }}"
+    cql_maintenance_socket: "{{ scylla_maintenance_socket_path }}"
   run_once: true
 
 - name: Run cleanup for keyspace {{ _keyspace }}

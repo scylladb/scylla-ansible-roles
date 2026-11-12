@@ -1,6 +1,8 @@
 scylla_nic: "{{ ansible_default_ipv4.interface }}"
 scylla_nic_ipv4_addr: "{{ vars['ansible_'~scylla_nic].ipv4.address }}"
 
+# Drop the legacy 'cassandra' superuser. Clusters created with ScyllaDB 2026.2 or later never had
+# one, so this is a no-op there.
 delete_cassandra_user: true
 
 scylla_admin_username: scylla_admin

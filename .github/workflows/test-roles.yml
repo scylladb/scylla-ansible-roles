@@ -12,6 +12,8 @@ on:
       - 'molecule/**'
       - '.github/workflows/test-roles.yml'
   pull_request:
+    # labeled: adding ci:full-matrix re-runs with the reduced set.
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'ansible-scylla-node/**'
       - 'ansible-scylla-monitoring/**'
@@ -22,24 +24,44 @@ on:
       - master
       - dev
 jobs:
-  # Full matrix on master; reduced set on dev to cut runner load.
+  # Full matrix on master. On dev (PR + push): ubuntu only, or a reduced set
+  # when the PR carries the ci:full-matrix label.
   select-distros:
-    runs-on: self-hosted
+    # Ignore unrelated label events.
+    if: github.event.action != 'labeled' || github.event.label.name == 'ci:full-matrix'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       molecule_distro: ${{ steps.set.outputs.molecule_distro }}
     steps:
       - id: set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_FULL_MATRIX: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full-matrix') }}
         run: |
+          full="$PR_FULL_MATRIX"
+          # Push carries no labels: read them from the PR that introduced this commit.
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            prs=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls") \
+              || echo "::warning::PR lookup failed; running ubuntu only"
+            echo "$prs" | grep -q '"name": *"ci:full-matrix"' && full=true
+          fi
           # PR → base_ref; push → ref_name
           target="${{ github.base_ref || github.ref_name }}"
           if [ "$target" = "master" ]; then
-            echo 'molecule_distro=["debian11","debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
-          else
+            echo 'molecule_distro=["debian12","ubuntu2204","ubuntu2404","rockylinux9","rockylinux10"]' >> "$GITHUB_OUTPUT"
+          elif [ "$full" = "true" ]; then
             echo 'molecule_distro=["debian12","ubuntu2404","rockylinux10"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'molecule_distro=["ubuntu2404"]' >> "$GITHUB_OUTPUT"
           fi
   build:
     needs: select-distros
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       max-parallel: 4
@@ -60,6 +82,11 @@ jobs:
           ansible-galaxy collection install community.docker
           ansible --version
           molecule --version
+      # The runner's chrony AppArmor profile attaches by path, so it also confines
+      # chronyd inside the privileged containers and blocks systemd's notify socket
+      # (EL10 chronyd is Type=notify), failing scylla_ntp_setup.
+      - name: Unload host chronyd AppArmor profile
+        run: sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.chronyd
       - name: Test with molecule
         run: |
           molecule destroy --scenario-name ${{ matrix.molecule_distro }} && molecule test --scenario-name ${{ matrix.molecule_distro }}
@@ -69,5 +96,7 @@ jobs:
       - name: Remove molecule DinD volume
         if: always()
         run: |
+          # test_sequence ends at verify, so the instances still hold the volume here.
+          molecule destroy --scenario-name ${{ matrix.molecule_distro }} || echo "::warning::failed to destroy molecule scenario ${{ matrix.molecule_distro }}"
           volume="molecule-dind-${{ matrix.molecule_distro }}-${{ github.run_id }}"
           docker volume rm -f "$volume" || echo "::warning::failed to remove volume $volume"

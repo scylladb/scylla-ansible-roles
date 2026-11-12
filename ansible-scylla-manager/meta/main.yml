@@ -40,9 +40,13 @@ dependencies:
             port: 7000
           - address: "127.0.0.1"
             port: 9042
+    when: not skip_role_deps | default(false)
   - role: "ansible-scylla-node"
     vars:
       install_only: true
+      # This Scylla is the manager's local backend, not a cluster node: nothing needs to reach it on the
+      # inter-node ports, so the node role's ansible-scylla-common pass skips its connectivity checks.
+      check_required_ports: false
       scylla_manager_enabled: false
       elrepo_kernel: false
       scylla_ssl:
@@ -50,3 +54,4 @@ dependencies:
           enabled: false
         client:
           enabled: false
+    when: not skip_role_deps | default(false)
